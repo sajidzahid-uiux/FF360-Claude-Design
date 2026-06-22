@@ -1,0 +1,36 @@
+# Netlify configuration for the FF360 prototyping repo.
+#
+# This is a MONOREPO: the deployable app is the Next.js CMS prototyping hub at
+# projects/management-system/frontend-2 (there is no app at the repo root, which
+# is why a root-pointed deploy showed "Page not found").
+#
+# Next.js is NOT a static SPA — Netlify's official Next.js runtime
+# (@netlify/plugin-nextjs) handles SSR, dynamic routes, redirects() and headers()
+# from next.config.js. No public/_redirects "/* /index.html 200" rule is used
+# (that is for Vite/CRA SPAs and would break a Next.js app).
+
+[build]
+  # Build from the app subdirectory (monorepo base). install + command run here.
+  base = "projects/management-system/frontend-2"
+  command = "npm run build"
+
+[build.environment]
+  # CMS requires Node >= 20.9 (see package.json engines).
+  NODE_VERSION = "20"
+  # Match the local install (org-ui tarball + deck.gl overrides resolve cleanly).
+  NPM_FLAGS = "--legacy-peer-deps"
+  # Run the deployed app in dummy-data mode (no backend), same as local prototype.
+  NEXT_PUBLIC_USE_MOCK_DATA = "true"
+  CSP_ENABLED = "false"
+  # Auth0 is bypassed by the mock in mock mode; placeholders keep config happy.
+  NEXT_PUBLIC_AUTH0_DOMAIN = "mock.auth0.local"
+  NEXT_PUBLIC_AUTH0_CLIENT_ID = "mock-client-id"
+  NEXT_PUBLIC_AUTH0_AUDIENCE = "https://mock.api.local/"
+  NEXT_PUBLIC_AUTH0_SCOPE = "openid profile email offline_access"
+  # Build-time validation requires this (lib/server-env.ts). Stripe is never
+  # actually called in mock mode — this placeholder just satisfies the check.
+  STRIPE_SECRET_KEY = "sk_test_mock_placeholder_not_used_in_mock_mode"
+
+# Netlify's Next.js runtime — replaces any SPA redirect hack.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
