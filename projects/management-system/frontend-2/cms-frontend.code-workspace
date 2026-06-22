@@ -1,0 +1,24 @@
+{
+  "folders": [
+    {
+      "name": "cms-frontend",
+      "path": ".",
+    },
+  ],
+  "settings": {
+    "files.watcherExclude": {
+      "**/.git/objects/**": true,
+      "**/node_modules/**": true,
+      "**/.next/**": true,
+      "**/.turbo/**": true,
+      "**/dist/**": true,
+      "**/build/**": true,
+      "**/coverage/**": true,
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/.next": true,
+    },
+    "typescript.tsserver.maxTsServerMemory": 4096,
+  },
+}

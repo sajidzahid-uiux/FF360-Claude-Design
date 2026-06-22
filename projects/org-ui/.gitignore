@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+coverage/
+
+# Authentication
+.npmrc
+
+# Development environment
+dev/node_modules
+dev/dist
+dev/.vite
+
+# Next.js playground apps
+dev-app/node_modules/
+dev-app/.next/
+dev-app/.next-dev/
+dev-app/out/
+dev-app/.vercel/
+consumer-app/node_modules/
+consumer-app/.next/
+consumer-app/out/
+consumer-app/.vercel/
+

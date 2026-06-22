@@ -1,0 +1,13 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "CMS Frontend 2 API Types",
+  "entryPoints": ["api/types", "constants"],
+  "entryPointStrategy": "expand",
+  "tsconfig": "tsconfig.typedoc.json",
+  "out": "docs/types",
+  "exclude": ["**/*.test.ts", "**/*.test.tsx", "**/__tests__/**"],
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "readme": "none",
+  "sort": ["alphabetical"]
+}

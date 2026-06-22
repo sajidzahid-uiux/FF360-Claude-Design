@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+FRONTEND_DIR="$(dirname "$SCRIPT_DIR")"
+
+cd "$FRONTEND_DIR" && npx --no -- commitlint --config "$FRONTEND_DIR/commitlint.config.js" --edit "$1"
+

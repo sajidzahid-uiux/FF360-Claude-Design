@@ -1,0 +1,51 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@/components/ui": ["shared/ui/primitives/index"],
+      "@/components/ui/*": ["shared/ui/primitives/*"],
+      "@/components/common": ["shared/ui/common/index"],
+      "@/components/common/*": ["shared/ui/common/*"],
+      "@/components/layout/*": ["shared/ui/layout/*"],
+      "@/components/permissions": ["shared/ui/permissions/index"],
+      "@/components/permissions/*": ["shared/ui/permissions/*"],
+      "@/components/truncated": ["shared/ui/truncated/index"],
+      "@/components/truncated/*": ["shared/ui/truncated/*"],
+      "@/components/forms": ["features/forms/ui/index"],
+      "@/components/forms/*": ["features/forms/ui/*"],
+      "@/components/auth/*": ["features/auth/ui/*"],
+      "@/components/PosthogInit": ["shared/lib/analytics/PosthogInit"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "vitest-env.d.ts",
+    "vitest.config.mts",
+    "vitest.setup.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/dev/types/**/*.ts",
+    "shared/config/routes.js",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

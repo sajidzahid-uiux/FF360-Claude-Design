@@ -1,0 +1,20 @@
+@import "tailwindcss";
+@import "@fieldflow360/org-ui/styles.css";
+
+@import "tw-animate-css";
+@import "./cms-app-extensions.css";
+
+@theme {
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: color-mix(
+      in oklab,
+      var(--color-border-subtle) 65%,
+      var(--color-bg-app)
+    );
+  }
+}

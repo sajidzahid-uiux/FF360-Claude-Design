@@ -1,0 +1,53 @@
+"use client";
+
+import type { Job } from "@/api/types";
+import { JobType } from "@/constants";
+import type { CardProps } from "@/features/job-lead/model/cardProps";
+import { useJobPermissions } from "@/hooks/permissions";
+import { GenericCard } from "@/shared/ui/common";
+import { getJobCardProps } from "@/shared/ui/common/GenericCard";
+
+export function ExcavationCard({
+  data,
+  onShowMore,
+  onTrash,
+  onUnarchive,
+  onArchive,
+  onSelect,
+  onDeselect,
+  isSelected,
+  onRowDoubleClick,
+  onOnSiteTracking,
+  onLogs,
+  showJobStatus = false,
+}: CardProps<Job> & {
+  onOnSiteTracking?: (id: number) => void;
+  onLogs?: (id: number, isArchived?: boolean) => void;
+}) {
+  const isArchived = showJobStatus;
+  const { canEdit, canDelete } = useJobPermissions(JobType.EXCAVATION);
+
+  const cardProps = getJobCardProps(
+    data,
+    {
+      onShowMore,
+      onTrash,
+      onArchive,
+      onUnarchive,
+      onSelect,
+      onDeselect,
+      onRowDoubleClick,
+      onOnSiteTracking,
+      onLogs,
+    },
+    {
+      jobType: JobType.EXCAVATION,
+      isArchived,
+      isSelected,
+      canEdit,
+      canDelete,
+    }
+  );
+
+  return <GenericCard {...cardProps} />;
+}

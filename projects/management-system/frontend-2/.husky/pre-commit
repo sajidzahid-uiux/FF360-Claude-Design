@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+
+# Monorepo hooks live in frontend/.husky (git config core.hooksPath).
+# This file is unused when hooksPath is set; kept for local frontend-2-only setups.
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+FRONTEND2_DIR="$(dirname "$SCRIPT_DIR")"
+
+cd "$FRONTEND2_DIR" || exit 1
+
+if ! npm run lint:staged; then
+	echo "Lint-staged failed. Commit aborted."
+	exit 1
+fi
+
+if ! npm test; then
+	echo "Tests failed. Commit aborted."
+	exit 1
+fi
+
+git add -A

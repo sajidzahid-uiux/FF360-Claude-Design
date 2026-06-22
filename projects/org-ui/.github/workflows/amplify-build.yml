@@ -1,0 +1,69 @@
+name: Manual AWS Amplify Deploy
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual deployment'
+        required: false
+        default: 'Manual production release'
+permissions:
+  id-token: write # Required for requesting the JWT from AWS OIDC
+  contents: read  # Required for actions/checkout
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1 
+          audience: sts.amazonaws.com
+      - name: Trigger AWS Amplify Build
+        id: trigger_build
+        run: |
+          echo "Triggering deployment for reason: ${{ github.event.inputs.reason }}"
+          
+          # Capture the output JSON to extract the unique Job ID
+          JOB_OUTPUT=$(aws amplify start-job \
+            --app-id ${{ secrets.AWS_AMPLIFY_APP_ID }} \
+            --branch-name main \
+            --job-type RELEASE)
+          
+          # Extract the job ID using standard bash/grep string manipulation
+          JOB_ID=$(echo "$JOB_OUTPUT" | grep -o '"jobId": "[^"]*' | grep -o '[^"]*$')
+          echo "JOB_ID=$JOB_ID" >> $GITHUB_ENV
+          echo "Amplify Job ID triggered: $JOB_ID"
+      - name: Wait for Amplify Deployment Success
+        run: |
+          echo "Waiting for Amplify Job ${{ env.JOB_ID }} to complete..."
+          
+          MAX_ATTEMPTS=30  # 30 * 20s = 10 minutes max wait
+          ATTEMPT=0
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            STATUS=$(aws amplify get-job \
+              --app-id ${{ secrets.AWS_AMPLIFY_APP_ID }} \
+              --branch-name main \
+              --job-id ${{ env.JOB_ID }} \
+              --query 'job.summary.status' \
+              --output text)
+            
+            echo "Attempt $((ATTEMPT + 1))/$MAX_ATTEMPTS — Current status: $STATUS"
+
+            if [ "$STATUS" = "SUCCEED" ]; then
+              echo "Amplify deployment finished successfully!"
+              exit 0
+            elif [ "$STATUS" = "FAILED" ] || [ "$STATUS" = "CANCELLED" ]; then
+              echo "Amplify deployment failed with status: $STATUS"
+              exit 1
+            fi
+
+            ATTEMPT=$((ATTEMPT + 1))
+            sleep 20
+          done
+
+          echo "Timed out waiting for Amplify deployment after $((MAX_ATTEMPTS * 20)) seconds."
+          exit 1

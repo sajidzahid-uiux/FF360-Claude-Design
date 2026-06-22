@@ -1,0 +1,38 @@
+╔══════════════════════════════════════════════════════════════╗
+║         FF MANAGEMENT SYSTEM - DEVELOPMENT SCRIPTS          ║
+╚══════════════════════════════════════════════════════════════╝
+
+🚀 START YOUR APP IN ONE LINE:
+
+   cd frontend/dev-scripts
+   ./start-dev.sh        (Full setup with checks)
+   ./quick-start.sh      (Fast start, no checks)
+   ./stop-dev.sh         (Stop everything)
+
+📖 DOCUMENTATION:
+
+   QUICKSTART.md         Quick reference guide
+   DEV_SCRIPTS.md        Detailed documentation
+   README.md             Full project documentation
+
+🌐 URLS:
+
+   Frontend:   http://localhost:3000
+   Backend:    http://localhost:8000
+   API Docs:   http://localhost:8000/swagger/
+   Admin:      http://localhost:8000/admin/
+
+📝 LOGS:
+
+   Backend:    tail -f /tmp/ff-backend.log
+   Frontend:   tail -f /tmp/ff-frontend.log
+
+✨ QUICK TIPS:
+
+   • First time? Use ./start-dev.sh
+   • Daily dev? Use ./quick-start.sh  
+   • Need help? Read QUICKSTART.md
+   • Stuck? Check logs in /tmp/
+
+═══════════════════════════════════════════════════════════════
+
