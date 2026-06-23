@@ -27,12 +27,15 @@ export function useDesignRequestWs({
 
   useEffect(() => {
     if (!enabled || !organizationId) return;
+    // Dummy-data prototype: no backend, so never open a real socket.
+    if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true") return;
 
     const rawToken = getCookie(StorageKey.ACCESS_TOKEN);
     const accessToken = rawToken?.replace(/^JWT\s*/, "") || null;
     if (!accessToken) return;
 
     const wsUrl = buildDesignRequestWebSocketUrl(organizationId, accessToken);
+    if (!wsUrl) return;
     const socket = new WebSocket(wsUrl);
 
     socket.onmessage = (message) => {

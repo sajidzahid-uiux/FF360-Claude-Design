@@ -7,14 +7,21 @@ export function buildDesignRequestWebSocketUrl(
   accessToken: string
 ): string {
   const apiBase = API_URL.trim();
-  const base = new URL(apiBase.endsWith("/") ? apiBase : `${apiBase}/`);
-  const wsProtocol = base.protocol === "https:" ? "wss:" : "ws:";
-  const wsUrl = new URL(
-    `/ws/td_integration/${organizationId}/`,
-    `${wsProtocol}//${base.host}`
-  );
-  wsUrl.searchParams.set(WS_AUTH_TOKEN_QUERY_PARAM, accessToken);
-  return wsUrl.toString();
+  // No / malformed API base (e.g. dummy-data prototype with no backend): bail out
+  // instead of throwing "Invalid URL". Callers treat "" as "don't connect".
+  if (!apiBase) return "";
+  try {
+    const base = new URL(apiBase.endsWith("/") ? apiBase : `${apiBase}/`);
+    const wsProtocol = base.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = new URL(
+      `/ws/td_integration/${organizationId}/`,
+      `${wsProtocol}//${base.host}`
+    );
+    wsUrl.searchParams.set(WS_AUTH_TOKEN_QUERY_PARAM, accessToken);
+    return wsUrl.toString();
+  } catch {
+    return "";
+  }
 }
 
 export type DesignRequestWsEvent =

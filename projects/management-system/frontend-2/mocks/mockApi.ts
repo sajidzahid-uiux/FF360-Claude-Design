@@ -128,8 +128,80 @@ const DEMO_DASHBOARD = {
   total_acres_of_all_completed_tilling_jobs: 240,
 };
 
-function paginated<T>(results: T[] = []) {
-  return { count: results.length, next: null, previous: null, results };
+/**
+ * Status / type lookups. The hooks that consume these (useJobStatuses,
+ * useLeadStatuses, useLeadTypes and their settings variants) expect a RAW
+ * array of {id, title, color} — NOT a DRF page — so they must be matched
+ * explicitly before the paginated fallback or `.map` blows up at the callsite.
+ */
+const DEMO_JOB_STATUSES = [
+  { id: 1, title: "New", color: "#3b82f6", is_default: true },
+  { id: 2, title: "Scheduled", color: "#8b5cf6", is_default: false },
+  { id: 3, title: "In Progress", color: "#f59e0b", is_default: false },
+  { id: 4, title: "On Hold", color: "#6b7280", is_default: false },
+  { id: 5, title: "Completed", color: "#22c55e", is_default: false },
+  { id: 6, title: "Cancelled", color: "#ef4444", is_default: false },
+];
+
+const DEMO_LEAD_STATUSES = [
+  { id: 1, title: "New", color: "#3b82f6", is_default: true },
+  { id: 2, title: "Contacted", color: "#06b6d4", is_default: false },
+  { id: 3, title: "Qualified", color: "#8b5cf6", is_default: false },
+  { id: 4, title: "Proposal Sent", color: "#f59e0b", is_default: false },
+  { id: 5, title: "Won", color: "#22c55e", is_default: false },
+  { id: 6, title: "Lost", color: "#ef4444", is_default: false },
+];
+
+const DEMO_LEAD_TYPES = [
+  { id: 1, title: "Website", color: "#3b82f6", is_default: true },
+  { id: 2, title: "Referral", color: "#22c55e", is_default: false },
+  { id: 3, title: "Cold Call", color: "#f59e0b", is_default: false },
+  { id: 4, title: "Trade Show", color: "#8b5cf6", is_default: false },
+  { id: 5, title: "Social Media", color: "#ec4899", is_default: false },
+];
+
+const DEMO_PAYMENT_STATUSES = [
+  { id: 1, title: "Unpaid", color: "#ef4444", is_default: true },
+  { id: 2, title: "Partially Paid", color: "#f59e0b", is_default: false },
+  { id: 3, title: "Paid", color: "#22c55e", is_default: false },
+];
+
+/**
+ * Django content_types served by `ms/dropdowns/content_types/` (via useMapping).
+ * Comment/file features resolve a contentTypeId by matching `model` against
+ * COMMENT_CONTENT_TYPE_MODEL ({ lead: "leaditem", job: "job", equipment: "equipment" }),
+ * so those three models must be present. Consumed as a RAW array (.find on it).
+ */
+const DEMO_CONTENT_TYPES = [
+  { id: 1, model: "leaditem" },
+  { id: 2, model: "job" },
+  { id: 3, model: "equipment" },
+];
+
+/**
+ * List response for any collection GET.
+ *
+ * Returns an ARRAY that ALSO carries pagination metadata (both DRF `count` and
+ * the CMS `total_count`/`total_pages`/`current_page`/`page_size`). With no real
+ * backend, list endpoints are consumed three incompatible ways across the app:
+ *   - directly:        `data.map(...)`, `data.find(...)`, `for (const x of data)`
+ *   - unwrapped:       `data.results.map(...)`
+ *   - gated:           `isPaginated(data) ? data.results : data` (needs total_count)
+ * A plain object breaks the first; a plain array breaks the others. An array
+ * with the metadata attached satisfies all three, so empty list endpoints never
+ * throw "X is not a function / is not iterable" in dummy-data mode.
+ */
+function listResponse<T>(results: T[] = []) {
+  const arr = [...results] as T[] & Record<string, unknown>;
+  arr.count = results.length;
+  arr.total_count = results.length;
+  arr.total_pages = 1;
+  arr.current_page = 1;
+  arr.page_size = results.length || 100;
+  arr.next = null;
+  arr.previous = null;
+  arr.results = [...results];
+  return arr;
 }
 
 function makeResponse(
@@ -200,6 +272,46 @@ export const mockAdapter: AxiosAdapter = async (config) => {
     return makeResponse([], config);
   }
 
+  // --- Statuses & lead types: consumed as RAW arrays (org-level + settings).
+  //     Must precede the paginated/detail fallbacks below. ---
+  if (method === "get") {
+    // Job statuses:  …/statuses/  and  …/settings/job-statuses/
+    if (/ms\/organizations\/\d+\/(settings\/job-)?statuses\/?$/.test(url)) {
+      return makeResponse(DEMO_JOB_STATUSES, config);
+    }
+    // Lead statuses:  …/lead_statuses/  and  …/settings/lead_statuses/
+    if (/ms\/organizations\/\d+\/(settings\/)?lead_statuses\/?$/.test(url)) {
+      return makeResponse(DEMO_LEAD_STATUSES, config);
+    }
+    // Lead types/sources:  …/leadTypes/  and  …/settings/leadTypes/
+    if (/ms\/organizations\/\d+\/(settings\/)?leadTypes\/?$/.test(url)) {
+      return makeResponse(DEMO_LEAD_TYPES, config);
+    }
+    // Payment statuses:  …/settings/payment-statuses/
+    if (/ms\/organizations\/\d+\/settings\/payment-statuses\/?$/.test(url)) {
+      return makeResponse(DEMO_PAYMENT_STATUSES, config);
+    }
+
+    // Dropdown mappings (useMapping → ms/dropdowns/<type>/): each is consumed as
+    // a RAW array (.map/.find), so they must not fall through to the DRF page.
+    if (/dropdowns\/content_types\/?$/.test(url)) {
+      return makeResponse(DEMO_CONTENT_TYPES, config);
+    }
+    if (/dropdowns\/[^/]+\/?$/.test(url)) {
+      return makeResponse([], config);
+    }
+
+    // Endpoints whose hooks `.map`/`.find` the response directly (no pagination
+    // unwrap), so they need a RAW array rather than a DRF page. Empty = nothing.
+    if (/ms\/organizations\/\d+\/scheduling\/items\/?$/.test(url)) {
+      return makeResponse([], config);
+    }
+    // Messaging chat groups (useChatGroups).
+    if (/chat\/[^/]+\/chatgroups\/?$/.test(url)) {
+      return makeResponse([], config);
+    }
+  }
+
   // --- Writes: echo back the payload with a generated id ---
   if (["post", "put", "patch"].includes(method)) {
     const body = parseBody(config.data);
@@ -218,12 +330,12 @@ export const mockAdapter: AxiosAdapter = async (config) => {
   if (/\/\d+\/?$/.test(url)) {
     return makeResponse({}, config);
   }
-  // Collection endpoint → DRF-style paginated empty list
+  // Collection endpoint → empty list (array + pagination metadata; see listResponse)
   if (typeof console !== "undefined") {
     // eslint-disable-next-line no-console
     console.debug(`[mockApi] unmatched GET → ${url} (returned empty list)`);
   }
-  return makeResponse(paginated([]), config);
+  return makeResponse(listResponse([]), config);
 };
 
 export const USE_MOCK_DATA =

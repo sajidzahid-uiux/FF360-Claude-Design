@@ -27,6 +27,11 @@
   # Run the deployed app in dummy-data mode (no backend), same as local prototype.
   NEXT_PUBLIC_USE_MOCK_DATA = "true"
   CSP_ENABLED = "false"
+  # Requests are all intercepted by the mock adapter, but these must be VALID
+  # absolute URLs — code does `new URL(API_URL)` which throws on an empty string.
+  NEXT_PUBLIC_API_URL = "https://mock.api.local"
+  NEXT_PUBLIC_WS_URL = "wss://mock.api.local"
+  NEXT_PUBLIC_VENDOR_API_URL = "https://mock.api.local"
   # Auth0 is bypassed by the mock in mock mode; placeholders keep config happy.
   NEXT_PUBLIC_AUTH0_DOMAIN = "mock.auth0.local"
   NEXT_PUBLIC_AUTH0_CLIENT_ID = "mock-client-id"
