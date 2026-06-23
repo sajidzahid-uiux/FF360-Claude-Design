@@ -36,13 +36,13 @@ const ALL_PERMISSION_CODES: string[] = [
 
 export const DEMO_ORG = {
   id: 1,
-  name: "Demo Organization",
-  slug: "demo-organization",
+  name: "Sajid & Sons Contractors",
+  slug: "sajid-sons-contractors",
   logo: null,
-  address: "123 Demo Street",
-  phone_number: "+1 555 0100",
-  email: "demo@fieldflow360.com",
-  timezone: "UTC",
+  address: "1450 County Rd E34, Ames, IA 50010",
+  phone_number: "+1 515 555 0142",
+  email: "office@sajidsons.com",
+  timezone: "America/Chicago",
   unit_system: "imperial",
   subscription_status: "active",
   is_active: true,
@@ -52,11 +52,11 @@ export const DEMO_ORG = {
 
 export const DEMO_USER = {
   id: 1,
-  email: "demo@fieldflow360.com",
-  first_name: "Demo",
-  last_name: "User",
-  full_name: "Demo User",
-  phone_number: "+1 555 0100",
+  email: "sajid.zahid@fieldflow360.com",
+  first_name: "Sajid",
+  last_name: "Zahid",
+  full_name: "Sajid Zahid",
+  phone_number: "+1 515 555 0142",
   is_active: true,
   email_verified: true,
 };
