@@ -1,8 +1,8 @@
 # UI/UX Prototyping Branch Guidelines
 
-This repo is a living design/prototyping tool. Two projects live under `projects/`:
-- `projects/org-ui/` — the `@fieldflow360/org-ui` design system (its `dev-app/` is a component showcase on **:3010**).
-- `projects/management-system/frontend-2/` — the CMS (Next.js 16, React 19), which runs on **:3000** as the prototyping hub. **The Django backend was removed; the CMS runs entirely on dummy data.**
+This repo is a living design/prototyping tool. We run a SINGLE server — the CMS on **:3000**. Projects under `projects/`:
+- `projects/management-system/frontend-2/` — the CMS (Next.js 16, React 19), the only thing we run (port **:3000**) and the prototyping hub. **The Django backend was removed; the CMS runs entirely on dummy data.** The design system is embedded at `/design-system` (renders the same `@fieldflow360/org-ui` components the CMS uses).
+- `projects/org-ui/` — source of the `@fieldflow360/org-ui` design system. It is NOT run as its own server; it's the library the CMS consumes (via the `vendor/*.tgz` tarball) and a prop reference. Its `dev-app/` showcase exists but we don't run it (port 3010 was retired — use `/design-system` on :3000 instead).
 
 Unless a path says otherwise, file paths below are relative to `projects/management-system/frontend-2/`.
 
@@ -34,6 +34,6 @@ Unless a path says otherwise, file paths below are relative to `projects/managem
 
 ## Running it (Node is NOT on PATH — use full paths)
 Node 24 lives at `C:\Program Files\nodejs\node.exe`; npm at `C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js`.
-- Dev servers are defined in `.claude/launch.json` (`org-ui` → 3010, `cms-frontend` → 3000). Start with `preview_start` by name. They invoke Next's JS entry directly via the full `node.exe` path (the preview process has a stale PATH without Node).
+- The dev server is defined in `.claude/launch.json` (`cms-frontend` → 3000). Start with `preview_start`. It invokes Next's JS entry directly via the full `node.exe` path (the preview process has a stale PATH without Node).
 - org-ui build quirk: `npm run build` fails on Windows (`rm -rf` in the `clean` script). Run `npm run build:js` then `npm run build:css` instead.
 - The CMS consumes org-ui from a local tarball (`vendor/fieldflow360-org-ui-*.tgz`, a `file:` dependency) because the published package is on GitHub Packages (auth-gated). npm `overrides` pin the deck.gl family to a single 9.3.3 (avoids a multi-version runtime crash). After changing org-ui source: rebuild → `npm pack` → reinstall.

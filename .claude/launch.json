@@ -2,18 +2,6 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "org-ui",
-      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
-      "runtimeArgs": [
-        "D:\\FF360 Claude Design\\projects\\org-ui\\dev-app\\node_modules\\next\\dist\\bin\\next",
-        "dev",
-        "D:\\FF360 Claude Design\\projects\\org-ui\\dev-app",
-        "-p",
-        "3010"
-      ],
-      "port": 3010
-    },
-    {
       "name": "cms-frontend",
       "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
       "runtimeArgs": [
