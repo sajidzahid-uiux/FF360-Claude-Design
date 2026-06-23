@@ -15,8 +15,9 @@
   command = "npm run build"
   # Next.js build output. MUST differ from `base`, or @netlify/plugin-nextjs aborts
   # with "publish directory cannot be the same as the base directory". The Next.js
-  # runtime reads `.next` (NOT `.netlify/output`).
-  publish = "projects/management-system/frontend-2/.next"
+  # runtime reads `.next` (NOT `.netlify/output`). NOTE: `publish` is resolved
+  # RELATIVE TO `base`, so this is just ".next" (a full path would double the base).
+  publish = ".next"
 
 [build.environment]
   # CMS requires Node >= 20.9 (see package.json engines).
