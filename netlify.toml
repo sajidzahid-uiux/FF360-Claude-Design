@@ -13,6 +13,10 @@
   # Build from the app subdirectory (monorepo base). install + command run here.
   base = "projects/management-system/frontend-2"
   command = "npm run build"
+  # Next.js build output. MUST differ from `base`, or @netlify/plugin-nextjs aborts
+  # with "publish directory cannot be the same as the base directory". The Next.js
+  # runtime reads `.next` (NOT `.netlify/output`).
+  publish = "projects/management-system/frontend-2/.next"
 
 [build.environment]
   # CMS requires Node >= 20.9 (see package.json engines).
