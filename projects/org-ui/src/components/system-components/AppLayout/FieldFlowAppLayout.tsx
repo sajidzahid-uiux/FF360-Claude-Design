@@ -579,7 +579,13 @@ export function FieldFlowAppLayout({
 
   const sidebarPanel = (
     <>
-      <SidebarHeader title={appTitle} logo={logo} isCollapsed={sidebarCollapsedForRender} />
+      <SidebarHeader
+        title={appTitle}
+        logo={logo}
+        isCollapsed={sidebarCollapsedForRender}
+        showCollapseToggle={!isMobile}
+        onToggleCollapsed={() => setIsCollapsed((prev) => !prev)}
+      />
       {sidebarHeaderContent ? (
         <div className="border-border-subtle/60 shrink-0 border-b px-2 py-2">
           {sidebarHeaderContent}
@@ -591,7 +597,7 @@ export function FieldFlowAppLayout({
         user={user}
         actions={userMenuActions}
         onToggleCollapsed={() => setIsCollapsed((prev) => !prev)}
-        showCollapseToggle={!isMobile}
+        showCollapseToggle={false}
       />
     </>
   );

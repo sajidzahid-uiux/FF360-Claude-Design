@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ReactNode,
   Suspense,
@@ -16,14 +15,17 @@ import {
   type FieldFlowUserMenuAction,
 } from "@fieldflow360/org-ui";
 import { useMediaQuery } from "@mantine/hooks";
-import { Building2, CirclePlus, HardHat, LogOut } from "lucide-react";
+import {
+  Building2,
+  HardHat,
+  LogOut,
+  Settings,
+  UserRound,
+} from "lucide-react";
 
 import type { OrganizationListRow } from "@/api/types";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import {
-  PERMISSION_RESOURCES,
-  usePermissionsFromStorage,
-} from "@/hooks/permissions";
+import { usePermissionsFromStorage } from "@/hooks/permissions";
 import {
   useIsAdmin,
   useUserPermissions,
@@ -35,10 +37,7 @@ import { useOrganizationById } from "@/hooks/useOrganizationData";
 import { useRouteIds } from "@/hooks/useRouteIds";
 import { APP_ROUTES, orgRoute } from "@/shared/config/routes";
 import { getInitials } from "@/shared/lib";
-import {
-  useSidebarActions,
-  useSidebarCollapsed,
-} from "@/shared/model/sidebar-store";
+import { useSidebarActions } from "@/shared/model/sidebar-store";
 import LazyChatBot from "@/shared/ui/layout/LazyChatBot";
 
 import { CmsAppBreadcrumbs } from "./CmsAppBreadcrumbs";
@@ -77,12 +76,12 @@ export default function AppLayout({
   const isMobile = useMediaQuery("(max-width: 820px)");
   const isAdmin = useIsAdmin();
 
-  const sidebarCollapsed = useSidebarCollapsed();
   const { setCollapsed, registerToggle } = useSidebarActions();
   const collapseControllerRef = useRef<((collapsed: boolean) => void) | null>(
     null
   );
   const pathname = usePathname();
+  const router = useRouter();
   const isMessagesPage = pathname?.includes("/messages") ?? false;
   const isMapPage = pathname?.includes("/map") ?? false;
 
@@ -112,9 +111,6 @@ export default function AppLayout({
 
   const permissionsQuery = useUserPermissions();
   const storagePerms = usePermissionsFromStorage().permissionCodes;
-  const teamOrgPermissionActions = usePermissionsFromStorage(
-    PERMISSION_RESOURCES.TEAM_ORGANIZATION_INFO
-  ).permissionCodes;
 
   const permissionResources = useMemo(() => {
     if (permissionsQuery.data?.permission_codes) {
@@ -183,6 +179,22 @@ export default function AppLayout({
   const userMenuActions = useMemo<FieldFlowUserMenuAction[]>(
     () => [
       {
+        id: "organization-settings",
+        label: "Organization Settings",
+        icon: <Settings className="h-4 w-4" />,
+        onSelect: () => {
+          if (orgId) router.push(orgRoute(orgId, APP_ROUTES.organizationSettings));
+        },
+      },
+      {
+        id: "user-settings",
+        label: "User Settings",
+        icon: <UserRound className="h-4 w-4" />,
+        onSelect: () => {
+          if (orgId) router.push(orgRoute(orgId, APP_ROUTES.userSettings));
+        },
+      },
+      {
         id: "switch-organization",
         label: "Switch Organization",
         icon: <Building2 className="h-4 w-4" />,
@@ -196,7 +208,7 @@ export default function AppLayout({
         onSelect: logout,
       },
     ],
-    [logout, onOpenOrganizationSwitcher]
+    [logout, onOpenOrganizationSwitcher, orgId, router]
   );
 
   const displayName =
@@ -206,10 +218,6 @@ export default function AppLayout({
   const mobileShellBarEnd = isMobile ? (
     <CmsAppTopBarMobileShellActions />
   ) : undefined;
-  const canInviteTeamMember =
-    permissionsQuery.data?.permission_codes?.includes(
-      `${PERMISSION_RESOURCES.TEAM_ORGANIZATION_INFO}_write`
-    ) ?? teamOrgPermissionActions.includes("write");
 
   const sidebarNavContextValue = useMemo(
     () => ({
@@ -236,23 +244,6 @@ export default function AppLayout({
     [sidebarNavigation]
   );
 
-  const sidebarHeaderContent =
-    canInviteTeamMember && orgId ? (
-      <div className={sidebarCollapsed ? "-mt-3 flex justify-center" : "-mt-3"}>
-        <Link
-          aria-label="Invite"
-          className={`night:bg-accent night:text-black night:hover:brightness-[1.03] inline-flex h-10 items-center justify-center rounded-md bg-black text-base font-medium text-white transition-colors hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-zinc-100 ${
-            sidebarCollapsed ? "w-10 px-0" : "w-full gap-2 px-4"
-          }`}
-          href={`${orgRoute(orgId, APP_ROUTES.team)}?invite=true`}
-          prefetch={false}
-        >
-          {!sidebarCollapsed ? <span>Invite</span> : null}
-          <CirclePlus className="h-5 w-5" />
-        </Link>
-      </div>
-    ) : null;
-
   return (
     <>
       <FreeTrialSpan />
@@ -268,7 +259,6 @@ export default function AppLayout({
             logo={<AppLogo />}
             mainTopBar={shouldShowDesktopTopBar ? <CmsAppTopBar /> : undefined}
             mobileShellBarEnd={mobileShellBarEnd}
-            sidebarHeaderContent={sidebarHeaderContent}
             sidebarNav={renderCmsAppLayoutSidebarNav}
             user={layoutUser}
             userMenuActions={userMenuActions}

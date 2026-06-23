@@ -251,7 +251,7 @@ export function LeadsTable({
         selectable={canEdit}
         selected={context.selected}
         teamData={teamData}
-        onDoubleClick={() => onShowMore(lead.id, isArchived)}
+        onActivate={() => onShowMore(lead.id, isArchived)}
         onSelectedChange={context.onSelectedChange}
       />
     ),
@@ -321,6 +321,7 @@ export function LeadsTable({
       toolbarActions={toolbarActions}
       view={resolvedView}
       onFilterValuesChange={handleFilterValuesChange}
+      onRowActivate={(id) => onShowMore(Number(id), isArchived)}
       onSelectChange={onSelectChange}
       onSortRulesChange={onSortRulesChange}
       onViewChange={handleViewChange}

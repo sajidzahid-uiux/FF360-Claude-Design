@@ -2,7 +2,12 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Modal, TabsSwitcher } from "@fieldflow360/org-ui";
+import {
+  Modal,
+  TabsSwitcher,
+  type TableViewMode,
+  TableViewModeEnum,
+} from "@fieldflow360/org-ui";
 import {
   Book,
   Briefcase,
@@ -16,13 +21,9 @@ import {
 import { toast } from "sonner";
 
 import type { Role, TeamMember } from "@/api/types";
-import { API_URL } from "@/constants";
 import { USER_ROLE_NAME_MAP, UserRole } from "@/constants/enums";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import {
-  TeamMemberMenuFlagsFooter,
-  TeamMemberRoleBadges,
-} from "@/features/team";
+import { TeamMemberMenuFlagsFooter } from "@/features/team";
 import {
   AddTeamMemberDialog,
   AllRolesTab,
@@ -32,6 +33,7 @@ import {
   TeamManagementTab,
   TeamMemberQuotaCard,
 } from "@/features/team-management";
+import { TeamMembersTable } from "@/features/team-management/ui/TeamMembersTable";
 import {
   useDialogManager,
   useMapping,
@@ -51,7 +53,7 @@ import {
   FilterType,
   PageRenderer,
 } from "@/shared/ui/common";
-import { Card, CardContent, CardHeader } from "@/shared/ui/primitives";
+import { Card, CardContent } from "@/shared/ui/primitives";
 import { getErrorMessage } from "@/utils/apiError";
 import { canChangeRole } from "@/utils/ownerProtection";
 import {
@@ -83,6 +85,9 @@ export default function OrgTeamPage() {
   const { orgId } = useRouteIds();
 
   const [activeTab, setActiveTab] = useState<string>(TeamManagementTab.MEMBERS);
+  const [memberView, setMemberView] = useState<TableViewMode>(
+    TableViewModeEnum.LIST
+  );
   const [filters, setFilters] = useState<FilterState>({});
   const [search, setSearch] = useState("");
   const [helpModalOpen, setHelpModalOpen] = useState(false);
@@ -541,6 +546,83 @@ export default function OrgTeamPage() {
     ]
   );
 
+  const renderMemberActions = useCallback(
+    (member: TeamMember) => {
+      if (!canManageTeamFlags) return null;
+
+      const user = member.user;
+      const displayName =
+        user.first_name || user.last_name
+          ? `${user.first_name} ${user.last_name}`.trim()
+          : user.username;
+      const isCurrentUser =
+        currentUser && user.email && user.email === currentUser.email;
+      const memberIsAdmin =
+        member.role_fk?.is_admin || member.role === UserRole.ADMIN;
+      const memberIsOwner = member.owner === true;
+      const canRemoveMember =
+        !isCurrentUser &&
+        !memberIsOwner &&
+        !(isAdminButNotOwner && memberIsAdmin);
+      const showMemberMenuFooter =
+        canManageTeamFlags || (Boolean(canEditTeam) && canRemoveMember);
+
+      return (
+        <Dropdown
+          contentClassName="min-w-[14rem]"
+          footer={
+            showMemberMenuFooter ? (
+              <>
+                {canManageTeamFlags ? (
+                  <TeamMemberMenuFlagsFooter
+                    disabled={patchMemberFlags.isPending}
+                    member={member}
+                    onPatchFlags={(payload) =>
+                      patchMemberFlags.mutate(payload, {
+                        onError: (err: unknown) => {
+                          toast.error(
+                            teamFlagPatchErrorDetail(err) ||
+                              "Failed to update roles"
+                          );
+                        },
+                      })
+                    }
+                  />
+                ) : null}
+                {canEditTeam && canRemoveMember ? (
+                  <>
+                    <div className="bg-border-subtle my-1 h-px" />
+                    <button
+                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-[var(--color-feedback-error)] hover:bg-[var(--color-feedback-error-soft)]"
+                      type="button"
+                      onClick={() =>
+                        handleDelete(member.id.toString(), displayName)
+                      }
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Remove
+                    </button>
+                  </>
+                ) : null}
+              </>
+            ) : undefined
+          }
+          items={buildMemberMenuItems(member)}
+          width={220}
+        />
+      );
+    },
+    [
+      canManageTeamFlags,
+      canEditTeam,
+      currentUser,
+      isAdminButNotOwner,
+      patchMemberFlags,
+      handleDelete,
+      buildMemberMenuItems,
+    ]
+  );
+
   return (
     <PageRenderer
       data={filteredTeam || []}
@@ -676,170 +758,17 @@ export default function OrgTeamPage() {
                   />
                 )}
 
-                {teamLoading || roleMappingsLoading ? (
-                  <div className="mt-4">Loading...</div>
-                ) : (
-                  filteredTeam.map((member) => {
-                    const user = member.user;
-                    const displayName =
-                      user.first_name || user.last_name
-                        ? `${user.first_name} ${user.last_name}`.trim()
-                        : user.username;
-                    const isCurrentUser =
-                      currentUser &&
-                      user.email &&
-                      user.email === currentUser.email;
-
-                    // Check if member is admin or owner
-                    const memberIsAdmin =
-                      member.role_fk?.is_admin ||
-                      member.role === UserRole.ADMIN;
-                    const memberIsOwner = member.owner === true;
-
-                    // Derived flags for role modification logic
-                    // Admins (non-owners) cannot edit/delete other admins
-                    // They can edit/delete non-admin/non-owner members
-                    const canRemoveMember =
-                      !isCurrentUser &&
-                      !memberIsOwner &&
-                      !(isAdminButNotOwner && memberIsAdmin);
-
-                    const showMemberMenuFooter =
-                      canManageTeamFlags ||
-                      (Boolean(canEditTeam) && canRemoveMember);
-
-                    let imageUrl = user.profile_image;
-                    if (imageUrl) {
-                      imageUrl = imageUrl.startsWith("/")
-                        ? imageUrl.slice(1)
-                        : imageUrl;
-                      imageUrl = imageUrl.endsWith("/")
-                        ? imageUrl.slice(0, -1)
-                        : imageUrl;
-                      if (!imageUrl.includes("http")) {
-                        imageUrl = `${API_URL}${imageUrl}`;
-                      }
-                    }
-
-                    return (
-                      <Card key={member.id} className="mb-4 ml-0 gap-2 py-2">
-                        <CardHeader>
-                          <div className="my-2 flex items-center gap-2">
-                            <div className="text-text-primary flex h-8 w-8 items-center justify-center">
-                              {imageUrl ? (
-                                <img
-                                  alt={displayName}
-                                  className="h-full w-full rounded-full object-cover"
-                                  src={imageUrl}
-                                />
-                              ) : (
-                                <svg
-                                  className="h-full w-full"
-                                  viewBox="0 0 32 32"
-                                >
-                                  <circle
-                                    cx="16"
-                                    cy="16"
-                                    fill="currentColor"
-                                    r="16"
-                                  />
-                                </svg>
-                              )}
-                            </div>
-                            <div className="text-text-primary flex min-w-0 flex-1 flex-wrap items-center gap-2 text-base font-semibold">
-                              <span className="min-w-0">{displayName}</span>
-                              {member.owner && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-semibold text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                                  <Shield className="h-3 w-3" />
-                                  Owner
-                                </span>
-                              )}
-                              <TeamMemberRoleBadges member={member} />
-                            </div>
-
-                            {canManageTeamFlags ? (
-                              <Dropdown
-                                contentClassName="min-w-[14rem]"
-                                footer={
-                                  showMemberMenuFooter ? (
-                                    <>
-                                      {canManageTeamFlags ? (
-                                        <TeamMemberMenuFlagsFooter
-                                          disabled={patchMemberFlags.isPending}
-                                          member={member}
-                                          onPatchFlags={(payload) =>
-                                            patchMemberFlags.mutate(payload, {
-                                              onError: (err: unknown) => {
-                                                toast.error(
-                                                  teamFlagPatchErrorDetail(
-                                                    err
-                                                  ) || "Failed to update roles"
-                                                );
-                                              },
-                                            })
-                                          }
-                                        />
-                                      ) : null}
-                                      {canEditTeam && canRemoveMember ? (
-                                        <>
-                                          <div className="bg-border-subtle my-1 h-px" />
-                                          <button
-                                            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-[var(--color-feedback-error)] hover:bg-[var(--color-feedback-error-soft)]"
-                                            type="button"
-                                            onClick={() =>
-                                              handleDelete(
-                                                member.id.toString(),
-                                                displayName
-                                              )
-                                            }
-                                          >
-                                            <Trash2 className="h-4 w-4" />
-                                            Remove
-                                          </button>
-                                        </>
-                                      ) : null}
-                                    </>
-                                  ) : undefined
-                                }
-                                items={buildMemberMenuItems(member)}
-                                width={220}
-                              />
-                            ) : null}
-                          </div>
-                        </CardHeader>
-                        <div className="border-t" />
-                        <CardContent>
-                          <div className="my-2 flex items-center gap-2">
-                            <p className="text-text-muted text-sm">Role</p>
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm">
-                                {getRoleDisplayName(member.role_fk) ||
-                                  getRoleLabelForCode(member.role)}
-                              </p>
-                              {member.owner && (
-                                <span className="text-text-muted text-xs italic">
-                                  (Permanent - Organization Owner)
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="my-2 flex items-center gap-2">
-                            <p className="text-text-muted text-sm">Username</p>
-                            <p className="text-sm">{user.username}</p>
-                          </div>
-                          <div className="my-2 flex items-center gap-2">
-                            <p className="text-text-muted text-sm">Phone</p>
-                            <p className="text-sm">{user.phone_number}</p>
-                          </div>
-                          <div className="my-2 flex items-center gap-2">
-                            <p className="text-text-muted text-sm">Email</p>
-                            <p className="text-sm">{user.email}</p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })
-                )}
+                <TeamMembersTable
+                  getRoleDisplayName={(member) =>
+                    getRoleDisplayName(member.role_fk) ||
+                    getRoleLabelForCode(member.role)
+                  }
+                  isLoading={teamLoading || roleMappingsLoading}
+                  members={filteredTeam}
+                  renderRowActions={renderMemberActions}
+                  view={memberView}
+                  onViewChange={setMemberView}
+                />
               </div>
             ) : null}
 

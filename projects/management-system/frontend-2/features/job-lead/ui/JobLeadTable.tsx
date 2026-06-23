@@ -49,6 +49,7 @@ export interface JobLeadTableProps<T extends { id: string | number }> {
   view: TableViewMode;
   grid?: TableGridViewConfig<T>;
   kanban?: TableKanbanViewConfig<T>;
+  onRowActivate?: (id: T["id"], item: T) => void;
 }
 
 export function tableValuesToFilterState<
@@ -103,6 +104,7 @@ export function JobLeadTable<T extends { id: string | number }>({
   storageKeyPrefix,
   toolbarActions,
   view,
+  onRowActivate,
 }: JobLeadTableProps<T>) {
   const tablePreferences = useTablePreferences(allColumns, {
     storageKey: organizationId
@@ -130,6 +132,7 @@ export function JobLeadTable<T extends { id: string | number }>({
       kanban={kanban}
       pagination={pagination}
       selectable={selectable}
+      onRowActivate={onRowActivate}
       selectedIds={selectedIds}
       sortRules={sortRules}
       toolbar={

@@ -408,10 +408,21 @@ export const mockAdapter: AxiosAdapter = async (config) => {
 
   // --- Dashboard: real metrics for org 1, all-zeros for the fresh org ---
   if (/ms\/organizations\/\d+\/dashboard\/?$/.test(url) && method === "get") {
-    return makeResponse(
-      orgIdOf(url) === "1" ? DEMO_DASHBOARD : EMPTY_DASHBOARD,
-      config
-    );
+    const base = orgIdOf(url) === "1" ? DEMO_DASHBOARD : EMPTY_DASHBOARD;
+    // The default landing paradigm is the current calendar month — a bounded
+    // slice of the all-time totals. Scale numeric metrics down so the
+    // "This Month" / "All Time" toggle produces a visibly different dashboard.
+    const period = (config?.params as { period?: string } | undefined)?.period;
+    const payload =
+      period === "current_month"
+        ? Object.fromEntries(
+            Object.entries(base).map(([key, value]) => [
+              key,
+              typeof value === "number" ? Math.round(value * 0.35) : value,
+            ])
+          )
+        : base;
+    return makeResponse(payload, config);
   }
   // --- Invoices (org 2 only; org 1 served above): RAW empty array ---
   if (/ms\/organizations\/\d+\/invoices\/?$/.test(url) && method === "get") {

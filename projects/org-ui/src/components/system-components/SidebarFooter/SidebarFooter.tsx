@@ -58,36 +58,46 @@ export function SidebarFooter({
   );
 
   return (
-    <div className={`border-border-subtle/60 border-t ${isCollapsed ? 'p-[6px] pr-0' : 'p-[12px]'}`}>
-      <div className="flex items-center justify-between gap-2">
-        <div className="relative flex min-w-0 flex-1 items-center gap-2">
-          <Dropdown
-            options={options}
-            placeholder=""
-            fullWidth={false}
-            triggerClassName="inline-flex !rounded-full bg-transparent p-0 focus:ring-0 focus-visible:ring-0"
-            onChange={(value) => {
-              const action = actions.find((item) => item.id === value);
-              if (action) action.onSelect();
-            }}
-            trigger={({ isOpen }) => (
-              <span
-                className={`inline-flex rounded-full ${isOpen ? 'ring-2 ring-accent/60 ring-offset-2 ring-offset-[var(--color-bg-surface)]' : 'focus-visible:ring-border-strong focus-visible:ring-2'} focus:outline-none`}
-                aria-label={isOpen ? 'Close user menu' : 'Open user menu'}
-                role="img"
-              >
-                <Avatar src={user.avatarSrc} fallback={initials} size={isCollapsed ? 'sm' : 'md'} />
-              </span>
-            )}
-          />
+    <div className={`border-border-subtle/60 border-t ${isCollapsed ? 'p-[6px]' : 'p-[12px]'}`}>
+      <div className="flex items-center gap-2">
+        <Dropdown
+          className="min-w-0 flex-1"
+          options={options}
+          placeholder=""
+          fullWidth
+          menuMinWidth={232}
+          triggerClassName="w-full !rounded-lg bg-transparent p-0 focus:ring-0 focus-visible:ring-2 focus-visible:ring-accent/35"
+          onChange={(value) => {
+            const action = actions.find((item) => item.id === value);
+            if (action) action.onSelect();
+          }}
+          trigger={({ isOpen }) => (
+            <span
+              aria-label={isOpen ? 'Close account menu' : 'Open account menu'}
+              className={`flex cursor-pointer items-center rounded-lg transition-colors ${
+                isCollapsed ? 'justify-center p-1' : 'w-full gap-2 px-2 py-1.5'
+              } ${isOpen ? 'bg-bg-surface' : 'hover:bg-bg-surface'}`}
+            >
+              <Avatar src={user.avatarSrc} fallback={initials} size={isCollapsed ? 'sm' : 'md'} />
 
-          {!isCollapsed ? (
-            <div className="min-w-0 flex-1">
-              <p className="text-text-secondary truncate text-sm">{user.fullName}</p>
-              {user.subtitle ? <p className="text-text-primary truncate text-sm">{user.subtitle}</p> : null}
-            </div>
-          ) : null}
-        </div>
+              {!isCollapsed ? (
+                <>
+                  <span className="min-w-0 flex-1 text-left">
+                    <span className="text-text-secondary block truncate text-sm">{user.fullName}</span>
+                    {user.subtitle ? (
+                      <span className="text-text-primary block truncate text-sm">{user.subtitle}</span>
+                    ) : null}
+                  </span>
+                  <ChevronUpDownIcon
+                    className={`text-text-muted h-4 w-4 shrink-0 transition-transform duration-200 ${
+                      isOpen ? 'opacity-100' : 'opacity-70'
+                    }`}
+                  />
+                </>
+              ) : null}
+            </span>
+          )}
+        />
 
         {showCollapseToggle ? (
           <SidebarCollapseButton isCollapsed={isCollapsed} onToggle={onToggleCollapsed} />
@@ -97,3 +107,18 @@ export function SidebarFooter({
   );
 }
 
+function ChevronUpDownIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={2}
+      stroke="currentColor"
+      className={className}
+      aria-hidden
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 15 12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
+    </svg>
+  );
+}

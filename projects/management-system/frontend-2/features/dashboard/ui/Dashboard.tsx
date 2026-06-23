@@ -1,10 +1,14 @@
 "use client";
 
-import { type ReactNode, memo, useMemo } from "react";
+import { type ReactNode, memo, useMemo, useState } from "react";
 
-import { cn } from "@fieldflow360/org-ui";
+import { TabsSwitcher, cn } from "@fieldflow360/org-ui";
 
 import type { DashboardChartData } from "@/api/types";
+import {
+  type DashboardPeriod,
+  DEFAULT_DASHBOARD_PERIOD,
+} from "@/features/dashboard/hooks/useDashboardData";
 import { useDashboardData, useInvoicesData } from "@/hooks";
 
 import {
@@ -18,11 +22,6 @@ import {
 } from "../charts";
 import { DASHBOARD_CONSTANTS } from "../constants";
 import {
-  getDashboardPriorityColSpan,
-  getDashboardRowColSpan,
-} from "../lib/bento-col-span";
-import { partitionDashboardChartRows } from "../lib/dashboard-chart-rows";
-import {
   useDashboardDataFiltering,
   useDashboardPermissions,
 } from "../permissions";
@@ -33,11 +32,14 @@ import { DesignsNeededCard } from "./DesignsNeededCard";
 import {
   dashboardBentoCell,
   dashboardCellInvoice,
-  dashboardChartRowClassName,
-  dashboardJobStatisticsRowClassName,
   dashboardPriorityCardClassName,
-  dashboardPriorityRowClassName,
 } from "./dashboard-grid";
+
+// Uniform 3-column bento. Goes 1 → 3 columns at `md` with no intermediate
+// 2-col utility — mixing grid-cols-2 and grid-cols-3 hits a Tailwind ordering
+// quirk in this build where the 2-col rule wins at every breakpoint.
+const DASHBOARD_GRID_CLASS =
+  "grid grid-cols-1 items-stretch gap-4 sm:gap-5 md:grid-cols-3 md:grid-flow-dense";
 
 interface DashboardProps {
   className?: string;
@@ -49,8 +51,24 @@ interface DashboardBentoEntry {
   content: ReactNode;
 }
 
+const DASHBOARD_PERIOD_ITEMS: { value: DashboardPeriod; label: string }[] = [
+  { value: "current_month", label: "This Month" },
+  { value: "all_time", label: "All Time" },
+];
+
 const Dashboard = memo(function Dashboard({ className }: DashboardProps) {
-  const { data, isLoading, error } = useDashboardData();
+  const [period, setPeriod] = useState<DashboardPeriod>(
+    DEFAULT_DASHBOARD_PERIOD
+  );
+  const { data, isLoading, error } = useDashboardData(period);
+
+  const periodLabel = useMemo(() => {
+    if (period === "all_time") return "All-time totals";
+    return new Date().toLocaleDateString(undefined, {
+      month: "long",
+      year: "numeric",
+    });
+  }, [period]);
 
   const {
     hasTilingJobAccess,
@@ -347,14 +365,21 @@ const Dashboard = memo(function Dashboard({ className }: DashboardProps) {
     return entries;
   }, [dashboardData, hasEquipmentAccess]);
 
-  const secondaryChartEntries = useMemo(
-    () => [...bentoEntries, ...insightsEntries, ...metricsEntries],
-    [bentoEntries, insightsEntries, metricsEntries]
-  );
-
-  const secondaryChartRows = useMemo(
-    () => partitionDashboardChartRows(secondaryChartEntries),
-    [secondaryChartEntries]
+  const contentEntries = useMemo(
+    () => [
+      ...priorityEntries,
+      ...jobStatisticsEntries,
+      ...bentoEntries,
+      ...insightsEntries,
+      ...metricsEntries,
+    ],
+    [
+      priorityEntries,
+      jobStatisticsEntries,
+      bentoEntries,
+      insightsEntries,
+      metricsEntries,
+    ]
   );
 
   if (isLoading || permissionsLoading) {
@@ -387,6 +412,20 @@ const Dashboard = memo(function Dashboard({ className }: DashboardProps) {
 
   return (
     <div className={cn("space-y-5 pb-6", className)}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col">
+          <span className="text-text-primary text-base font-semibold">
+            Overview
+          </span>
+          <span className="text-text-muted text-sm">Showing {periodLabel}</span>
+        </div>
+        <TabsSwitcher
+          items={DASHBOARD_PERIOD_ITEMS}
+          value={period}
+          onChange={setPeriod}
+        />
+      </div>
+
       {isBookkeeper && (
         <DashboardInvoiceTable
           className={dashboardCellInvoice}
@@ -394,70 +433,29 @@ const Dashboard = memo(function Dashboard({ className }: DashboardProps) {
         />
       )}
 
-      {priorityEntries.length > 0 && (
-        <div className={dashboardPriorityRowClassName}>
-          {priorityEntries.map((entry, index) => (
-            <div
-              key={entry.id}
-              className={cn(
-                entry.cellClass,
-                getDashboardPriorityColSpan(index, priorityEntries.length)
-              )}
-            >
-              {entry.content}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {jobStatisticsEntries.length > 0 && (
-        <div
-          className={dashboardJobStatisticsRowClassName(
-            jobStatisticsEntries.length
-          )}
-        >
-          {jobStatisticsEntries.map((entry, index) => (
-            <div
-              key={entry.id}
-              className={cn(
-                entry.cellClass,
-                getDashboardRowColSpan(
-                  index,
-                  jobStatisticsEntries.length,
-                  jobStatisticsEntries.length
-                )
-              )}
-            >
-              {entry.content}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {secondaryChartRows.length > 0 && (
-        <div className="space-y-5">
-          {secondaryChartRows.map((row) => (
-            <div
-              key={row.entries.map((entry) => entry.id).join("-")}
-              className={dashboardChartRowClassName(row.maxCols)}
-            >
-              {row.entries.map((entry, index) => (
-                <div
-                  key={entry.id}
-                  className={cn(
-                    entry.cellClass,
-                    getDashboardRowColSpan(
-                      index,
-                      row.entries.length,
-                      row.maxCols
-                    )
-                  )}
-                >
-                  {entry.content}
-                </div>
-              ))}
-            </div>
-          ))}
+      {contentEntries.length > 0 && (
+        <div className={DASHBOARD_GRID_CLASS}>
+          {contentEntries.map((entry, index) => {
+            // A single trailing card on the last row spans full width so it
+            // doesn't leave the row visibly unbalanced in the 3-up grid.
+            const remainder = contentEntries.length % 3;
+            const isLast = index === contentEntries.length - 1;
+            // Fill the last row so it doesn't leave empty columns in the 3-up
+            // grid: a lone trailing card spans all 3; two trailing cards each
+            // take 1 (the third column stays empty by design).
+            const isLoneLastRow = isLast && remainder === 1;
+            return (
+              <div
+                key={entry.id}
+                className={cn(
+                  entry.cellClass,
+                  isLoneLastRow && "md:col-span-3"
+                )}
+              >
+                {entry.content}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -9,7 +9,7 @@ import {
   ComponentSizeEnum,
 } from "@fieldflow360/org-ui";
 import { clsx } from "clsx";
-import { Bell, HelpCircle, Mail, Map } from "lucide-react";
+import { Bell, HelpCircle, Map, MessageSquare } from "lucide-react";
 
 import {
   getNotificationPriorityBadgeClass,
@@ -25,10 +25,11 @@ import { useRouteIds } from "@/hooks/useRouteIds";
 import { useUnseenChatTotal } from "@/hooks/useUnseenChatTotal";
 import { APP_ROUTES, orgRoute } from "@/shared/config/routes";
 import { AccentCountBadge } from "@/shared/ui/layout/AccentCountBadge";
+import { CmsGlobalAddButton } from "@/shared/ui/layout/CmsGlobalAddButton";
 import { CmsVersionSwitcherButton } from "@/shared/ui/layout/CmsVersionSwitcherButton";
 import { Badge } from "@/shared/ui/primitives";
 
-type CmsAppTopBarActionsSection = "mail" | "trailing" | "mobile-shell";
+type CmsAppTopBarActionsSection = "trailing" | "mobile-shell";
 
 interface CmsAppTopBarActionsProps {
   section: CmsAppTopBarActionsSection;
@@ -40,7 +41,6 @@ function CmsAppTopBarActions({
   unseenTotal,
 }: CmsAppTopBarActionsProps) {
   const isMobileShell = section === "mobile-shell";
-  const showMail = section === "mail" || isMobileShell;
   const showTrailing = section === "trailing" || isMobileShell;
   const { orgId } = useRouteIds();
   const { data: unreadData } = useNewNotifications({
@@ -105,12 +105,12 @@ function CmsAppTopBarActions({
     ? "bg-bg-surface-elevated border-border-subtle absolute right-0 z-50 mt-2 max-h-[70vh] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-lg border shadow-lg"
     : "bg-bg-surface-elevated border-border-subtle absolute right-0 z-50 mt-2 w-80 rounded-lg border shadow-lg";
 
-  const mailButton = showMail ? (
+  const chatButton = (
     <div className="relative">
       <Button
         iconOnly
-        aria-label="Mail"
-        leftIcon={<Mail className="h-5 w-5" />}
+        aria-label="Messages"
+        leftIcon={<MessageSquare className="h-5 w-5" />}
         size={ComponentSizeEnum.MD}
         variant={ButtonVariantEnum.GHOST}
         onClick={() => navigateTo(orgRoute(orgId, APP_ROUTES.messages))}
@@ -121,10 +121,12 @@ function CmsAppTopBarActions({
         size="md"
       />
     </div>
-  ) : null;
+  );
 
   const trailingActions = showTrailing ? (
     <>
+      <CmsGlobalAddButton />
+
       <CmsVersionSwitcherButton frontendId="v2" />
 
       <Button
@@ -135,6 +137,8 @@ function CmsAppTopBarActions({
         variant={ButtonVariantEnum.GHOST}
         onClick={() => navigateTo(orgRoute(orgId, APP_ROUTES.map))}
       />
+
+      {chatButton}
 
       <div className="relative">
         <Button
@@ -272,15 +276,8 @@ function CmsAppTopBarActions({
 
   if (isMobileShell) {
     return (
-      <div className="flex shrink-0 items-center gap-1">
-        {mailButton}
-        {trailingActions}
-      </div>
+      <div className="flex shrink-0 items-center gap-1">{trailingActions}</div>
     );
-  }
-
-  if (section === "mail") {
-    return <div className="flex items-center gap-2">{mailButton}</div>;
   }
 
   return <div className="flex items-center gap-2">{trailingActions}</div>;
@@ -299,11 +296,7 @@ export function CmsAppTopBar() {
   const unseenTotal = useUnseenChatTotal();
 
   return (
-    <div className="flex w-full items-center justify-between gap-3">
-      <CmsAppTopBarActions section="mail" unseenTotal={unseenTotal} />
-
-      <div className="hidden flex-1 md:block" />
-
+    <div className="flex w-full items-center justify-end gap-3">
       <CmsAppTopBarActions section="trailing" unseenTotal={unseenTotal} />
     </div>
   );

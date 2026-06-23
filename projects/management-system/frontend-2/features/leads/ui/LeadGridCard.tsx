@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { type MouseEvent, memo } from "react";
 
 import { TableActions, TableGridCard } from "@fieldflow360/org-ui";
 
@@ -15,6 +15,7 @@ import {
 import { LeadStatusCell } from "@/features/leads/ui/LeadStatusCell";
 import { getJobOrLeadListName } from "@/shared/lib";
 import { INLINE_TABLE_ROW_ACTIONS_PROPS } from "@/shared/lib/table/columns";
+import { isInteractiveRowTarget } from "@/shared/lib/table/row-activation";
 import { formatTableLastUpdatedWithMemberId } from "@/shared/lib/table/org-ui";
 import { TableStatusBadge } from "@/shared/ui";
 
@@ -36,7 +37,8 @@ export interface LeadGridCardProps {
   selected: boolean;
   onSelectedChange: (selected: boolean) => void;
   selectable?: boolean;
-  onDoubleClick?: () => void;
+  /** Navigate into the lead's detail view (single click on the card body). */
+  onActivate?: () => void;
 }
 
 export const LeadGridCard = memo(function LeadGridCard({
@@ -48,7 +50,7 @@ export const LeadGridCard = memo(function LeadGridCard({
   selected,
   onSelectedChange,
   selectable = false,
-  onDoubleClick,
+  onActivate,
 }: LeadGridCardProps) {
   const title = getJobOrLeadListName(lead, "Lead");
   const secondary = lead.description?.trim() || undefined;
@@ -58,8 +60,25 @@ export const LeadGridCard = memo(function LeadGridCard({
     lead.contact_info?.home_phone_number ||
     "N/A";
 
+  const handleActivate = (event: MouseEvent<HTMLDivElement>) => {
+    if (!onActivate || isInteractiveRowTarget(event.target)) return;
+    onActivate();
+  };
+
   return (
-    <div className="h-full cursor-pointer" onDoubleClick={onDoubleClick}>
+    <div
+      className="h-full cursor-pointer"
+      role={onActivate ? "button" : undefined}
+      tabIndex={onActivate ? 0 : undefined}
+      onClick={handleActivate}
+      onKeyDown={(event) => {
+        if (!onActivate) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onActivate();
+        }
+      }}
+    >
       <TableGridCard
         actions={
           <TableActions

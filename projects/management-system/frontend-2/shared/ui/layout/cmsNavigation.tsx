@@ -8,7 +8,6 @@ import type {
 } from "@fieldflow360/org-ui";
 import {
   BookOpen,
-  Building2,
   Calendar,
   ClipboardList,
   File,
@@ -26,7 +25,6 @@ import {
   RefreshCw,
   Settings,
   Sparkles,
-  UserRound,
   Users,
   Wrench,
   Zap,
@@ -422,26 +420,8 @@ export function buildCmsSidebarNavigation({
     });
   }
 
-  const toolsLinks: CmsSidebarLink[] = [
-    link(
-      "organization-settings",
-      APP_ROUTE_LABELS.organizationSettings,
-      APP_ROUTES.organizationSettings,
-      Building2
-    ),
-    link(
-      "user-settings",
-      APP_ROUTE_LABELS.userSettings,
-      APP_ROUTES.userSettings,
-      UserRound
-    ),
-  ];
-
-  groups.push({
-    id: "tools",
-    title: "Tools",
-    links: toolsLinks,
-  });
+  // Organization & User Settings intentionally omitted here — they now live in
+  // the bottom-left account dropdown (SidebarFooter) to avoid duplication.
 
   return groups;
 }
