@@ -63,7 +63,7 @@ export function ThemeControlsPopover({
       {open ? (
         <div
           ref={panelRef}
-          className={`bg-bg-surface-elevated border-border-subtle absolute z-50 mt-2 w-72 rounded-lg border p-4 shadow-lg ${
+          className={`absolute z-50 mt-2 w-[22rem] max-w-[92vw] ${
             align === "right" ? "right-0" : "left-0"
           }`}
           role="dialog"

@@ -9,6 +9,7 @@ import { ChatBotSync } from "@/shared/ui/common/ChatBotSync";
 import { ThemeProvider } from "@/shared/ui/common/ThemeProvider";
 import { Toaster } from "@/shared/ui/common/Toaster";
 import { DeleteDialog } from "@/shared/ui/delete-dialog";
+import { DevInspector } from "@/shared/ui/dev-inspector/DevInspector";
 import ClientRootLayoutContent from "@/shared/ui/layout/ClientRootLayoutContent";
 import { CmsDynamicFavicon } from "@/shared/ui/layout/CmsDynamicFavicon";
 
@@ -44,6 +45,7 @@ function RootLayoutContent({ children }: { children: ReactNode }) {
               </ChatBotSync>
               <Toaster />
               <DeleteDialog />
+              <DevInspector />
             </ThemeProvider>
           </AuthProviders>
         </QueryProvider>
