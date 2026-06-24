@@ -30,14 +30,15 @@ export const QUICK_CREATE_ACTIONS: QuickCreateAction[] = [
     label: "New Lead",
     description: "Capture an incoming opportunity",
     icon: ClipboardList,
-    href: (orgId) => orgUrl(orgId, APP_ROUTES.leads, "action=add"),
+    // `pick=1` opens the modal with no type pre-selected (user picks first).
+    href: (orgId) => orgUrl(orgId, APP_ROUTES.leads, "action=add&pick=1"),
   },
   {
     id: "add-job",
     label: "New Job",
     description: "Schedule field work",
     icon: Briefcase,
-    href: (orgId) => orgUrl(orgId, APP_ROUTES.jobsTiling, "action=add"),
+    href: (orgId) => orgUrl(orgId, APP_ROUTES.jobsTiling, "action=add&pick=1"),
   },
   {
     id: "add-contact",

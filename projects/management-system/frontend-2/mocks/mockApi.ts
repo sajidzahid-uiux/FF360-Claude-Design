@@ -23,7 +23,10 @@ import {
 } from "@/hooks/permissions/constants";
 
 import { routes as bookkeepingRoutes } from "./data/bookkeeping";
-import { routes as contactRoutes } from "./data/contacts";
+import {
+  routes as contactRoutes,
+  recordFarmsForContact,
+} from "./data/contacts";
 import { routes as crewRoutes } from "./data/crews";
 import { routes as equipmentRoutes } from "./data/equipment";
 import { routes as jobRoutes } from "./data/jobs";
@@ -399,6 +402,20 @@ export const mockAdapter: AxiosAdapter = async (config) => {
         return makeResponse(payload, config);
       }
     }
+  }
+
+  // Record farms picker (lead/job form): return the selected contact's farms
+  // ("contact > farms management"). contact_id rides in the query string.
+  if (
+    method === "get" &&
+    /ms\/organizations\/\d+\/records\/farms\/?$/.test(url)
+  ) {
+    const contactMatch = (config.url || "").match(/contact_id=(\d+)/);
+    const contactId = contactMatch ? Number(contactMatch[1]) : undefined;
+    return makeResponse(
+      listResponse(recordFarmsForContact(contactId)),
+      config
+    );
   }
 
   // Org membership bootstrap + the fresh org's (owner-only) team roster.

@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 
-import { AppFormModal } from "@fieldflow360/org-ui";
+import { AppFormModal, TabsSwitcher } from "@fieldflow360/org-ui";
 import { toast } from "sonner";
 
 import type { ProjectTypeCategory, Status, TeamMember } from "@/api/types";
@@ -22,6 +22,7 @@ import {
   type LeadCreateSubmitValues,
   isJobLeadFormSubmittable,
 } from "@/features/job-lead/model/jobLeadForm";
+import type { JobLeadTypeOption } from "@/features/job-lead/model/jobLeadRouteConfig";
 import { JobLeadFormFields } from "@/features/job-lead/ui/JobLeadFormFields";
 import { getPrimaryFarmGeo } from "@/features/jobs";
 import { useLeadTypes, useTeamData } from "@/hooks";
@@ -47,6 +48,12 @@ export interface JobLeadFormProps<
   isSubmitting?: boolean;
   onSubmit: (values: TValues) => void;
   onCancel: () => void;
+  /** Repair/Excavation/Tile quick-switch tabs. When provided, shows a type switcher. */
+  typeOptions?: JobLeadTypeOption[];
+  /** Pre-selected type (e.g. from the list route the modal was opened on). */
+  defaultSegment?: JobLeadTypeSegment;
+  /** Require the user to pick a type before the rest of the form is enabled. */
+  requireTypeSelection?: boolean;
 }
 
 function buildInitialFormState(
@@ -77,10 +84,40 @@ export function JobLeadForm<
   isSubmitting = false,
   onSubmit,
   onCancel,
+  typeOptions,
+  defaultSegment,
+  requireTypeSelection = false,
 }: JobLeadFormProps<TValues>) {
   const searchParams = useSearchParams();
   const { data: leadTypes } = useLeadTypes();
   const { data: members } = useTeamData();
+
+  // Active type tab. Auto-selected from the route's segment unless the modal was
+  // opened from the global "+" (requireTypeSelection), where the user picks first.
+  const [activeSegment, setActiveSegment] = useState<
+    JobLeadTypeSegment | undefined
+  >(requireTypeSelection ? undefined : defaultSegment);
+
+  const activeOption = useMemo(
+    () => typeOptions?.find((option) => option.segment === activeSegment),
+    [typeOptions, activeSegment]
+  );
+
+  // Effective per-type values: the active tab's option wins, else the props the
+  // modal was constructed with (keeps behaviour identical when no typeOptions).
+  const effectiveRecordJobType = activeOption?.recordJobType ?? recordJobType;
+  const effectiveProjectTypeCategory =
+    activeOption?.projectTypeCategory ?? projectTypeCategory;
+  const effectiveLeadSourcePlaceholder =
+    activeOption?.leadSourcePlaceholder ?? leadSourcePlaceholder;
+  const effectiveDescriptionPlaceholder =
+    activeOption?.descriptionPlaceholder ?? descriptionPlaceholder;
+  const effectiveIncludeEquipment =
+    activeOption?.includeEquipment ?? includeEquipment;
+  const effectiveIncludeDesigners =
+    activeOption?.includeDesigners ?? includeDesigners;
+
+  const fieldsLocked = requireTypeSelection && !activeSegment;
 
   const defaultLeadType = useMemo(() => {
     const typed = leadTypes as Status[] | undefined;
@@ -100,7 +137,7 @@ export function JobLeadForm<
     ? parseInt(formData.selectedContact, 10)
     : undefined;
   const { farms } = useJobRecords(
-    recordJobType,
+    effectiveRecordJobType,
     entity === ResourceType.JOB ? ResourceType.JOB : ResourceType.LEAD,
     {
       contactId: Number.isNaN(contactIdForFetch ?? NaN)
@@ -120,7 +157,14 @@ export function JobLeadForm<
     if (!modalVisible) return;
     setFormData(buildInitialFormState(searchParams, defaultLeadType));
     setFieldErrors({});
-  }, [defaultLeadType, modalVisible, searchParams]);
+    setActiveSegment(requireTypeSelection ? undefined : defaultSegment);
+  }, [
+    defaultLeadType,
+    defaultSegment,
+    modalVisible,
+    requireTypeSelection,
+    searchParams,
+  ]);
 
   const resolvedModalTitle =
     modalTitle ??
@@ -211,24 +255,54 @@ export function JobLeadForm<
     }
   };
 
-  const submitDisabled = !isJobLeadFormSubmittable(entity, formData);
+  const submitDisabled =
+    fieldsLocked || !isJobLeadFormSubmittable(entity, formData);
+
+  const typeNoun = entity === ResourceType.JOB ? "job" : "lead";
+
+  const typeSwitcher =
+    typeOptions && typeOptions.length > 0 ? (
+      <div className="space-y-1.5">
+        <p className="text-text-primary text-sm font-medium">
+          {entity === ResourceType.JOB ? "Job type *" : "Lead type *"}
+        </p>
+        <TabsSwitcher
+          items={typeOptions.map((option) => ({
+            value: option.segment,
+            label: option.label,
+          }))}
+          value={activeSegment ?? ""}
+          onChange={(next) => setActiveSegment(next as JobLeadTypeSegment)}
+        />
+        {fieldsLocked ? (
+          <p className="text-text-muted text-xs">
+            Select a {typeNoun} type to continue.
+          </p>
+        ) : null}
+      </div>
+    ) : null;
 
   const formFields = (
-    <JobLeadFormFields
-      descriptionPlaceholder={descriptionPlaceholder}
-      designers={(members as TeamMember[] | undefined) ?? []}
-      entity={entity}
-      fieldErrors={fieldErrors}
-      includeDesigners={includeDesigners}
-      includeEquipment={includeEquipment}
-      leadSourcePlaceholder={leadSourcePlaceholder}
-      leadTypes={(leadTypes as Status[] | undefined) ?? []}
-      projectTypeCategory={projectTypeCategory}
-      recordJobType={recordJobType}
-      value={formData}
-      onChange={setFormData}
-      onFieldChange={clearFieldError}
-    />
+    <div className="space-y-6">
+      {typeSwitcher}
+      {fieldsLocked ? null : (
+        <JobLeadFormFields
+          descriptionPlaceholder={effectiveDescriptionPlaceholder}
+          designers={(members as TeamMember[] | undefined) ?? []}
+          entity={entity}
+          fieldErrors={fieldErrors}
+          includeDesigners={effectiveIncludeDesigners}
+          includeEquipment={effectiveIncludeEquipment}
+          leadSourcePlaceholder={effectiveLeadSourcePlaceholder}
+          leadTypes={(leadTypes as Status[] | undefined) ?? []}
+          projectTypeCategory={effectiveProjectTypeCategory}
+          recordJobType={effectiveRecordJobType}
+          value={formData}
+          onChange={setFormData}
+          onFieldChange={clearFieldError}
+        />
+      )}
+    </div>
   );
 
   if (isOpen === undefined) {

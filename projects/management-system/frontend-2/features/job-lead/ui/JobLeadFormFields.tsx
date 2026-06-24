@@ -38,33 +38,6 @@ function CharCount({ current, max }: { current: number; max: number }) {
   );
 }
 
-function FormSection({
-  title,
-  description,
-  children,
-  action,
-}: {
-  title: string;
-  description?: string;
-  children: ReactNode;
-  action?: ReactNode;
-}) {
-  return (
-    <section className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-text-primary text-base font-semibold">{title}</h3>
-          {description ? (
-            <p className="text-text-muted mt-0.5 text-sm">{description}</p>
-          ) : null}
-        </div>
-        {action}
-      </div>
-      {children}
-    </section>
-  );
-}
-
 function CollapsibleSection({
   title,
   description,
@@ -299,14 +272,7 @@ export function JobLeadFormFields({
 
   return (
     <div className="space-y-6">
-      <FormSection
-        description={
-          entity === ResourceType.JOB
-            ? "Link this job to a contact and project type."
-            : "Link this lead to a contact and source."
-        }
-        title="Basics"
-      >
+      <section className="space-y-4">
         <JobContactSelect
           error={fieldErrors.selectedContact}
           recordJobType={recordJobType}
@@ -358,7 +324,7 @@ export function JobLeadFormFields({
             }}
           />
         )}
-      </FormSection>
+      </section>
 
       <CollapsibleSection
         description={`${ON_SITE_OPERATION_LABEL}, notes, and team — optional but helpful.`}

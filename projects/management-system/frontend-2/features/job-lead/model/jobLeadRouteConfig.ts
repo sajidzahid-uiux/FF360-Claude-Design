@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 
-import type { Job } from "@/api/types";
+import type { Job, ProjectTypeCategory } from "@/api/types";
 import {
   JobLeadEntityType,
   JobLeadTypeRouteSegment,
@@ -223,6 +223,50 @@ export function getJobLeadRouteConfig(
     : LEAD_ROUTE_CONFIGS[normalizedJobLeadType];
 }
 
+/** One selectable type tab in the add-lead/add-job modal. */
+export interface JobLeadTypeOption {
+  segment: JobLeadTypeSegment;
+  label: string;
+  recordJobType: JobLeadTypeSegment;
+  projectTypeCategory?: ProjectTypeCategory;
+  leadSourcePlaceholder?: string;
+  descriptionPlaceholder: string;
+  includeDesigners?: boolean;
+  includeEquipment?: boolean;
+}
+
+/** Quick-switch tab order in the modal: Repair · Excavation · Tile. */
+const TYPE_TAB_ORDER: JobLeadTypeSegment[] = [
+  JobLeadTypeSegment.REPAIR,
+  JobLeadTypeSegment.EXCAVATION,
+  JobLeadTypeSegment.TILING,
+];
+
+/** Per-type form option bundles so the modal can switch type in place. */
+export function buildJobLeadTypeOptions(
+  entity: ResourceType
+): JobLeadTypeOption[] {
+  const isJob = entity === ResourceType.JOB;
+  const configs = isJob ? JOB_ROUTE_CONFIGS : LEAD_ROUTE_CONFIGS;
+  return TYPE_TAB_ORDER.map((segment) => {
+    const config = configs[segment];
+    return {
+      segment,
+      label: config.titleLabel,
+      recordJobType: config.recordJobType,
+      projectTypeCategory: isJob ? config.apiType : undefined,
+      leadSourcePlaceholder:
+        config.entity === ResourceType.LEAD
+          ? config.leadSourcePlaceholder
+          : undefined,
+      descriptionPlaceholder: config.formDescriptionPlaceholder,
+      includeDesigners: config.includeDesigners,
+      includeEquipment:
+        config.entity === ResourceType.JOB ? config.includeEquipment : undefined,
+    };
+  });
+}
+
 export function createJobLeadFormProps(config: JobLeadRouteConfig) {
   return {
     component: JobLeadForm,
@@ -248,6 +292,9 @@ export function createJobLeadFormProps(config: JobLeadRouteConfig) {
       projectTypeCategory:
         config.entity === ResourceType.JOB ? config.apiType : undefined,
       recordJobType: config.recordJobType,
+      // Type quick-switcher: all three variants + the route's default segment.
+      typeOptions: buildJobLeadTypeOptions(config.entity),
+      defaultSegment: config.segment,
     },
   };
 }

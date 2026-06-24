@@ -648,6 +648,18 @@ const CONTACTS = [
   },
 ];
 
+/**
+ * Farms managed under a contact ("contact > farms management"). The lead/job
+ * form's On-Site Operation picker calls records/farms?contact_id=… — return that
+ * contact's own farms (or every contact's farms when no contact is selected).
+ */
+export function recordFarmsForContact(contactId?: number) {
+  if (contactId) {
+    return CONTACTS.find((contact) => contact.id === contactId)?.farms ?? [];
+  }
+  return CONTACTS.flatMap((contact) => contact.farms ?? []);
+}
+
 // ---- Contact categories (own list endpoint, not in the excluded set) ----
 const CONTACT_CATEGORIES = [
   { ...CAT_CLIENT, is_default: true, created_at: "2026-01-01T00:00:00Z", contact_count: 7 },
@@ -770,6 +782,13 @@ export const routes: MockRoute[] = [
   // --- Contacts list ---
   {
     match: /^ms\/organizations\/\d+\/contacts-v2\/?$/,
+    data: CONTACTS,
+  },
+
+  // --- Record picker for lead/job creation (JobContactSelect → useRecordContacts).
+  //     Same roster as the contacts module so "Select a contact" is populated. ---
+  {
+    match: /^ms\/organizations\/\d+\/records\/contacts\/?$/,
     data: CONTACTS,
   },
 

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState, type ComponentType } from "react";
 
+import { ThemeControlsPopover } from "@/shared/ui/theme/ThemeControlsPopover";
+
 import { RendererBoundary } from "./RendererBoundary";
 import {
   AppBreadcrumbsRenderer,
@@ -142,7 +144,7 @@ export default function DesignSystemPage() {
                     className={
                       "block w-full rounded-md px-2 py-1.5 text-left text-sm transition-colors " +
                       (isActive
-                        ? "bg-zinc-900 font-medium text-white dark:bg-white dark:text-zinc-900"
+                        ? "bg-zinc-900 font-medium text-white dark:bg-white dark:text-zinc-900!"
                         : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800")
                     }
                   >
@@ -174,12 +176,15 @@ export default function DesignSystemPage() {
               Live component from the same package the CMS imports.
             </p>
           </div>
-          <a
-            href="/organizations/1/dashboard"
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          >
-            Open CMS ↗
-          </a>
+          <div className="flex items-center gap-3">
+            <ThemeControlsPopover align="right" />
+            <a
+              href="/organizations/1/dashboard"
+              className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              Open CMS ↗
+            </a>
+          </div>
         </header>
 
         <div className="px-8 py-8">

@@ -24,7 +24,7 @@ import { DesignRequestJobLeadIntegration } from "@/features/design-request";
 import {
   JobDetailOverflowMenu,
   JobLeadDetailLayout,
-  JobLeadNotesDialog,
+  JobLeadNotesSection,
   getJobLeadRecordBreadcrumbLabel,
 } from "@/features/job-lead";
 import { useCmsJobLeadDetailBreadcrumb } from "@/features/job-lead/hooks/useCmsJobLeadDetailBreadcrumb";
@@ -227,8 +227,10 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
   } = dialogs;
   const { router, queryClient, transformVertices, currentUser, orgId } = utils;
 
-  const [notesOpen, setNotesOpen] = useState(false);
-  const handleOpenNotes = useCallback(() => setNotesOpen(true), []);
+  // Notes now live as a collapsible right-side section in the body (not a modal).
+  // The footer "Notes" button toggles its expanded state.
+  const [notesOpen, setNotesOpen] = useState(true);
+  const handleOpenNotes = useCallback(() => setNotesOpen((prev) => !prev), []);
 
   const completedJobTypeQueryParam = useMemo((): JobOrLeadType => {
     if (config.jobType === JobType.EXCAVATION) return JobOrLeadType.EXCAVATION;
@@ -593,27 +595,28 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
           );
         })()}
 
-      {canViewStakeholders ? (
-        <JobLeadNotesDialog
-          canEdit={canEdit}
-          canEditLeadPage={canEditLeadPage}
-          comments={comments ?? []}
-          commentsHook={commentsHook}
-          commentsReadOnly={commentsReadOnly}
-          entityDataState={entityDataState}
-          entityType={entityType}
-          isDisabled={isDisabled}
-          isTrashed={props.isTrashed}
-          open={notesOpen}
-          toggleArchive={toggleArchive}
-          onOpenChange={setNotesOpen}
-        />
-      ) : null}
-
       <JobLeadDetailLayout
         activeTab={activeTab}
         backLabel={
           entityType === ResourceType.JOB ? "Back to jobs" : "Back to leads"
+        }
+        notesPanel={
+          canViewStakeholders ? (
+            <JobLeadNotesSection
+              canEdit={canEdit}
+              canEditLeadPage={canEditLeadPage}
+              comments={comments ?? []}
+              commentsHook={commentsHook}
+              commentsReadOnly={commentsReadOnly}
+              entityDataState={entityDataState}
+              entityType={entityType}
+              isDisabled={isDisabled}
+              isTrashed={props.isTrashed}
+              open={notesOpen}
+              toggleArchive={toggleArchive}
+              onToggle={() => setNotesOpen((prev) => !prev)}
+            />
+          ) : undefined
         }
         footer={
           orgId && entityDataState.id != null ? (

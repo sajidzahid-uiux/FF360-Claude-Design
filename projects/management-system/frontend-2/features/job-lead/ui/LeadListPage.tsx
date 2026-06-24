@@ -413,6 +413,7 @@ export function LeadListPage({ config }: LeadListPageProps) {
         {...jobLeadFormProps}
         isOpen={isAddLeadOpen}
         isSubmitting={isAddLeadSubmitting}
+        requireTypeSelection={searchParams.get("pick") === "1"}
         onCancel={() => setIsAddLeadOpen(false)}
         onOpenChange={setIsAddLeadOpen}
         onSubmit={handleAddLeadSubmit}

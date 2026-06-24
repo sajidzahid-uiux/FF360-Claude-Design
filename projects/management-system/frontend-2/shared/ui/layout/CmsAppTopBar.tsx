@@ -26,7 +26,9 @@ import { useUnseenChatTotal } from "@/hooks/useUnseenChatTotal";
 import { APP_ROUTES, orgRoute } from "@/shared/config/routes";
 import { AccentCountBadge } from "@/shared/ui/layout/AccentCountBadge";
 import { CmsGlobalAddButton } from "@/shared/ui/layout/CmsGlobalAddButton";
+import { CmsGlobalSearch } from "@/shared/ui/layout/CmsGlobalSearch";
 import { CmsVersionSwitcherButton } from "@/shared/ui/layout/CmsVersionSwitcherButton";
+import { ThemeControlsPopover } from "@/shared/ui/theme/ThemeControlsPopover";
 import { Badge } from "@/shared/ui/primitives";
 
 type CmsAppTopBarActionsSection = "trailing" | "mobile-shell";
@@ -125,6 +127,8 @@ function CmsAppTopBarActions({
 
   const trailingActions = showTrailing ? (
     <>
+      <CmsGlobalSearch />
+
       <CmsGlobalAddButton />
 
       <CmsVersionSwitcherButton frontendId="v2" />
@@ -296,7 +300,9 @@ export function CmsAppTopBar() {
   const unseenTotal = useUnseenChatTotal();
 
   return (
-    <div className="flex w-full items-center justify-end gap-3">
+    <div className="flex w-full items-center gap-3">
+      <ThemeControlsPopover align="left" />
+      <div className="flex-1" />
       <CmsAppTopBarActions section="trailing" unseenTotal={unseenTotal} />
     </div>
   );

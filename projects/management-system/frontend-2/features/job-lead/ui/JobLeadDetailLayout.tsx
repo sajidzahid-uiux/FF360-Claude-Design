@@ -16,6 +16,8 @@ export interface JobLeadDetailLayoutProps<T extends string> {
   children: ReactNode;
   footer?: ReactNode;
   meta?: ReactNode;
+  /** Optional collapsible panel docked to the right of the body (e.g. Notes). */
+  notesPanel?: ReactNode;
   onBack: () => void;
   onTabChange: (tab: T) => void;
   subtitle: string;
@@ -30,6 +32,7 @@ export function JobLeadDetailLayout<T extends string>({
   children,
   footer,
   meta,
+  notesPanel,
   onBack,
   onTabChange,
   subtitle,
@@ -63,7 +66,16 @@ export function JobLeadDetailLayout<T extends string>({
           </div>
         ) : null}
       </div>
-      <div className="min-w-0">{children}</div>
+      {notesPanel ? (
+        // Standard grid utilities only — this build doesn't emit `lg:` or
+        // arbitrary `grid-cols-[…]`. Main spans 2/3, Notes the right 1/3.
+        <div className="grid min-w-0 grid-cols-1 items-start gap-5 md:grid-cols-3">
+          <div className="min-w-0 md:col-span-2">{children}</div>
+          <aside className="min-w-0 md:col-span-1">{notesPanel}</aside>
+        </div>
+      ) : (
+        <div className="min-w-0">{children}</div>
+      )}
     </DetailViewPage>
   );
 }
