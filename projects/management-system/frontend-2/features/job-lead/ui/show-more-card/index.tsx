@@ -24,6 +24,7 @@ import { DesignRequestJobLeadIntegration } from "@/features/design-request";
 import {
   JobDetailOverflowMenu,
   JobLeadDetailLayout,
+  JobLeadNotesDialog,
   JobLeadNotesSection,
   getJobLeadRecordBreadcrumbLabel,
 } from "@/features/job-lead";
@@ -45,6 +46,7 @@ import {
 import { UploadFile } from "@/shared/ui/common/UploadFile";
 import { PermissionCodeGate } from "@/shared/ui/permissions";
 
+import { DocumentSentToggleButtons } from "./DocumentSentToggleButtons";
 import { ShowMoreCardDetailMeta } from "./ShowMoreCardDetailMeta";
 import { getConfig } from "./configs";
 import type { EntityDataState } from "./entityDataState";
@@ -227,10 +229,10 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
   } = dialogs;
   const { router, queryClient, transformVertices, currentUser, orgId } = utils;
 
-  // Notes now live as a collapsible right-side section in the body (not a modal).
-  // The footer "Notes" button toggles its expanded state.
+  // Notes live as a collapsible right-side section in the body. The expand icon
+  // in its header opens a focused full-screen modal.
   const [notesOpen, setNotesOpen] = useState(true);
-  const handleOpenNotes = useCallback(() => setNotesOpen((prev) => !prev), []);
+  const [notesModalOpen, setNotesModalOpen] = useState(false);
 
   const completedJobTypeQueryParam = useMemo((): JobOrLeadType => {
     if (config.jobType === JobType.EXCAVATION) return JobOrLeadType.EXCAVATION;
@@ -363,8 +365,6 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
     <ShowMoreCardDetailMeta
       badgeLabel={getEntityTypeLabel()}
       contactInfo={entityDataState.contact_info}
-      contractSent={entityDataState.contract_sent || false}
-      estimateSent={entityDataState.estimate_sent || false}
       poNumber={entityDataState.po_number}
       progressBar={entityDataState.progress_bar}
       trailing={
@@ -378,7 +378,13 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
     />
   );
 
-  const tabToolbar = undefined;
+  // Estimate/contract status moved out of the header into the tab row (top-right).
+  const tabToolbar = (
+    <DocumentSentToggleButtons
+      contractSent={entityDataState.contract_sent || false}
+      estimateSent={entityDataState.estimate_sent || false}
+    />
+  );
 
   const headerToolbar = props.isTrashed ? (
     <div className="flex max-w-full flex-nowrap items-center gap-2 overflow-x-auto">
@@ -595,6 +601,23 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
           );
         })()}
 
+      {canViewStakeholders ? (
+        <JobLeadNotesDialog
+          canEdit={canEdit}
+          canEditLeadPage={canEditLeadPage}
+          comments={comments ?? []}
+          commentsHook={commentsHook}
+          commentsReadOnly={commentsReadOnly}
+          entityDataState={entityDataState}
+          entityType={entityType}
+          isDisabled={isDisabled}
+          isTrashed={props.isTrashed}
+          open={notesModalOpen}
+          toggleArchive={toggleArchive}
+          onOpenChange={setNotesModalOpen}
+        />
+      ) : null}
+
       <JobLeadDetailLayout
         activeTab={activeTab}
         backLabel={
@@ -614,6 +637,7 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
               isTrashed={props.isTrashed}
               open={notesOpen}
               toggleArchive={toggleArchive}
+              onExpand={() => setNotesModalOpen(true)}
               onToggle={() => setNotesOpen((prev) => !prev)}
             />
           ) : undefined
@@ -638,7 +662,6 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
               organizationId={orgId}
               onLogs={entityLogsAction}
               onOneCall={handleToggleOneCall}
-              onOpenNotes={canViewStakeholders ? handleOpenNotes : undefined}
             />
           ) : undefined
         }

@@ -5,15 +5,11 @@ import type { ReactNode } from "react";
 import { ContactNumberRow } from "@/features/contacts";
 import { JobLeadProgressMeta } from "@/features/job-lead";
 
-import { DocumentSentToggleButtons } from "./DocumentSentToggleButtons";
-
 export interface ShowMoreCardDetailMetaProps {
   badgeLabel: string;
   contactInfo?: Parameters<typeof ContactNumberRow>[0]["contactInfo"];
   poNumber?: string | null;
   progressBar?: string | number | null;
-  contractSent?: boolean;
-  estimateSent?: boolean;
   trailing?: ReactNode;
 }
 
@@ -22,8 +18,6 @@ export function ShowMoreCardDetailMeta({
   contactInfo,
   poNumber,
   progressBar,
-  contractSent = false,
-  estimateSent = false,
   trailing,
 }: ShowMoreCardDetailMetaProps) {
   return (
@@ -33,10 +27,6 @@ export function ShowMoreCardDetailMeta({
       </span>
       <ContactNumberRow contactInfo={contactInfo} number={poNumber} />
       <JobLeadProgressMeta progressBar={progressBar} />
-      <DocumentSentToggleButtons
-        contractSent={contractSent}
-        estimateSent={estimateSent}
-      />
       {trailing}
     </>
   );

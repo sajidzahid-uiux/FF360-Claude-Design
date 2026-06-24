@@ -114,9 +114,6 @@ export function NotesComposer({
         ) : null}
       </div>
       <div className="border-border-subtle flex items-center justify-between gap-2 border-t px-3 py-2">
-        <span className="text-text-muted hidden text-xs sm:inline">
-          Enter to post · Shift+Enter for new line
-        </span>
         <Button
           className="ml-auto"
           disabled={submitting || !value.trim()}
