@@ -1,14 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 
-import { useRouteIds, useTeamData } from "@/hooks";
 import type { useDialogManager } from "@/hooks/useDialogManager";
-import { orgPath } from "@/shared/config/routes";
-import { filterActiveTeamMembers } from "@/utils/team/assignmentOrder";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 
-import { AddMaintenanceForm } from "../ui/AddMaintenanceForm";
+export const ADD_MAINTENANCE_MODAL_KEY = "add-maintenance";
 
 export interface OpenAddMaintenanceDialogParams {
   equipmentId: string;
@@ -23,10 +20,18 @@ type DialogManagerApi = Pick<
   "openDialog" | "closeDialog"
 >;
 
-export function useOpenAddMaintenanceDialog(dialogManager: DialogManagerApi) {
-  const { data: team } = useTeamData();
-  const router = useRouter();
-  const { orgId } = useRouteIds();
+/**
+ * Returns a trigger that opens the URL-driven Add Maintenance modal.
+ *
+ * The modal itself is mounted by `<AddMaintenanceModalMount />` (Pattern B),
+ * which reads the same modal stack and reconstructs the form props (team
+ * options, navigation) from hooks + the scalar params pushed here.
+ *
+ * The `dialogManager` argument is kept for backwards-compatible call sites but
+ * is no longer used to open this dialog.
+ */
+export function useOpenAddMaintenanceDialog(_dialogManager?: DialogManagerApi) {
+  const { openModal } = useModalStack();
 
   return useCallback(
     ({
@@ -34,31 +39,12 @@ export function useOpenAddMaintenanceDialog(dialogManager: DialogManagerApi) {
       equipmentType = null,
       navigateOnSuccess = false,
     }: OpenAddMaintenanceDialogParams) => {
-      const closeDialog = () => dialogManager.closeDialog();
-
-      dialogManager.openDialog({
-        type: "addMaintenance",
-        component: AddMaintenanceForm,
-        props: {
-          assignedToOptions:
-            filterActiveTeamMembers(team).map((t) => ({
-              value: t.id.toString(),
-              label: t?.user?.username ?? "",
-            })) ?? [],
-          equipmentIdParam: equipmentId,
-          equipmentType,
-          onBack: closeDialog,
-          onSuccess: navigateOnSuccess
-            ? () => {
-                closeDialog();
-                if (orgId) {
-                  router.push(orgPath(orgId, "/maintenance"));
-                }
-              }
-            : undefined,
-        },
+      openModal(ADD_MAINTENANCE_MODAL_KEY, {
+        id: equipmentId,
+        type: equipmentType ?? "",
+        nav: navigateOnSuccess ? "1" : "0",
       });
     },
-    [dialogManager, orgId, router, team]
+    [openModal]
   );
 }

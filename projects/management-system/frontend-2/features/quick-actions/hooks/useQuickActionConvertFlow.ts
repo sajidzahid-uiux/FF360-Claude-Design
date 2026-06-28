@@ -15,8 +15,15 @@ import {
   useConvertQuickActionToLead,
 } from "@/hooks/mutations";
 import { useQuickActionContactLookup } from "@/hooks/queries";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 
 import { QuickActionConvertTarget } from "../ui/QuickActionConvertDropdown";
+
+const CONVERT_MODAL_KEY = "convert-quick-action";
+
+function isConvertTarget(value: string | undefined): value is QuickActionConvertTarget {
+  return value === "contact" || value === "job" || value === "lead";
+}
 
 const CONVERT_MODAL_COPY: Record<
   QuickActionConvertTarget,
@@ -43,7 +50,26 @@ export function useQuickActionConvertFlow(
   quickActionId: number | undefined,
   quickAction: QuickAction | undefined
 ) {
-  const [mode, setMode] = useState<QuickActionConvertTarget | null>(null);
+  const { stack, openModal, updateModalParams, closeModalKey } =
+    useModalStack();
+  const convertFrame = stack.find((f) => f.key === CONVERT_MODAL_KEY);
+  const mode: QuickActionConvertTarget | null = isConvertTarget(
+    convertFrame?.params.type
+  )
+    ? convertFrame.params.type
+    : null;
+
+  const setMode = useCallback(
+    (next: QuickActionConvertTarget) => {
+      if (convertFrame) {
+        updateModalParams({ type: next }, CONVERT_MODAL_KEY);
+      } else {
+        openModal(CONVERT_MODAL_KEY, { type: next });
+      }
+    },
+    [convertFrame, openModal, updateModalParams]
+  );
+
   const [intendedConversionAfterContact, setIntendedConversionAfterContact] =
     useState<ResourceType | null>(null);
 
@@ -71,13 +97,13 @@ export function useQuickActionConvertFlow(
   const hasContact = Boolean(quickAction?.conversion?.contact);
 
   const close = useCallback(() => {
-    setMode(null);
+    closeModalKey(CONVERT_MODAL_KEY);
     setIntendedConversionAfterContact(null);
-  }, []);
+  }, [closeModalKey]);
 
-  const openContact = useCallback(() => setMode("contact"), []);
-  const openLead = useCallback(() => setMode(ResourceType.LEAD), []);
-  const openJob = useCallback(() => setMode(ResourceType.JOB), []);
+  const openContact = useCallback(() => setMode("contact"), [setMode]);
+  const openLead = useCallback(() => setMode(ResourceType.LEAD), [setMode]);
+  const openJob = useCallback(() => setMode(ResourceType.JOB), [setMode]);
 
   const continueAfterContact = useCallback(() => {
     if (intendedConversionAfterContact === ResourceType.LEAD) {
@@ -91,7 +117,7 @@ export function useQuickActionConvertFlow(
       return;
     }
     close();
-  }, [close, intendedConversionAfterContact]);
+  }, [close, intendedConversionAfterContact, setMode]);
 
   const handleConnectContact = useCallback(
     (contactId: number) => {
@@ -129,7 +155,7 @@ export function useQuickActionConvertFlow(
   const requestContactForConversion = useCallback((target: ResourceType) => {
     setIntendedConversionAfterContact(target);
     setMode("contact");
-  }, []);
+  }, [setMode]);
 
   const modalCopy = mode ? CONVERT_MODAL_COPY[mode] : null;
 

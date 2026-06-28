@@ -7,6 +7,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 
 import { useTokenRefreshService } from "@/hooks/useTokenRefreshService";
 import { GlobalDialogManager } from "@/shared/ui/layout/GlobalDialogManager";
+import { GlobalModalStack } from "@/shared/ui/layout/GlobalModalStack";
 import GoogleMapsClientWrapper from "@/shared/ui/layout/GoogleMapsClientWrapper";
 
 export default function ClientRootLayoutContent({
@@ -26,6 +27,7 @@ export default function ClientRootLayoutContent({
     <GoogleMapsClientWrapper pathname={pathname}>
       {children}
       <GlobalDialogManager />
+      <GlobalModalStack />
     </GoogleMapsClientWrapper>
   );
 }

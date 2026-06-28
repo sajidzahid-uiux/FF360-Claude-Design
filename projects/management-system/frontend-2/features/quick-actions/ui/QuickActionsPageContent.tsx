@@ -25,6 +25,7 @@ import {
 import { APP_ROUTES, orgPath } from "@/shared/config/routes";
 import type { ContentTypeMapping } from "@/shared/lib";
 import { bulkConfirmationCopy, bulkDeleteSuccessMessage } from "@/shared/lib";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import {
   CMS_DEFAULT_PAGE_SIZE,
   createCmsTableStateKey,
@@ -41,11 +42,16 @@ export default function QuickActionsPage() {
   const isAdmin = useIsAdmin();
   const { data: contentTypes } = useMapping("content_types");
 
+  const { stack, openModal, closeModalKey } = useModalStack();
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
-  const [showAddQuickAction, setShowAddQuickAction] = useState(false);
-  const [editingQuickActionId, setEditingQuickActionId] = useState<
-    number | null
-  >(null);
+
+  const showAddQuickAction = stack.some((f) => f.key === "add-quick-action");
+  const editQuickActionFrame = stack.find(
+    (f) => f.key === "edit-quick-action"
+  );
+  const editingQuickActionId = editQuickActionFrame
+    ? Number(editQuickActionFrame.params.id)
+    : null;
 
   const contentTypeId = contentTypes?.find(
     (entry: ContentTypeMapping) =>
@@ -193,20 +199,23 @@ export default function QuickActionsPage() {
               );
             }
           }
-          setShowAddQuickAction(false);
+          closeModalKey("add-quick-action");
         },
       });
     },
-    [contentTypeId, createMutation, organizationId, queryClient]
+    [closeModalKey, contentTypeId, createMutation, organizationId, queryClient]
   );
 
   const handleAddClick = useCallback(() => {
-    setShowAddQuickAction(true);
-  }, []);
+    openModal("add-quick-action");
+  }, [openModal]);
 
-  const handleEdit = useCallback((quickAction: QuickAction) => {
-    setEditingQuickActionId(quickAction.id);
-  }, []);
+  const handleEdit = useCallback(
+    (quickAction: QuickAction) => {
+      openModal("edit-quick-action", { id: String(quickAction.id) });
+    },
+    [openModal]
+  );
 
   const handleDelete = useCallback(
     (quickAction: QuickAction) => {
@@ -326,7 +335,11 @@ export default function QuickActionsPage() {
           <AddQuickActionModal
             isSubmitting={createMutation.isPending}
             open={showAddQuickAction}
-            onOpenChange={setShowAddQuickAction}
+            onOpenChange={(open) => {
+              if (!open) {
+                closeModalKey("add-quick-action");
+              }
+            }}
             onSubmit={handleAddSubmit}
           />
           <EditQuickActionModal
@@ -334,7 +347,7 @@ export default function QuickActionsPage() {
             quickActionId={editingQuickActionId}
             onOpenChange={(open) => {
               if (!open) {
-                setEditingQuickActionId(null);
+                closeModalKey("edit-quick-action");
               }
             }}
           />

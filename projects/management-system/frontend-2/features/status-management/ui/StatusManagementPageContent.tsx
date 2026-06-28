@@ -3,6 +3,13 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { ComponentSizeEnum, Loader } from "@fieldflow360/org-ui";
+import {
+  CreditCard,
+  FolderTree,
+  ListChecks,
+  Megaphone,
+  Target,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import type {
@@ -23,6 +30,7 @@ import {
 import useProjectTypesSettings from "@/hooks/useProjectTypesSettings";
 import { APP_ROUTE_LABELS } from "@/shared/config/routes";
 import { groupProjectTypesByCategory } from "@/shared/lib";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { DialogManager, PageRenderer } from "@/shared/ui/common";
 import { AccessDeniedView } from "@/shared/ui/permissions";
 import {
@@ -69,15 +77,13 @@ export function StatusManagementPageContent() {
   const { read: canViewSettings, write: canEditSettings } =
     useRoutePermissions() || {};
   const dialogManager = useDialogManager();
+  const { stack, openModal, closeModalKey } = useModalStack();
 
   const [activeTab, setActiveTab] = useState<StatusManagementTab>("job-status");
   const [jobTypeTab, setJobTypeTab] = useState<JobTypeTab>("Repair");
   const [projectTypeTab, setProjectTypeTab] = useState<ProjectTypeTab>(
     JobOrLeadType.REPAIR
   );
-  const [statusModal, setStatusModal] = useState<StatusModalState | null>(null);
-  const [projectTypeModal, setProjectTypeModal] =
-    useState<ProjectTypeModalState | null>(null);
 
   const {
     addLeadType,
@@ -126,6 +132,122 @@ export function StatusManagementPageContent() {
     [projectTypes]
   );
 
+  // URL-driven status modal: reconstruct StatusModalState from the frame params
+  // and a lookup over the existing query data (by id + type).
+  const statusModalFrame = stack.find((f) => f.key === "manage-org-status");
+  const statusModal = useMemo<StatusModalState | null>(() => {
+    if (!statusModalFrame) return null;
+    const { params } = statusModalFrame;
+    const mode = params.mode === "edit" ? "edit" : "add";
+    const type = params.type as OrganizationStatusModalType;
+    const jobType = (params.jobType as JobTypeTab | undefined) ?? undefined;
+
+    if (mode === "add") {
+      return {
+        open: true,
+        mode,
+        type,
+        initialData: jobType ? { jobType } : undefined,
+      };
+    }
+
+    const id = Number(params.id);
+    let initialData: OrganizationStatusModalInitialData | undefined;
+    if (type === "jobStatus") {
+      const match = (jobStatusesByType?.[jobType ?? jobTypeTab] ?? []).find(
+        (s) => s.id === id
+      );
+      if (match) {
+        initialData = {
+          id: match.id,
+          title: match.title,
+          color: match.color,
+          number: match.number,
+          editable: match.editable,
+          isDefault: match.is_default,
+          jobType: jobType ?? jobTypeTab,
+        };
+      }
+    } else if (type === "leadStatus") {
+      const match = (leadStatuses ?? []).find((s) => s.id === id);
+      if (match) {
+        initialData = {
+          id: match.id,
+          title: match.title,
+          color: match.color,
+          isDefault: match.is_default,
+        };
+      }
+    } else if (type === "leadType") {
+      const match = (leadTypes ?? []).find((s) => s.id === id);
+      if (match) {
+        initialData = {
+          id: match.id,
+          title: match.title,
+          color: match.color,
+          isDefault: match.is_default,
+        };
+      }
+    } else if (type === "paymentStatus") {
+      const match = (paymentStatuses ?? []).find(
+        (s: PaymentStatus) => s.id === id
+      );
+      if (match) {
+        initialData = {
+          id: match.id,
+          title: match.title,
+          color: match.color,
+          isDefault: match.is_default,
+        };
+      }
+    }
+
+    return { open: true, mode, type, initialData };
+  }, [
+    statusModalFrame,
+    jobStatusesByType,
+    jobTypeTab,
+    leadStatuses,
+    leadTypes,
+    paymentStatuses,
+  ]);
+
+  // URL-driven project type modal: reconstruct from frame params + lookup.
+  const projectTypeModalFrame = stack.find(
+    (f) => f.key === "manage-project-type"
+  );
+  const projectTypeModal = useMemo<ProjectTypeModalState | null>(() => {
+    if (!projectTypeModalFrame) return null;
+    const { params } = projectTypeModalFrame;
+    const mode = params.mode === "edit" ? "edit" : "add";
+
+    if (mode === "add") {
+      return {
+        open: true,
+        mode,
+        defaultCategory: params.category as ProjectTypeCategory | undefined,
+      };
+    }
+
+    const id = Number(params.id);
+    const match = (projectTypes ?? []).find(
+      (pt: ProjectType) => pt.id === id
+    );
+    return {
+      open: true,
+      mode,
+      initialData: match
+        ? {
+            id: match.id,
+            name: match.name,
+            color: match.color,
+            category: match.category,
+            is_default: match.is_default,
+          }
+        : undefined,
+    };
+  }, [projectTypeModalFrame, projectTypes]);
+
   const categoryToolbarItems = useMemo(() => {
     if (activeTab === "job-status") {
       return [...JOB_TYPE_TAB_ITEMS];
@@ -160,9 +282,16 @@ export function StatusManagementPageContent() {
       type: OrganizationStatusModalType,
       initialData?: OrganizationStatusModalInitialData
     ) => {
-      setStatusModal({ open: true, mode, type, initialData });
+      const params: Record<string, string> = { mode, type };
+      if (mode === "edit" && initialData?.id != null) {
+        params.id = String(initialData.id);
+      }
+      if (initialData?.jobType) {
+        params.jobType = initialData.jobType;
+      }
+      openModal("manage-org-status", params);
     },
-    []
+    [openModal]
   );
 
   const handleDeleteClick = useCallback(
@@ -217,9 +346,16 @@ export function StatusManagementPageContent() {
       initialData?: ProjectTypeModalState["initialData"],
       defaultCategory?: ProjectTypeCategory
     ) => {
-      setProjectTypeModal({ open: true, mode, initialData, defaultCategory });
+      const params: Record<string, string> = { mode };
+      if (mode === "edit" && initialData?.id != null) {
+        params.id = String(initialData.id);
+      }
+      if (defaultCategory) {
+        params.category = defaultCategory;
+      }
+      openModal("manage-project-type", params);
     },
-    []
+    [openModal]
   );
 
   const handleProjectTypeModalSubmit = useCallback(
@@ -243,13 +379,19 @@ export function StatusManagementPageContent() {
             category: values.category,
           } as { id: number } & ProjectTypeUpdatePayload);
         }
-        setProjectTypeModal(null);
+        closeModalKey("manage-project-type");
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Failed to save";
         toast.error(message);
       }
     },
-    [addProjectType, canEditSettings, projectTypeModal, updateProjectType]
+    [
+      addProjectType,
+      canEditSettings,
+      closeModalKey,
+      projectTypeModal,
+      updateProjectType,
+    ]
   );
 
   const handleStatusModalSubmit = useCallback(
@@ -314,7 +456,7 @@ export function StatusManagementPageContent() {
           }
         }
 
-        setStatusModal(null);
+        closeModalKey("manage-org-status");
       } catch (err: unknown) {
         const message =
           err instanceof Error ? err.message : "Failed to save status";
@@ -327,6 +469,7 @@ export function StatusManagementPageContent() {
       addPaymentStatus,
       addStatus,
       canEditSettings,
+      closeModalKey,
       jobTypeTab,
       statusModal,
       updateLeadStatus,
@@ -352,8 +495,10 @@ export function StatusManagementPageContent() {
 
     return (
       <StatusSectionPanel
+        count={statuses.length}
         description="Configure and manage job statuses for each job type."
-        footerNote={`Note: "New" is always the first status and "Completed" is always the last status.`}
+        footerNote={`"New" is always the first status and "Completed" is always the last status.`}
+        icon={<ListChecks aria-hidden className="h-4 w-4" strokeWidth={2} />}
         title="Job status management"
       >
         <div className={STATUS_GRID_CLASS}>
@@ -396,7 +541,9 @@ export function StatusManagementPageContent() {
   const renderLeadSettings = () => (
     <div className="flex flex-col gap-6">
       <StatusSectionPanel
+        count={(leadStatuses ?? []).length}
         description="Configure and manage lead statuses for your organization."
+        icon={<Target aria-hidden className="h-4 w-4" strokeWidth={2} />}
         title="Lead status management"
       >
         <div className={STATUS_GRID_CLASS}>
@@ -430,7 +577,9 @@ export function StatusManagementPageContent() {
       </StatusSectionPanel>
 
       <StatusSectionPanel
+        count={(leadTypes ?? []).length}
         description="Configure and manage lead sources for your organization."
+        icon={<Megaphone aria-hidden className="h-4 w-4" strokeWidth={2} />}
         title="Lead source management"
       >
         <div className={STATUS_GRID_CLASS}>
@@ -467,7 +616,9 @@ export function StatusManagementPageContent() {
 
   const renderPaymentStatuses = () => (
     <StatusSectionPanel
+      count={(paymentStatuses ?? []).length}
       description="Configure and manage payment statuses for your organization."
+      icon={<CreditCard aria-hidden className="h-4 w-4" strokeWidth={2} />}
       title="Payment status management"
     >
       <div className={STATUS_GRID_CLASS}>
@@ -508,7 +659,9 @@ export function StatusManagementPageContent() {
 
     return (
       <StatusSectionPanel
+        count={types.length}
         description="Configure project types by job category."
+        icon={<FolderTree aria-hidden className="h-4 w-4" strokeWidth={2} />}
         title="Project type management"
       >
         <div className={STATUS_GRID_CLASS}>
@@ -609,7 +762,7 @@ export function StatusManagementPageContent() {
                 open={statusModal.open}
                 type={statusModal.type}
                 onOpenChange={(open) => {
-                  if (!open) setStatusModal(null);
+                  if (!open) closeModalKey("manage-org-status");
                 }}
                 onSubmit={handleStatusModalSubmit}
               />
@@ -626,7 +779,7 @@ export function StatusManagementPageContent() {
                 mode={projectTypeModal.mode}
                 open={projectTypeModal.open}
                 onOpenChange={(open) => {
-                  if (!open) setProjectTypeModal(null);
+                  if (!open) closeModalKey("manage-project-type");
                 }}
                 onSubmit={handleProjectTypeModalSubmit}
               />

@@ -41,6 +41,8 @@ export {
   getLeadListBadgeLabel,
 } from "./lib/jobLeadBreadcrumb";
 export {
+  AddJobModalConnected,
+  AddLeadModalConnected,
   JobDetailOverflowMenu,
   JobLeadArchiveBreadcrumbToolbar,
   JobLeadDetailLayout,

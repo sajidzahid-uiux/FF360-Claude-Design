@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { ResourceType } from "@/constants";
 import { FileCard } from "@/shared/ui/common";
 
-interface ReshareDialogProps {
+export interface ReshareDialogProps {
   files: Array<{
     id: number | string;
     title?: string;

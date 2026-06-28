@@ -10,6 +10,7 @@ import type { Maintenance, RecordEquipment, TeamMember } from "@/api/types";
 import { SortOrder } from "@/api/types";
 import { type NotKanbanView, ViewMode } from "@/constants";
 import {
+  AddMaintenanceModalMount,
   EnrichedMaintenanceItem,
   MAINTENANCE_LIST_PAGE_SIZE,
   MaintenanceDetailView,
@@ -399,6 +400,7 @@ export default function MaintenancePage() {
             onViewChange={handleViewChange}
           />
           <DialogManager manager={dialogManager} />
+          <AddMaintenanceModalMount />
         </div>
       )}
     </PageRenderer>

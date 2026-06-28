@@ -22,6 +22,7 @@ import {
 } from "@/features/map/lib";
 import { CorePointMarkers } from "@/features/order-pipe/order-pipe-wizard/components/CorePointMarkers";
 import { useGoogleMapsApi } from "@/providers";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import type { MapPinItem } from "@/shared/ui/common/BoundaryMap";
 import type {
   BoundaryMapRef,
@@ -146,6 +147,7 @@ export const DeckBoundaryMap = forwardRef<BoundaryMapRef, DeckBoundaryMapProps>(
     ref
   ) {
     const { isLoaded } = useGoogleMapsApi();
+    const { stack, openModal, closeModalKey } = useModalStack();
 
     const mapRef = useRef<google.maps.Map | null>(null);
     const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(
@@ -178,7 +180,7 @@ export const DeckBoundaryMap = forwardRef<BoundaryMapRef, DeckBoundaryMapProps>(
     );
     const [selectedCorePoint, setSelectedCorePoint] =
       useState<CorePoint | null>(null);
-    const [showCorePointInfo, setShowCorePointInfo] = useState(false);
+    const showCorePointInfo = stack.some((f) => f.key === "view-core-point");
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isCoreLocationMethodDialogOpen, setIsCoreLocationMethodDialogOpen] =
       useState(false);
@@ -186,7 +188,7 @@ export const DeckBoundaryMap = forwardRef<BoundaryMapRef, DeckBoundaryMapProps>(
       useState(false);
 
     const [selectedPin, setSelectedPin] = useState<MapPinItem | null>(null);
-    const [showPinInfo, setShowPinInfo] = useState(false);
+    const showPinInfo = stack.some((f) => f.key === "view-map-pin");
     const [showPinDeleteConfirm, setShowPinDeleteConfirm] = useState(false);
 
     const normalizedVertices = useMemo(
@@ -300,7 +302,9 @@ export const DeckBoundaryMap = forwardRef<BoundaryMapRef, DeckBoundaryMapProps>(
       mapPins,
       onPinClick: (pin) => {
         setSelectedPin(pin);
-        setShowPinInfo(true);
+        if (pin.id != null) {
+          openModal("view-map-pin", { id: String(pin.id) });
+        }
       },
     });
 
@@ -310,6 +314,27 @@ export const DeckBoundaryMap = forwardRef<BoundaryMapRef, DeckBoundaryMapProps>(
     );
 
     useDeckGlOverlay(mapInstance, allLayers);
+
+    // The info dialogs are URL-driven: derive the entity to show from the
+    // frame id (look it up in the live list), falling back to the entity
+    // captured on click for flows that opened it imperatively.
+    const corePointFrame = stack.find((f) => f.key === "view-core-point");
+    const infoCorePoint = useMemo<CorePoint | null>(() => {
+      const id = corePointFrame?.params.id;
+      if (id == null) return null;
+      return (
+        corePoints.find((c) => String(c.id) === id) ?? selectedCorePoint ?? null
+      );
+    }, [corePointFrame, corePoints, selectedCorePoint]);
+
+    const pinFrame = stack.find((f) => f.key === "view-map-pin");
+    const infoPin = useMemo<MapPinItem | null>(() => {
+      const id = pinFrame?.params.id;
+      if (id == null) return null;
+      return (
+        mapPins.find((p) => String(p.id) === id) ?? selectedPin ?? null
+      );
+    }, [pinFrame, mapPins, selectedPin]);
 
     const startCorePointMode = useCallback(() => {
       setIsCorePointMode(true);
@@ -496,10 +521,15 @@ export const DeckBoundaryMap = forwardRef<BoundaryMapRef, DeckBoundaryMapProps>(
       handleCorePointFormCancel,
     ]);
 
-    const handleCorePointClick = useCallback((corePoint: CorePoint) => {
-      setSelectedCorePoint(corePoint);
-      setShowCorePointInfo(true);
-    }, []);
+    const handleCorePointClick = useCallback(
+      (corePoint: CorePoint) => {
+        setSelectedCorePoint(corePoint);
+        if (corePoint.id != null) {
+          openModal("view-core-point", { id: String(corePoint.id) });
+        }
+      },
+      [openModal]
+    );
 
     const handleCorePointChangeLocation = useCallback(() => {
       if (!selectedCorePoint || !canEditCorePoints) return;
@@ -509,28 +539,28 @@ export const DeckBoundaryMap = forwardRef<BoundaryMapRef, DeckBoundaryMapProps>(
         lat: selectedCorePoint.latitude,
         lng: selectedCorePoint.longitude,
       });
-      setShowCorePointInfo(false);
+      closeModalKey("view-core-point");
       setIsCoreLocationMethodDialogOpen(true);
-    }, [canEditCorePoints, selectedCorePoint]);
+    }, [canEditCorePoints, selectedCorePoint, closeModalKey]);
 
     const handleCorePointDeleteRequest = useCallback(() => {
-      setShowCorePointInfo(false);
+      closeModalKey("view-core-point");
       setShowDeleteConfirm(true);
-    }, []);
+    }, [closeModalKey]);
 
     const handleCorePointDeleteConfirm = useCallback(() => {
       if (selectedCorePoint?.id && onCoreDelete) {
         onCoreDelete(selectedCorePoint.id);
       }
       setShowDeleteConfirm(false);
-      setShowCorePointInfo(false);
+      closeModalKey("view-core-point");
       setSelectedCorePoint(null);
-    }, [selectedCorePoint, onCoreDelete]);
+    }, [selectedCorePoint, onCoreDelete, closeModalKey]);
 
     const handlePinDeleteRequest = useCallback(() => {
-      setShowPinInfo(false);
+      closeModalKey("view-map-pin");
       setShowPinDeleteConfirm(true);
-    }, []);
+    }, [closeModalKey]);
 
     const handlePinDeleteConfirm = useCallback(() => {
       if (selectedPin?.id != null) onPinDelete?.(selectedPin.id);
@@ -662,10 +692,12 @@ export const DeckBoundaryMap = forwardRef<BoundaryMapRef, DeckBoundaryMapProps>(
         <DeckCorePointInfoDialog
           canDelete={!!onCoreDelete && canEditCorePoints}
           canEdit={canEditCorePoints}
-          corePoint={selectedCorePoint}
+          corePoint={infoCorePoint}
           open={showCorePointInfo}
           onChangeLocation={handleCorePointChangeLocation}
-          onOpenChange={setShowCorePointInfo}
+          onOpenChange={(o) => {
+            if (!o) closeModalKey("view-core-point");
+          }}
           onRequestDelete={handleCorePointDeleteRequest}
         />
 
@@ -680,8 +712,10 @@ export const DeckBoundaryMap = forwardRef<BoundaryMapRef, DeckBoundaryMapProps>(
         <DeckMapPinInfoDialog
           canDelete={!!onPinDelete}
           open={showPinInfo}
-          pin={selectedPin}
-          onOpenChange={setShowPinInfo}
+          pin={infoPin}
+          onOpenChange={(o) => {
+            if (!o) closeModalKey("view-map-pin");
+          }}
           onRequestDelete={handlePinDeleteRequest}
         />
 

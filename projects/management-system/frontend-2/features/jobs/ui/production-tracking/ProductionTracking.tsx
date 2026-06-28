@@ -26,6 +26,7 @@ import {
 import { StorageKey, useDataFromStorageByKey } from "@/hooks/storage-data";
 import { useRouteIds } from "@/hooks/useRouteIds";
 import { orgPath } from "@/shared/config/routes";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { parseEntityId } from "@/shared/lib/parseEntityId";
 import { DetailFormSection } from "@/shared/ui/common";
 
@@ -79,9 +80,11 @@ export default function ProductionTracking({
   const { data: availableGroups } = useAvailableCrewGroups(jobId);
   const { data: availableIndividuals } = useAvailableIndividuals(jobId);
 
-  const [showAssignGroupDialog, setShowAssignGroupDialog] = useState(false);
-  const [showAssignIndividualDialog, setShowAssignIndividualDialog] =
-    useState(false);
+  const { stack, openModal, closeModalKey } = useModalStack();
+  const showAssignGroupDialog = stack.some((f) => f.key === "assign-crew-group");
+  const showAssignIndividualDialog = stack.some(
+    (f) => f.key === "assign-crew-individual"
+  );
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
 
@@ -148,7 +151,7 @@ export default function ProductionTracking({
       await assignCrewGroup.mutateAsync({
         crew_group_id: parseInt(selectedGroupId),
       });
-      setShowAssignGroupDialog(false);
+      closeModalKey("assign-crew-group");
       setSelectedGroupId("");
     } catch (error) {
       console.error("Error assigning group:", error);
@@ -166,7 +169,7 @@ export default function ProductionTracking({
       await assignIndividual.mutateAsync({
         member_id: parseInt(selectedMemberId),
       });
-      setShowAssignIndividualDialog(false);
+      closeModalKey("assign-crew-individual");
       setSelectedMemberId("");
     } catch (error) {
       console.error("Error assigning individual:", error);
@@ -253,13 +256,13 @@ export default function ProductionTracking({
         disabled={isCrewPermissionLoading || disabled || isTrashed}
         leftIcon={<Users className="h-4 w-4" />}
         title="Assign group"
-        onClick={() => setShowAssignGroupDialog(true)}
+        onClick={() => openModal("assign-crew-group")}
       />
       <Button
         disabled={isCrewPermissionLoading || disabled || isTrashed}
         leftIcon={<User className="h-4 w-4" />}
         title="Assign individual"
-        onClick={() => setShowAssignIndividualDialog(true)}
+        onClick={() => openModal("assign-crew-individual")}
       />
     </>
   ) : null;
@@ -363,7 +366,7 @@ export default function ProductionTracking({
         selectedId={selectedGroupId}
         type="group"
         onClose={() => {
-          setShowAssignGroupDialog(false);
+          closeModalKey("assign-crew-group");
           setSelectedGroupId("");
         }}
         onSelectedIdChange={setSelectedGroupId}
@@ -384,7 +387,7 @@ export default function ProductionTracking({
         selectedId={selectedMemberId}
         type="individual"
         onClose={() => {
-          setShowAssignIndividualDialog(false);
+          closeModalKey("assign-crew-individual");
           setSelectedMemberId("");
         }}
         onSelectedIdChange={setSelectedMemberId}

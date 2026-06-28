@@ -26,6 +26,7 @@ import {
   toPendingSubContactTableRow,
 } from "@/features/contacts/model";
 import { useContactCategories } from "@/hooks";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { OrgUiDataTable, type OrgUiDataTableColumn } from "@/shared/ui";
 
 import AddPendingSubContactDialog from "./AddPendingSubContactDialog";
@@ -72,8 +73,9 @@ export default function PendingSubContactsTab({
   onChange,
 }: PendingSubContactsTabProps) {
   const { categories } = useContactCategories();
+  const { stack, openModal, closeModalKey } = useModalStack();
   const [searchTerm, setSearchTerm] = useState("");
-  const [showAddDialog, setShowAddDialog] = useState(false);
+  const isAddOpen = stack.some((f) => f.key === "add-pending-subcontact");
 
   const excludedContactIds = useMemo(
     () => pending.filter((p) => p.kind === "existing").map((p) => p.contact.id),
@@ -218,7 +220,7 @@ export default function PendingSubContactsTab({
             <Button
               aria-label="Add"
               title="Add"
-              onClick={() => setShowAddDialog(true)}
+              onClick={() => openModal("add-pending-subcontact")}
             />
           ) : undefined
         }
@@ -226,11 +228,13 @@ export default function PendingSubContactsTab({
 
       <AddPendingSubContactDialog
         excludedContactIds={excludedContactIds}
-        open={showAddDialog}
+        open={isAddOpen}
         pendingCount={pending.length}
         onCreateNew={handleCreateNew}
         onLinkExisting={handleLinkExisting}
-        onOpenChange={setShowAddDialog}
+        onOpenChange={(o) => {
+          if (!o) closeModalKey("add-pending-subcontact");
+        }}
       />
     </div>
   );

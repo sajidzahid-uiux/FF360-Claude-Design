@@ -3,16 +3,25 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
+  Button,
+  ButtonVariantEnum,
+  ComponentSizeEnum,
   Modal,
   TabsSwitcher,
+  type TableFilterDefinition,
+  type TableFilterValue,
+  type TableSearchConfig,
+  type TableSortRule,
   type TableViewMode,
   TableViewModeEnum,
+  applyTableSort,
 } from "@fieldflow360/org-ui";
 import {
   Book,
   Briefcase,
   Eye,
   HelpCircle,
+  PlusCircle,
   Shield,
   Trash2,
   User,
@@ -24,12 +33,12 @@ import type { Role, TeamMember } from "@/api/types";
 import { USER_ROLE_NAME_MAP, UserRole } from "@/constants/enums";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { TeamMemberMenuFlagsFooter } from "@/features/team";
+import { filterStateToTableValues, tableValuesToFilterState } from "@/features/job-lead";
 import {
   AddTeamMemberDialog,
   AllRolesTab,
   InvitedMembersDialog,
   RolePermissionsEditor,
-  TeamManagementActions,
   TeamManagementTab,
   TeamMemberQuotaCard,
 } from "@/features/team-management";
@@ -48,12 +57,10 @@ import {
   DialogManager,
   Dropdown,
   type DropdownItem,
-  Filter,
   FilterState,
   FilterType,
   PageRenderer,
 } from "@/shared/ui/common";
-import { Card, CardContent } from "@/shared/ui/primitives";
 import { getErrorMessage } from "@/utils/apiError";
 import { canChangeRole } from "@/utils/ownerProtection";
 import {
@@ -62,6 +69,27 @@ import {
   isValidRoleId,
 } from "@/utils/roleUtils";
 import { filterActiveTeamMembers } from "@/utils/team/assignmentOrder";
+
+function getMemberSortValue(member: TeamMember, columnKey: string): string {
+  const user = member.user;
+  switch (columnKey) {
+    case "role":
+      return member.role_fk?.name ?? member.role ?? "";
+    case "username":
+      return user.username ?? "";
+    case "email":
+      return user.email ?? "";
+    case "phone":
+      return user.phone_number ?? "";
+    case "name":
+    default:
+      return (
+        `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() ||
+        user.username ||
+        ""
+      );
+  }
+}
 
 function teamFlagPatchErrorDetail(err: unknown): string | null {
   if (
@@ -80,7 +108,8 @@ function teamFlagPatchErrorDetail(err: unknown): string | null {
 }
 
 export default function OrgTeamPage() {
-  const { write: canEditTeam } = useRoutePermissions() || {};
+  const { read: canViewTeamMembers, write: canEditTeam } =
+    useRoutePermissions() || {};
   const dialogManager = useDialogManager();
   const { orgId } = useRouteIds();
 
@@ -90,6 +119,7 @@ export default function OrgTeamPage() {
   );
   const [filters, setFilters] = useState<FilterState>({});
   const [search, setSearch] = useState("");
+  const [sortRules, setSortRules] = useState<TableSortRule[]>([]);
   const [helpModalOpen, setHelpModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const {
@@ -262,6 +292,16 @@ export default function OrgTeamPage() {
     }
     return filtered;
   }, [activeTeam, filters, search]);
+
+  // Sort is applied client-side (local dummy data) using the org-ui helper so
+  // the unified toolbar's sort dropdown behaves like the lead/job listings.
+  const sortedTeam = useMemo(
+    () => applyTableSort(filteredTeam, sortRules, getMemberSortValue),
+    [filteredTeam, sortRules]
+  );
+
+  const memberCount = activeTeam ? activeTeam.length : 0;
+  const canInviteMore = remainingSeats !== null ? remainingSeats > 0 : true;
 
   // Handle role change and remove
   const handleRoleChange = useCallback(
@@ -623,6 +663,70 @@ export default function OrgTeamPage() {
     ]
   );
 
+  // Unified toolbar wiring — search, role filter, sort, and actions all live in
+  // the table toolbar, matching the lead/job listing layout.
+  const searchConfig: TableSearchConfig = {
+    value: search,
+    onChange: handleSearchChange,
+    placeholder: "Search team members...",
+  };
+
+  const filterDefinitions: TableFilterDefinition[] = isAdmin
+    ? [
+        {
+          id: FilterType.MEMBER_ROLES,
+          label: "Role",
+          options: roleOptions.map(([code]: [string]) => ({
+            value: code,
+            label: getRoleLabelForCode(code),
+          })),
+        },
+      ]
+    : [];
+
+  const filterValues = filterStateToTableValues(filters);
+
+  const handleFilterValuesChange = (values: TableFilterValue[]) => {
+    setFilters(tableValuesToFilterState<FilterState>(values));
+  };
+
+  const sortableColumns = [
+    { key: "name", label: "Name" },
+    { key: "role", label: "Role" },
+    { key: "username", label: "Username" },
+    { key: "email", label: "Email" },
+  ];
+
+  const teamToolbarActions = (
+    <div className="flex shrink-0 items-center gap-2">
+      <button
+        aria-label="Team member roles help"
+        className="text-text-muted hover:text-text-primary border-border-subtle inline-flex h-9 w-9 items-center justify-center rounded-md border"
+        type="button"
+        onClick={() => setHelpModalOpen(true)}
+      >
+        <HelpCircle className="h-4 w-4" />
+      </button>
+      {canViewTeamMembers ? (
+        <Button
+          disabled={!canInviteMore}
+          leftIcon={<PlusCircle className="h-4 w-4" />}
+          size={ComponentSizeEnum.SM}
+          title="Invite member"
+          onClick={handleInviteClick}
+        />
+      ) : null}
+      {canEditTeam ? (
+        <Button
+          size={ComponentSizeEnum.SM}
+          title="Invited members"
+          variant={ButtonVariantEnum.SURFACE}
+          onClick={handleShowInvitedClick}
+        />
+      ) : null}
+    </div>
+  );
+
   return (
     <PageRenderer
       data={filteredTeam || []}
@@ -654,123 +758,73 @@ export default function OrgTeamPage() {
             />
 
             {activeTab === TeamManagementTab.MEMBERS ? (
-              <Card className="rounded-2xl py-0">
-                <CardContent className="px-4 py-3 sm:px-5">
-                  <TeamManagementActions
-                    canInviteMore={
-                      remainingSeats !== null ? remainingSeats > 0 : true
-                    }
-                    searchValue={search}
-                    onInviteClick={handleInviteClick}
-                    onSearchChange={handleSearchChange}
-                    onShowInvitedClick={handleShowInvitedClick}
-                  />
-                </CardContent>
-              </Card>
-            ) : null}
-
-            {activeTab === TeamManagementTab.MEMBERS ? (
-              <div>
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-text-primary text-lg font-semibold">
-                        Team members
-                      </h2>
-                      <button
-                        aria-label="Team member roles help"
-                        className="text-text-muted inline-flex"
-                        type="button"
-                        onClick={() => setHelpModalOpen(true)}
-                      >
-                        <HelpCircle className="h-5 w-5 cursor-pointer" />
-                      </button>
-                      <Modal
-                        isOpen={helpModalOpen}
-                        size="sm"
-                        title="Team Member Roles"
-                        onClose={() => setHelpModalOpen(false)}
-                      >
-                        <div className="space-y-3">
-                          <div>
-                            <div className="font-medium">Admin</div>
-                            <p className="text-text-muted text-sm">
-                              Full access to all organization settings and data.
-                              Admin role cannot be changed, edited, or deleted.
-                            </p>
-                          </div>
-                          <div>
-                            <div className="font-medium">Project Manager</div>
-                            <p className="text-text-muted text-sm">
-                              Can manage projects and assign tasks
-                            </p>
-                          </div>
-                          <div>
-                            <div className="font-medium">Project Crew</div>
-                            <p className="text-text-muted text-sm">
-                              Field workers assigned to specific projects
-                            </p>
-                          </div>
-                          <div>
-                            <div className="font-medium">Book Keeper</div>
-                            <p className="text-text-muted text-sm">
-                              Access to financial data and reports
-                            </p>
-                          </div>
-                          <div>
-                            <div className="font-medium">Viewer</div>
-                            <p className="text-text-muted text-sm">
-                              Read-only access to organization data
-                            </p>
-                          </div>
-                        </div>
-                      </Modal>
-                    </div>
-                    <p className="text-text-muted mb-2">
-                      {activeTeam ? activeTeam.length : 0} members in your
-                      organization
-                    </p>
-                  </div>
-                </div>
-                {isAdmin && (
-                  <Filter
-                    wrapInModal
-                    configs={[
-                      {
-                        key: FilterType.MEMBER_ROLES,
-                        label: "Role",
-                        items: roleOptions.map(([code]: [string]) => ({
-                          id: code,
-                          title: getRoleLabelForCode(code),
-                        })),
-                        labelField: "title" as const,
-                        idField: "id" as const,
-                        icon: <Users className="h-4 w-4" />,
-                        renderItem: (item: Record<string, unknown>) => (
-                          <span>{String(item.title ?? "")}</span>
-                        ),
-                      },
-                    ]}
-                    direction="vertical"
-                    filterState={filters}
-                    showClearAll={true}
-                    onFilterChange={setFilters}
-                  />
-                )}
-
+              <div className="space-y-2">
+                <p className="text-text-muted text-sm">
+                  {memberCount} members in your organization
+                </p>
                 <TeamMembersTable
+                  filterDefinitions={filterDefinitions}
+                  filterValues={filterValues}
                   getRoleDisplayName={(member) =>
                     getRoleDisplayName(member.role_fk) ||
                     getRoleLabelForCode(member.role)
                   }
                   isLoading={teamLoading || roleMappingsLoading}
-                  members={filteredTeam}
+                  members={sortedTeam}
+                  organizationId={orgId}
                   renderRowActions={renderMemberActions}
+                  search={searchConfig}
+                  sortableColumns={sortableColumns}
+                  sortRules={sortRules}
+                  toolbarActions={teamToolbarActions}
                   view={memberView}
+                  onFilterValuesChange={handleFilterValuesChange}
+                  onSortRulesChange={setSortRules}
                   onViewChange={setMemberView}
                 />
               </div>
             ) : null}
+
+            <Modal
+              isOpen={helpModalOpen}
+              size="sm"
+              title="Team Member Roles"
+              onClose={() => setHelpModalOpen(false)}
+            >
+              <div className="space-y-3">
+                <div>
+                  <div className="font-medium">Admin</div>
+                  <p className="text-text-muted text-sm">
+                    Full access to all organization settings and data. Admin role
+                    cannot be changed, edited, or deleted.
+                  </p>
+                </div>
+                <div>
+                  <div className="font-medium">Project Manager</div>
+                  <p className="text-text-muted text-sm">
+                    Can manage projects and assign tasks
+                  </p>
+                </div>
+                <div>
+                  <div className="font-medium">Project Crew</div>
+                  <p className="text-text-muted text-sm">
+                    Field workers assigned to specific projects
+                  </p>
+                </div>
+                <div>
+                  <div className="font-medium">Book Keeper</div>
+                  <p className="text-text-muted text-sm">
+                    Access to financial data and reports
+                  </p>
+                </div>
+                <div>
+                  <div className="font-medium">Viewer</div>
+                  <p className="text-text-muted text-sm">
+                    Read-only access to organization data
+                  </p>
+                </div>
+              </div>
+            </Modal>
 
             {isAdmin && activeTab === TeamManagementTab.ROLES ? (
               <div>

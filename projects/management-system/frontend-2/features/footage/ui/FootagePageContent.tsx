@@ -30,6 +30,7 @@ import {
 } from "@/hooks";
 import { useCrewGroupsList, useIsAdmin } from "@/hooks/queries";
 import useTeamData from "@/hooks/useTeamData";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { loadExceljs } from "@/shared/lib/excel/load-exceljs";
 import { CMS_DEFAULT_PAGE_SIZE as DEFAULT_PAGE_SIZE } from "@/shared/lib/table";
 import { FilterState, PageRenderer } from "@/shared/ui/common";
@@ -42,7 +43,6 @@ export default function InstalledFootagePage() {
     undefined
   );
   const [noteRow, setNoteRow] = useState<FormattedFootageData | null>(null);
-  const [summaryChartsOpen, setSummaryChartsOpen] = useState(false);
   const [filters, setFilters] = useState<FilterState>({});
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [dateSort, setDateSort] = useState<SortOrder>(SortOrder.DESC);
@@ -51,6 +51,13 @@ export default function InstalledFootagePage() {
   ]);
   const currentPageRef = useRef<number>(1);
   const [, forceUpdate] = useState({});
+
+  const { stack, openModal, closeModalKey } = useModalStack();
+  const isSummaryChartsOpen = stack.some((f) => f.key === "view-footage-charts");
+  const isJobChartsOpen = stack.some(
+    (f) => f.key === "view-footage-job-charts"
+  );
+  const isNoteOpen = stack.some((f) => f.key === "edit-footage-note");
 
   const handlePageChange = useCallback((page: number) => {
     currentPageRef.current = page;
@@ -125,10 +132,11 @@ export default function InstalledFootagePage() {
               ? { id: jobId, full_name: originalJobData.name }
               : jobData.contact_info,
           });
+          openModal("view-footage-job-charts", { id: String(jobId) });
         },
       });
     },
-    [footageData, getFootagePage]
+    [footageData, getFootagePage, openModal]
   );
 
   // Update handleShowMore to use handleViewDetails
@@ -194,13 +202,26 @@ export default function InstalledFootagePage() {
         }
         toast.success("Note saved");
         setNoteRow(null);
+        closeModalKey("edit-footage-note");
       } catch (error: unknown) {
         toast.error(getErrorMessage(error, "Failed to save note"));
         throw error;
       }
     },
-    [addComment, getComments, isAdmin, noteRow, updateComment]
+    [addComment, closeModalKey, getComments, isAdmin, noteRow, updateComment]
   );
+
+  const handleOpenNote = useCallback(
+    (row: FormattedFootageData) => {
+      setNoteRow(row);
+      openModal("edit-footage-note", { id: String(row.job_id) });
+    },
+    [openModal]
+  );
+
+  const handleOpenSummaryCharts = useCallback(() => {
+    openModal("view-footage-charts");
+  }, [openModal]);
 
   const isSavingNote =
     addComment.isPending || updateComment.isPending || getComments.isPending;
@@ -618,30 +639,34 @@ export default function InstalledFootagePage() {
           }
           permissionCode={PermissionCode.JOBS_TILING_PAGE_READ}
         >
-          <FootageBreadcrumbToolbar
-            onOpenCharts={() => setSummaryChartsOpen(true)}
-          />
-          {summaryChartsOpen ? (
+          <FootageBreadcrumbToolbar onOpenCharts={handleOpenSummaryCharts} />
+          {isSummaryChartsOpen ? (
             <FootageChartsModal
               isOpen
               source={{ type: "summary", rows: filteredData }}
-              onClose={() => setSummaryChartsOpen(false)}
+              onClose={() => closeModalKey("view-footage-charts")}
             />
           ) : null}
-          {selectedJob ? (
+          {isJobChartsOpen && selectedJob ? (
             <FootageChartsModal
               isOpen
               source={{ type: "job", job: selectedJob }}
-              onClose={() => setSelectedJob(undefined)}
+              onClose={() => {
+                setSelectedJob(undefined);
+                closeModalKey("view-footage-job-charts");
+              }}
             />
           ) : null}
-          {noteRow ? (
+          {isNoteOpen && noteRow ? (
             <FootageNoteModal
               isOpen
               isSaving={isSavingNote}
               readOnly={!isAdmin}
               row={noteRow}
-              onClose={() => setNoteRow(null)}
+              onClose={() => {
+                setNoteRow(null);
+                closeModalKey("edit-footage-note");
+              }}
               onSave={handleSaveNote}
             />
           ) : null}
@@ -666,7 +691,7 @@ export default function InstalledFootagePage() {
               onChange: setSearchQuery,
             }}
             sortRules={sortRules}
-            onAddNote={setNoteRow}
+            onAddNote={handleOpenNote}
             onDownloadExcel={handleGetExcelFile}
             onFiltersChange={setFilters}
             onSortRulesChange={handleSortRulesChange}

@@ -10,6 +10,7 @@ import {
 } from "@fieldflow360/org-ui";
 import { Layers } from "lucide-react";
 
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { Filter, FilterState, FilterType } from "@/shared/ui/common";
 
 import { HELP_APPEAR_CLASS, helpAppearStyle } from "../lib/helpCenterMotion";
@@ -25,12 +26,38 @@ interface KnowledgeBaseDialogState {
   images: string[];
 }
 
+const KNOWLEDGE_BASE_MODAL_KEY = "view-knowledge-base";
+
 export function KnowledgeBaseView() {
+  const { stack, openModal, closeModalKey } = useModalStack();
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
   const [filters, setFilters] = useState<FilterState>({});
-  const [dialog, setDialog] = useState<KnowledgeBaseDialogState | null>(null);
   const [carouselIndex, setCarouselIndex] = useState(0);
+
+  const dialogFrame = stack.find((f) => f.key === KNOWLEDGE_BASE_MODAL_KEY);
+
+  const dialog = useMemo((): KnowledgeBaseDialogState | null => {
+    if (!dialogFrame) return null;
+    const sectionIndex = Number(dialogFrame.params.s);
+    const itemIndex = Number(dialogFrame.params.i);
+    const section = KNOWLEDGE_BASE_SECTIONS[sectionIndex];
+    const item = section?.items[itemIndex];
+    if (!section || !item) return null;
+    return {
+      sectionTitle: section.section,
+      itemTitle: item.title,
+      images: item.images,
+    };
+  }, [dialogFrame]);
+
+  // Reset the carousel whenever a different guide is opened.
+  const dialogKey = dialogFrame
+    ? `${dialogFrame.params.s}-${dialogFrame.params.i}`
+    : null;
+  useEffect(() => {
+    setCarouselIndex(0);
+  }, [dialogKey]);
 
   const allSections = useMemo(
     () => KNOWLEDGE_BASE_SECTIONS.map((section) => section.section),
@@ -82,17 +109,26 @@ export function KnowledgeBaseView() {
   }, [currentPage, totalPages]);
 
   const openDialog = useCallback(
-    (sectionTitle: string, itemTitle: string, images: string[]) => {
-      setDialog({ sectionTitle, itemTitle, images });
-      setCarouselIndex(0);
+    (sectionTitle: string, itemTitle: string) => {
+      const sectionIndex = KNOWLEDGE_BASE_SECTIONS.findIndex(
+        (s) => s.section === sectionTitle
+      );
+      if (sectionIndex === -1) return;
+      const itemIndex = KNOWLEDGE_BASE_SECTIONS[sectionIndex].items.findIndex(
+        (item) => item.title === itemTitle
+      );
+      if (itemIndex === -1) return;
+      openModal(KNOWLEDGE_BASE_MODAL_KEY, {
+        s: String(sectionIndex),
+        i: String(itemIndex),
+      });
     },
-    []
+    [openModal]
   );
 
   const closeDialog = useCallback(() => {
-    setDialog(null);
-    setCarouselIndex(0);
-  }, []);
+    closeModalKey(KNOWLEDGE_BASE_MODAL_KEY);
+  }, [closeModalKey]);
 
   const handlePrev = useCallback(() => {
     if (!dialog?.images.length) return;
@@ -174,9 +210,7 @@ export function KnowledgeBaseView() {
                   key={item.title}
                   appearIndex={itemIndex}
                   item={item}
-                  onClick={() =>
-                    openDialog(section.section, item.title, item.images)
-                  }
+                  onClick={() => openDialog(section.section, item.title)}
                 />
               ))}
             </div>

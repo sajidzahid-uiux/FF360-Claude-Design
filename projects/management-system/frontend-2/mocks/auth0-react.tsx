@@ -50,6 +50,21 @@ function buildMockJwt(): string {
 
 const MOCK_TOKEN = buildMockJwt();
 
+/**
+ * Mock mode never walks the real login → org-picker flow, so the `lastOrgId`
+ * cookie the auth flow relies on is never written. Without it AuthSync flags a
+ * "fresh login" and `syncOrgFromUrl` bails, so `selectedOrganization` stays null
+ * — the role query never runs and owner-gated UI (e.g. the Billing settings tab)
+ * never appears. Seed it to the demo org so a deep link resolves the owner role.
+ * (Only seeds when absent, so switching to org 2 still updates it normally.)
+ */
+if (
+  typeof document !== "undefined" &&
+  !/(?:^|;\s*)lastOrgId=/.test(document.cookie)
+) {
+  document.cookie = "lastOrgId=1; path=/; max-age=2592000";
+}
+
 export function Auth0Provider({ children }: { children: ReactNode }) {
   // No real Auth0 context needed — just render children.
   return <>{children}</>;

@@ -23,6 +23,7 @@ import {
 } from "@/hooks/permissions/constants";
 
 import { routes as bookkeepingRoutes } from "./data/bookkeeping";
+import { CHAT_GROUPS, UNSEEN_COUNTS } from "./data/chat";
 import {
   routes as contactRoutes,
   recordFarmsForContact,
@@ -78,6 +79,102 @@ const ALL_PERMISSION_CODES: string[] = [
   ),
   "is_admin",
 ];
+
+/**
+ * Permission catalog (ms/organizations/<id>/permissions/). The role editor
+ * (Create/Edit User Type) consumes this as a RAW array of Permission objects
+ * and maps each PERMISSIONS_CONFIG item to one by `code`. Every `<resource>_<action>`
+ * code gets a stable numeric id (used by the editor's selectedPermissionIds set).
+ */
+const DEMO_PERMISSION_OBJECTS = ALL_PERMISSION_CODES.filter(
+  (code) => code !== "is_admin"
+).map((code, index) => ({
+  id: index + 1,
+  name: code,
+  code,
+  action_type: code.split("_").pop() ?? "read",
+}));
+
+/**
+ * Billing — Stripe-style subscription info for org 1. Powers the Current plan
+ * card (renewal/auto-renew/card) and the Invoices tab. Invoices use the shape
+ * the billing UI reads: { amount_paid, status, created, pdf }.
+ */
+const DEMO_SUBSCRIPTION_INFO = {
+  renewal_date: "2026-07-28T00:00:00Z",
+  remaining_days: 30,
+  trialing: false,
+  auto_renew: true,
+  card: { brand: "visa", last4: "4242", exp_month: 8, exp_year: 2028 },
+  invoices: [
+    { amount_paid: 361, status: "paid", created: "2026-06-01T00:00:00Z", pdf: "https://pay.stripe.com/invoice/acct_demo/inv_2606" },
+    { amount_paid: 361, status: "paid", created: "2026-05-01T00:00:00Z", pdf: "https://pay.stripe.com/invoice/acct_demo/inv_2605" },
+    { amount_paid: 361, status: "paid", created: "2026-04-01T00:00:00Z", pdf: "https://pay.stripe.com/invoice/acct_demo/inv_2604" },
+    { amount_paid: 361, status: "paid", created: "2026-03-01T00:00:00Z", pdf: "https://pay.stripe.com/invoice/acct_demo/inv_2603" },
+    { amount_paid: 361, status: "open", created: "2026-02-01T00:00:00Z", pdf: "https://pay.stripe.com/invoice/acct_demo/inv_2602" },
+    { amount_paid: 361, status: "paid", created: "2026-01-01T00:00:00Z", pdf: "https://pay.stripe.com/invoice/acct_demo/inv_2601" },
+    { amount_paid: 361, status: "paid", created: "2025-12-01T00:00:00Z", pdf: "https://pay.stripe.com/invoice/acct_demo/inv_2512" },
+    { amount_paid: 78, status: "void", created: "2025-11-01T00:00:00Z", pdf: "" },
+  ],
+};
+
+/** Billing — saved payment methods (Payment tab). */
+const DEMO_PAYMENT_CARDS = [
+  { id: "pm_demo_visa", brand: "visa", last4: "4242", exp_month: 8, exp_year: 2028, is_default: true },
+  { id: "pm_demo_mc", brand: "mastercard", last4: "5454", exp_month: 4, exp_year: 2027, is_default: false },
+];
+
+/**
+ * Notifications (ms/organizations/<id>/new-notifications/). Built at request time
+ * off `now` so created_at stays relative (Today / Yesterday / Last 7 days / Older
+ * grouping in the UI). category drives the priority colour: critical | important | fyi.
+ */
+function buildDemoNotifications() {
+  const now = Date.now();
+  const HOUR = 3_600_000;
+  const DAY = 86_400_000;
+  const mk = (
+    id: number,
+    offset: number,
+    read: boolean,
+    category: "critical" | "important" | "fyi",
+    moduleName: string,
+    title: string,
+    description: string,
+    url: string | null
+  ) => {
+    const iso = new Date(now - offset).toISOString();
+    return {
+      id,
+      title,
+      description,
+      created_at: iso,
+      read,
+      url,
+      web_url: url,
+      category,
+      module: moduleName,
+      event_key: `${moduleName}_${id}`,
+      date_group:
+        offset < DAY ? "today" : offset < 7 * DAY ? "last_7_days" : "older",
+      display_date: iso,
+    };
+  };
+
+  return [
+    mk(1, 2 * HOUR, false, "critical", "jobs", "Repair job overdue", "Repair job #402 at Sandhill Ranch is past its scheduled completion date.", "/organizations/1/jobs/repair"),
+    mk(2, 5 * HOUR, false, "important", "leads", "New lead assigned to you", "Riverside Grain Co. submitted a tiling lead for 200 acres.", "/organizations/1/leads/tiling"),
+    mk(3, 9 * HOUR, true, "fyi", "equipment", "Maintenance reminder", "Excavator EX-12 is due for 250-hour service this week.", "/organizations/1/equipment"),
+    mk(4, DAY + 3 * HOUR, false, "important", "billing", "Invoice paid", "Invoice #6 for $361 was paid successfully.", "/organizations/1/settings/org/billing"),
+    mk(5, DAY + 6 * HOUR, true, "fyi", "team", "New team member joined", "Dana White accepted the invitation and joined as Bookkeeper.", "/organizations/1/settings/org/team"),
+    mk(6, 3 * DAY, false, "critical", "jobs", "Equipment scheduling conflict", "Two jobs are scheduled on the same trencher this week.", "/organizations/1/calendar"),
+    mk(7, 4 * DAY, true, "important", "order-pipes", "Order delivered", "Order #18 (dual-wall pipe) was marked delivered.", "/organizations/1/order-pipes"),
+    mk(8, 5 * DAY, true, "fyi", "leads", "Lead status updated", "Oakridge Agronomy lead moved to 'Estimate sent'.", "/organizations/1/leads/excavation"),
+    mk(9, 10 * DAY, true, "fyi", "billing", "Card expiring soon", "Visa ending 4242 expires in 60 days.", "/organizations/1/settings/org/billing"),
+    mk(10, 12 * DAY, false, "important", "jobs", "Added to crew", "You were added to the crew for the Delta Wetland excavation.", "/organizations/1/jobs/excavation"),
+    mk(11, 14 * DAY, true, "fyi", "todo", "To-do completed", "“Reconcile May invoices” was marked complete.", "/organizations/1/to-do"),
+  ];
+}
 
 /**
  * Demo org #1 — fully populated. `current_plan` MUST be a real plan apiId
@@ -382,7 +479,10 @@ export const mockAdapter: AxiosAdapter = async (config) => {
   if (/^ms\/organizations\/\d+\/?$/.test(url) && method === "get") {
     return makeResponse(orgById(orgIdOf(url)), config);
   }
-  if (url.includes("permission") && method === "get") {
+  // The user's own permission set (my-permissions) — an object with
+  // permission_codes + role. Must NOT swallow the /permissions/ catalog
+  // (handled below as a raw array), so match my-permissions specifically.
+  if (/my-permissions\/?$/.test(url) && method === "get") {
     return makeResponse(DEMO_PERMISSIONS, config);
   }
 
@@ -449,6 +549,56 @@ export const mockAdapter: AxiosAdapter = async (config) => {
   if (/ms\/organizations\/\d+\/roles\/?$/.test(url) && method === "get") {
     return makeResponse(DEMO_ROLES, config);
   }
+  // Permission catalog for the role editor (must precede the my-permissions
+  // handler is unaffected: "my-permissions" has no "/permissions" segment).
+  if (/ms\/organizations\/\d+\/permissions\/?$/.test(url) && method === "get") {
+    return makeResponse(DEMO_PERMISSION_OBJECTS, config);
+  }
+  // --- Billing: subscription info (powers Current plan + Invoices tab) ---
+  if (/subscription-info\/?$/.test(url) && method === "get") {
+    return makeResponse(DEMO_SUBSCRIPTION_INFO, config);
+  }
+  if (/list-cards\/?$/.test(url) && method === "get") {
+    return makeResponse(DEMO_PAYMENT_CARDS, config);
+  }
+  // --- Notifications list (paginated; respects unread + search query params) ---
+  if (/new-notifications\/?$/.test(url) && method === "get") {
+    const rawUrl = config.url || "";
+    const qs = rawUrl.includes("?")
+      ? rawUrl.slice(rawUrl.indexOf("?") + 1)
+      : "";
+    const sp = new URLSearchParams(qs);
+    const unread = sp.get("unread");
+    const search = (sp.get("search") || "").toLowerCase();
+    const page = Number(sp.get("page")) || 1;
+    const pageSize = Number(sp.get("page_size")) || 10;
+
+    let items = buildDemoNotifications();
+    if (unread === "true") items = items.filter((n) => !n.read);
+    else if (unread === "false") items = items.filter((n) => n.read);
+    if (search) {
+      items = items.filter((n) =>
+        `${n.title} ${n.description}`.toLowerCase().includes(search)
+      );
+    }
+
+    const total = items.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const start = (page - 1) * pageSize;
+    return makeResponse(
+      {
+        results: items.slice(start, start + pageSize),
+        total_count: total,
+        total_pages: totalPages,
+        current_page: page,
+        page_size: pageSize,
+        count: total,
+        next: null,
+        previous: null,
+      },
+      config
+    );
+  }
   if (/ms\/organizations\/\d+\/seat-usage\/?$/.test(url) && method === "get") {
     return makeResponse(seatUsageFor(orgIdOf(url)), config);
   }
@@ -487,9 +637,24 @@ export const mockAdapter: AxiosAdapter = async (config) => {
     if (/ms\/organizations\/\d+\/scheduling\/items\/?$/.test(url)) {
       return makeResponse([], config);
     }
-    // Messaging chat groups (useChatGroups).
+    // Org id for chat URLs is the segment after "chat/" (chat/{org}/…), which is
+    // a different shape from the ms/organizations/{id}/… paths orgIdOf handles.
+    const chatOrgId = url.match(/^chat\/([^/]+)\//)?.[1] ?? null;
+    // Messaging chat groups (useChatGroups): full conversation roster for org 1,
+    // empty (brand-new) for any other org.
     if (/chat\/[^/]+\/chatgroups\/?$/.test(url)) {
-      return makeResponse([], config);
+      const groups = chatOrgId === "1" ? CHAT_GROUPS : [];
+      return makeResponse(groups, config);
+    }
+    // Unseen message counts per conversation (useUnseenChats → shell badge +
+    // sidebar unread pills). Shape: { unseen_counts: { [groupId]: number } }.
+    if (/chat\/[^/]+\/unseen\/count\/?$/.test(url)) {
+      const counts = chatOrgId === "1" ? UNSEEN_COUNTS : {};
+      return makeResponse({ unseen_counts: counts }, config);
+    }
+    // Unseen messages map (useUnseenChats) — not needed for the demo badges.
+    if (/chat\/[^/]+\/unseen\/messages\/?$/.test(url)) {
+      return makeResponse({ unseen_messages: {} }, config);
     }
   }
 

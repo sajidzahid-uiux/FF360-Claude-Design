@@ -2,6 +2,7 @@ export {
   AddEquipmentModal,
   type AddEquipmentModalProps,
 } from "./add-equipment/AddEquipmentModal";
+export { AddEquipmentModalConnected } from "./AddEquipmentModalConnected";
 export { AddMaintenanceFilterDropdown } from "./AddMaintenanceFilterDropdown";
 export type {
   AddMaintenanceFilterDropdownProps,

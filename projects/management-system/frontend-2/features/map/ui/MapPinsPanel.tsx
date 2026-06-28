@@ -12,6 +12,7 @@ import type {
   LatLng,
   MapPinCreateSubmitHandler,
 } from "@/features/map/model/types";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 
 import { MapPinAddDialog } from "./MapPinAddDialog";
 
@@ -48,8 +49,9 @@ export function MapPinsPanel({
   onPinFocus,
   onManageCategories,
 }: MapPinsPanelProps) {
+  const { stack, openModal, closeModalKey } = useModalStack();
   const [search, setSearch] = useState("");
-  const [isAddPinDialogOpen, setIsAddPinDialogOpen] = useState(false);
+  const isAddPinDialogOpen = stack.some((f) => f.key === "add-map-pin");
 
   const filteredPins = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -61,8 +63,8 @@ export function MapPinsPanel({
   }, [pins, search]);
 
   const handleOpenAddPin = useCallback(() => {
-    setIsAddPinDialogOpen(true);
-  }, []);
+    openModal("add-map-pin");
+  }, [openModal]);
 
   const handleManageCategories = useCallback(() => {
     onManageCategories?.();
@@ -158,7 +160,9 @@ export function MapPinsPanel({
         mapLayerContext={mapLayerContext}
         open={isAddPinDialogOpen}
         userLocation={userLocation}
-        onOpenChange={setIsAddPinDialogOpen}
+        onOpenChange={(o) => {
+          if (!o) closeModalKey("add-map-pin");
+        }}
         onSubmit={onPinCreate}
       />
     </>

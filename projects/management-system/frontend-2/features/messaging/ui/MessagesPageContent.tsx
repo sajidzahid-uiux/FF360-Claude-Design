@@ -1,11 +1,13 @@
 "use client";
 
 import { ComponentSizeEnum, TabsSwitcher } from "@fieldflow360/org-ui";
-import { ArrowLeft } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 
 import { useMessagesPage } from "@/features/messaging/hooks/useMessagesPage";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 
 import AddGroupDialog from "./AddGroupDialog";
+import ChatHeader from "./ChatHeader";
 import ChatWindow from "./ChatWindow";
 import MessageInput from "./MessageInput";
 import Sidebar from "./Sidebar";
@@ -21,10 +23,8 @@ export default function MessagesPage() {
     tab,
     teamMembersWithoutCurrentUser,
     unseenChats,
-    setAddGroupOpen,
     handleSelectDirectMember,
     handleTabChange,
-    addGroupOpen,
     handleCreateGroup,
     isMobile,
     showMobileChat,
@@ -37,6 +37,17 @@ export default function MessagesPage() {
     sendMessage,
     isTyping,
   } = useMessagesPage();
+
+  const { stack, openModal, closeModalKey } = useModalStack();
+  const addGroupOpen = stack.some((f) => f.key === "add-message-group");
+
+  const conversationName =
+    activeConversation?.name ?? activeConversation?.group_name ?? "Chat";
+  const isGroupConversation =
+    !!activeConversation &&
+    (!activeConversation.is_private ||
+      (activeConversation.members?.length ?? 0) > 2);
+  const conversationMemberCount = activeConversation?.members?.length;
 
   if (isMobile) {
     // MOBILE: Only show one view at a time
@@ -54,7 +65,7 @@ export default function MessagesPage() {
             tab={tab}
             teamMembers={teamMembersWithoutCurrentUser}
             unseenChats={unseenChats?.unseen_counts}
-            onAddGroup={() => setAddGroupOpen(true)}
+            onAddGroup={() => openModal("add-message-group")}
             onSelectDirectMember={handleSelectDirectMember}
           >
             <TabsSwitcher
@@ -72,7 +83,9 @@ export default function MessagesPage() {
           <AddGroupDialog
             open={addGroupOpen}
             onCreate={handleCreateGroup}
-            onOpenChange={setAddGroupOpen}
+            onOpenChange={(o) => {
+              if (!o) closeModalKey("add-message-group");
+            }}
           />
         </div>
       );
@@ -80,19 +93,13 @@ export default function MessagesPage() {
     // Show chat window with back arrow and input always visible at the bottom
     return (
       <div className="bg-bg-app flex h-[calc(100dvh-3.5rem)] min-h-0 w-full flex-col sm:h-[100dvh]">
-        <div className="flex shrink-0 items-center border-b border-neutral-200 bg-white px-2 py-3 dark:border-neutral-800 dark:bg-neutral-900">
-          <button
-            className="mr-2 rounded p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-            onClick={handleMobileBack}
-          >
-            <ArrowLeft className="h-6 w-6" />
-          </button>
-          <span className="truncate text-lg font-semibold">
-            {activeConversation?.name ??
-              activeConversation?.group_name ??
-              "Chat"}
-          </span>
-        </div>
+        <ChatHeader
+          directMemberId={selectedDirectMemberId}
+          isGroup={isGroupConversation}
+          memberCount={conversationMemberCount}
+          name={conversationName}
+          onBack={handleMobileBack}
+        />
         <div className="flex min-h-0 flex-1 flex-col">
           <ChatWindow
             key={`chat-window-${activeConversationId}`}
@@ -126,7 +133,7 @@ export default function MessagesPage() {
           tab={tab}
           teamMembers={teamMembersWithoutCurrentUser}
           unseenChats={unseenChats?.unseen_counts}
-          onAddGroup={() => setAddGroupOpen(true)}
+          onAddGroup={() => openModal("add-message-group")}
           onSelectDirectMember={handleSelectDirectMember}
         >
           <TabsSwitcher
@@ -144,26 +151,48 @@ export default function MessagesPage() {
         <AddGroupDialog
           open={addGroupOpen}
           onCreate={handleCreateGroup}
-          onOpenChange={setAddGroupOpen}
+          onOpenChange={(o) => {
+            if (!o) closeModalKey("add-message-group");
+          }}
         />
       </div>
-      <div className="flex w-[calc(100%-120px)] flex-1 flex-col">
-        {activeConversation && (
-          <ChatWindow
-            key={`chat-window-${activeConversationId}`}
-            conversation={activeConversation}
-            currentUser={currentUser}
-            messages={messages}
-            usersTyping={usersTyping}
-            onLoadMore={handleLoadMore}
-          />
-        )}
-        {activeConversation && (
-          <MessageInput
-            key={`message-input-${activeConversationId}`}
-            onSend={sendMessage}
-            onTyping={isTyping}
-          />
+      <div className="bg-bg-app flex w-[calc(100%-120px)] flex-1 flex-col">
+        {activeConversation ? (
+          <>
+            <ChatHeader
+              directMemberId={selectedDirectMemberId}
+              isGroup={isGroupConversation}
+              memberCount={conversationMemberCount}
+              name={conversationName}
+            />
+            <ChatWindow
+              key={`chat-window-${activeConversationId}`}
+              conversation={activeConversation}
+              currentUser={currentUser}
+              messages={messages}
+              usersTyping={usersTyping}
+              onLoadMore={handleLoadMore}
+            />
+            <MessageInput
+              key={`message-input-${activeConversationId}`}
+              onSend={sendMessage}
+              onTyping={isTyping}
+            />
+          </>
+        ) : (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+            <div className="bg-bg-surface text-text-muted flex h-14 w-14 items-center justify-center rounded-full">
+              <MessageSquare className="h-7 w-7" />
+            </div>
+            <div>
+              <p className="text-text-primary text-base font-semibold">
+                Your messages
+              </p>
+              <p className="text-text-muted mt-1 text-sm">
+                Select a conversation to start chatting.
+              </p>
+            </div>
+          </div>
         )}
       </div>
     </div>

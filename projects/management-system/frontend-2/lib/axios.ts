@@ -5,6 +5,7 @@ import { API_URL } from "@/constants";
 import { StorageKey } from "@/hooks/storage-data";
 import { getCookie } from "@/lib/cookies";
 import { APP_ROUTES, orgRoute } from "@/shared/config/routes";
+import { installMockFetch } from "@/mocks/install-mock-fetch";
 import { mockAdapter, USE_MOCK_DATA } from "@/mocks/mockApi";
 
 const axiosInstance = axios.create({
@@ -14,6 +15,9 @@ const axiosInstance = axios.create({
 // LOCAL PROTOTYPE: serve dummy data with no backend when mock mode is on.
 if (USE_MOCK_DATA) {
   axiosInstance.defaults.adapter = mockAdapter;
+  // The chat feature loads message history via native fetch(), which the axios
+  // adapter can't intercept — shim window.fetch to serve dummy threads.
+  installMockFetch();
 }
 
 // Request interceptor

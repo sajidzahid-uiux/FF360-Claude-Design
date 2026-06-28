@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 
 import {
   Button,
@@ -15,6 +15,7 @@ import { useMapPinCategoryMutations } from "@/hooks/mutations/useMapPinCategoryM
 import { useRoutePermissions } from "@/hooks/permissions";
 import { useMapPinCategories } from "@/hooks/queries/useMapPinCategories";
 import { useDialogManager } from "@/hooks/useDialogManager";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { DialogManager } from "@/shared/ui/common";
 import { getErrorMessage } from "@/utils/apiError";
 
@@ -34,6 +35,7 @@ export function PinCategoriesSettings({
   compact = false,
 }: PinCategoriesSettingsProps) {
   const dialogManager = useDialogManager();
+  const { stack, openModal, closeModalKey } = useModalStack();
   const {
     read: canView,
     write: canEdit,
@@ -46,10 +48,17 @@ export function PinCategoriesSettings({
   const { createCategory, updateCategory, deleteCategory } =
     useMapPinCategoryMutations({ useSettingsPrefix });
 
-  const [editorMode, setEditorMode] = useState<EditorMode>(null);
-  const [editingCategory, setEditingCategory] = useState<MapPinCategory | null>(
-    null
-  );
+  const editorFrame = stack.find((f) => f.key === "edit-pin-category");
+  const editorMode: EditorMode = editorFrame
+    ? editorFrame.params.mode === "edit"
+      ? "edit"
+      : "create"
+    : null;
+  const editingCategory = useMemo<MapPinCategory | null>(() => {
+    if (!editorFrame || editorFrame.params.mode !== "edit") return null;
+    const id = Number(editorFrame.params.id);
+    return categories.find((c) => c.id === id) ?? null;
+  }, [editorFrame, categories]);
 
   const isEditorOpen = editorMode !== null;
   const isSaving = createCategory.isPending || updateCategory.isPending;
@@ -65,19 +74,22 @@ export function PinCategoriesSettings({
   }, [editorMode, editingCategory]);
 
   const handleOpenCreate = useCallback(() => {
-    setEditingCategory(null);
-    setEditorMode("create");
-  }, []);
+    openModal("edit-pin-category", { mode: "create" });
+  }, [openModal]);
 
-  const handleOpenEdit = useCallback((category: MapPinCategory) => {
-    setEditingCategory(category);
-    setEditorMode("edit");
-  }, []);
+  const handleOpenEdit = useCallback(
+    (category: MapPinCategory) => {
+      openModal("edit-pin-category", {
+        mode: "edit",
+        id: String(category.id),
+      });
+    },
+    [openModal]
+  );
 
   const handleCloseEditor = useCallback(() => {
-    setEditorMode(null);
-    setEditingCategory(null);
-  }, []);
+    closeModalKey("edit-pin-category");
+  }, [closeModalKey]);
 
   const handleSave = useCallback(
     async (name: string, color: string) => {

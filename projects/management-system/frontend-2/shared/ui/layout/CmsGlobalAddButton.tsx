@@ -12,6 +12,7 @@ import { Plus, UserPlus2 } from "lucide-react";
 import { PERMISSION_RESOURCES, usePermissionsFromStorage } from "@/hooks/permissions";
 import { useDebounceNavigation } from "@/hooks/useDebounceNavigation";
 import { useRouteIds } from "@/hooks/useRouteIds";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { APP_ROUTES, orgUrl } from "@/shared/config/routes";
 import { QUICK_CREATE_ACTIONS } from "@/shared/ui/quick-actions/quick-create-actions";
 
@@ -23,6 +24,7 @@ import { QUICK_CREATE_ACTIONS } from "@/shared/ui/quick-actions/quick-create-act
 export function CmsGlobalAddButton() {
   const { orgId } = useRouteIds();
   const { navigateTo } = useDebounceNavigation();
+  const { openModal } = useModalStack();
   const teamOrgPermissionActions = usePermissionsFromStorage(
     PERMISSION_RESOURCES.TEAM_ORGANIZATION_INFO
   ).permissionCodes;
@@ -37,7 +39,8 @@ export function CmsGlobalAddButton() {
       label: action.label,
       description: action.description,
       icon: action.icon,
-      href: action.href(orgId),
+      modal: action.modal,
+      href: action.href ? action.href(orgId) : undefined,
     })),
     ...(canInviteTeamMember
       ? [
@@ -46,6 +49,7 @@ export function CmsGlobalAddButton() {
             label: "Invite Team Member",
             description: "Send a team invitation",
             icon: UserPlus2,
+            modal: undefined,
             href: `${orgUrl(orgId, APP_ROUTES.team, "invite=true")}`,
           },
         ]
@@ -64,7 +68,14 @@ export function CmsGlobalAddButton() {
 
   const handleChange = (value: string) => {
     const action = actions.find((item) => item.id === value);
-    if (action) navigateTo(action.href);
+    if (!action) return;
+    // Prefer opening the modal in place — layered on the current path so the
+    // module the user is on does NOT change.
+    if (action.modal) {
+      openModal(action.modal.key, action.modal.params);
+      return;
+    }
+    if (action.href) navigateTo(action.href);
   };
 
   return (

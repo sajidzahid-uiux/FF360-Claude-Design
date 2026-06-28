@@ -40,7 +40,10 @@ import {
   type VehicleDetailTabId,
   VehicleDetailsPanel,
 } from "@/features/equipment/ui/equipment-detail";
-import { useOpenAddMaintenanceDialog } from "@/features/maintenance";
+import {
+  AddMaintenanceModalMount,
+  useOpenAddMaintenanceDialog,
+} from "@/features/maintenance";
 import { useAssigneeDropdownItems } from "@/features/team/hooks";
 import {
   useDialogManager,
@@ -53,6 +56,7 @@ import {
 import { useTrashVehicle, useUpdateVehicle } from "@/hooks/mutations";
 import { orgPath } from "@/shared/config/routes";
 import { parseEntityId } from "@/shared/lib/parseEntityId";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import {
   DetailFormSection,
   DialogManager,
@@ -133,7 +137,10 @@ export function VehicleDetailView({
   const dialogManager = useDialogManager();
   const openAddMaintenanceDialog = useOpenAddMaintenanceDialog(dialogManager);
 
-  const [isAddFilterModalOpen, setIsAddFilterModalOpen] = useState(false);
+  const { stack, openModal, closeModalKey } = useModalStack();
+  const isAddFilterModalOpen = stack.some(
+    (f) => f.key === "add-equipment-filter"
+  );
   const [selectedNewFilter, setSelectedNewFilter] = useState<
     { title: string; name: string } | undefined
   >(undefined);
@@ -532,7 +539,7 @@ export function VehicleDetailView({
         ...prev,
         maintenance_attributes: updatedAttributes,
       }));
-      setIsAddFilterModalOpen(false);
+      closeModalKey("add-equipment-filter");
       setSelectedNewFilter(undefined);
       toast.success(`${selectedNewFilter.title} filter added successfully`);
     } catch (err: unknown) {
@@ -830,6 +837,7 @@ export function VehicleDetailView({
             }
           />
           <DialogManager manager={dialogManager} />
+          <AddMaintenanceModalMount />
         </>
       }
       meta={
@@ -910,7 +918,7 @@ export function VehicleDetailView({
                 onFilterSelect={(filter) => {
                   setAddFilterError(null);
                   setSelectedNewFilter(filter);
-                  setIsAddFilterModalOpen(true);
+                  openModal("add-equipment-filter");
                 }}
               />
             ) : null
@@ -924,7 +932,9 @@ export function VehicleDetailView({
             open={isAddFilterModalOpen}
             title={selectedNewFilter?.title || ""}
             onAdd={handleAddFilterSubmit}
-            onOpenChange={setIsAddFilterModalOpen}
+            onOpenChange={(open) => {
+              if (!open) closeModalKey("add-equipment-filter");
+            }}
           />
           {vehicleData.maintenance_attributes &&
           vehicleData.maintenance_attributes.length > 0 ? (

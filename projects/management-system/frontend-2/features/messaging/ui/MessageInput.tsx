@@ -542,7 +542,7 @@ export default function MessageInput({ onSend, onTyping }: MessageInputProps) {
   return (
     <form
       ref={containerRef}
-      className="bg-bg-app flex flex-col gap-2 border-t p-4"
+      className="bg-bg-surface border-border-subtle flex flex-col gap-2 border-t p-3"
       onSubmit={handleSubmit}
     >
       {/* Attachment preview */}
@@ -583,70 +583,74 @@ export default function MessageInput({ onSend, onTyping }: MessageInputProps) {
           />
         </div>
       )}
-      <div className="flex items-center gap-2">
-        <Button
-          iconOnly
-          aria-label="Attach image"
-          disabled={uploading}
-          leftIcon={<ImageIcon className="h-5 w-5" />}
-          size={ComponentSizeEnum.MD}
-          variant={ButtonVariantEnum.GHOST}
-          onClick={() => imageInputRef.current?.click()}
-        />
-        <SanitizedInput
-          ref={imageInputRef}
-          accept="image/*"
-          className="hidden"
-          type="file"
-          onChange={handleImageChange}
-        />
-        <Button
-          iconOnly
-          aria-label="Record voice message"
-          disabled={uploading || !lameJsLoaded}
-          leftIcon={
-            <Mic className={`h-5 w-5 ${recording ? "text-red-500" : ""}`} />
-          }
-          size={ComponentSizeEnum.MD}
-          variant={ButtonVariantEnum.GHOST}
-          onClick={handleMicClick}
-        />
-        <Button
-          iconOnly
-          aria-label="Attach file"
-          disabled={uploading}
-          leftIcon={<Paperclip className="h-5 w-5" />}
-          size={ComponentSizeEnum.MD}
-          variant={ButtonVariantEnum.GHOST}
-          onClick={() => fileInputRef.current?.click()}
-        />
-        <SanitizedInput
-          ref={fileInputRef}
-          className="hidden"
-          type="file"
-          onChange={handleDocChange}
-        />
-        <SanitizedInput
-          ref={inputRef}
-          className="h-10 flex-1"
-          disabled={uploading}
-          placeholder="Type a message..."
-          value={value}
-          onChange={handleInputChange}
-          onClick={handleInputFocus}
-          onFocus={handleInputFocus}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              if (canSend) {
-                void handleSubmit(e as unknown as FormEvent);
-              }
+      <div className="flex items-end gap-2">
+        <div className="bg-bg-app border-border-subtle focus-within:border-border-strong flex min-w-0 flex-1 items-center gap-0.5 rounded-2xl border px-1.5 py-1 transition-colors">
+          <Button
+            iconOnly
+            aria-label="Attach image"
+            disabled={uploading}
+            leftIcon={<ImageIcon className="h-5 w-5" />}
+            size={ComponentSizeEnum.SM}
+            variant={ButtonVariantEnum.GHOST}
+            onClick={() => imageInputRef.current?.click()}
+          />
+          <SanitizedInput
+            ref={imageInputRef}
+            accept="image/*"
+            className="hidden"
+            type="file"
+            onChange={handleImageChange}
+          />
+          <Button
+            iconOnly
+            aria-label="Record voice message"
+            disabled={uploading || !lameJsLoaded}
+            leftIcon={
+              <Mic className={`h-5 w-5 ${recording ? "text-red-500" : ""}`} />
             }
-          }}
-        />
+            size={ComponentSizeEnum.SM}
+            variant={ButtonVariantEnum.GHOST}
+            onClick={handleMicClick}
+          />
+          <Button
+            iconOnly
+            aria-label="Attach file"
+            disabled={uploading}
+            leftIcon={<Paperclip className="h-5 w-5" />}
+            size={ComponentSizeEnum.SM}
+            variant={ButtonVariantEnum.GHOST}
+            onClick={() => fileInputRef.current?.click()}
+          />
+          <SanitizedInput
+            ref={fileInputRef}
+            className="hidden"
+            type="file"
+            onChange={handleDocChange}
+          />
+          <SanitizedInput
+            unstyled
+            ref={inputRef}
+            className="text-text-primary placeholder:text-text-muted h-9 min-w-0 flex-1 bg-transparent px-2 text-sm outline-none disabled:opacity-60"
+            disabled={uploading}
+            placeholder="Type a message…"
+            value={value}
+            onChange={handleInputChange}
+            onClick={handleInputFocus}
+            onFocus={handleInputFocus}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                if (canSend) {
+                  void handleSubmit(e as unknown as FormEvent);
+                }
+              }
+            }}
+          />
+        </div>
         <Button
           iconOnly
           aria-label="Send message"
+          className="rounded-full"
           disabled={!canSend}
           leftIcon={<Send className="h-5 w-5" />}
           size={ComponentSizeEnum.MD}

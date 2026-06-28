@@ -20,6 +20,7 @@ export type {
 } from "./model";
 export {
   AddMaintenanceForm,
+  AddMaintenanceModalMount,
   DownloadableMaintenanceLog,
   MaintenanceDetailView,
   MaintenanceGridCard,

@@ -34,6 +34,7 @@ import {
   usePermissionsFromStorage,
 } from "@/hooks/permissions";
 import { orgPath } from "@/shared/config/routes";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { DialogManager } from "@/shared/ui/common/DialogManager";
 import {
   DetailsActionsDropdown,
@@ -46,6 +47,12 @@ import {
 import { UploadFile } from "@/shared/ui/common/UploadFile";
 import { PermissionCodeGate } from "@/shared/ui/permissions";
 
+import {
+  ContactAssignmentDialog,
+  ConvertToJobDialog,
+  FarmAssignmentDialog,
+  ReshareDialog,
+} from "./dialogs";
 import { DocumentSentToggleButtons } from "./DocumentSentToggleButtons";
 import { ShowMoreCardDetailMeta } from "./ShowMoreCardDetailMeta";
 import { getConfig } from "./configs";
@@ -226,13 +233,28 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
     openConvertDialog,
 
     openFarmAssignmentDialog,
+    isReshareDialogOpen,
+    isConvertDialogOpen,
+    isContactAssignmentDialogOpen,
+    isFarmAssignmentDialogOpen,
+    closeReshareDialog,
+    closeConvertDialog,
+    closeContactAssignmentDialog,
+    closeFarmAssignmentDialog,
+    reshareDialogProps,
+    convertDialogProps,
+    contactAssignmentDialogProps,
+    farmAssignmentDialogProps,
   } = dialogs;
   const { router, queryClient, transformVertices, currentUser, orgId } = utils;
 
   // Notes live as a collapsible right-side section in the body. The expand icon
   // in its header opens a focused full-screen modal.
   const [notesOpen, setNotesOpen] = useState(true);
-  const [notesModalOpen, setNotesModalOpen] = useState(false);
+  const { stack: modalStack, openModal, closeModalKey } = useModalStack();
+  const notesModalOpen = modalStack.some(
+    (f) => f.key === "view-job-lead-notes"
+  );
 
   const completedJobTypeQueryParam = useMemo((): JobOrLeadType => {
     if (config.jobType === JobType.EXCAVATION) return JobOrLeadType.EXCAVATION;
@@ -614,7 +636,9 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
           isTrashed={props.isTrashed}
           open={notesModalOpen}
           toggleArchive={toggleArchive}
-          onOpenChange={setNotesModalOpen}
+          onOpenChange={(open) => {
+            if (!open) closeModalKey("view-job-lead-notes");
+          }}
         />
       ) : null}
 
@@ -637,7 +661,7 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
               isTrashed={props.isTrashed}
               open={notesOpen}
               toggleArchive={toggleArchive}
-              onExpand={() => setNotesModalOpen(true)}
+              onExpand={() => openModal("view-job-lead-notes")}
               onToggle={() => setNotesOpen((prev) => !prev)}
             />
           ) : undefined
@@ -764,6 +788,35 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
           />
         )}
       </JobLeadDetailLayout>
+
+      {/* URL-driven dialogs (Pattern B: mounted here, state in the URL) */}
+      {isReshareDialogOpen ? (
+        <ReshareDialog {...reshareDialogProps} onClose={closeReshareDialog} />
+      ) : null}
+
+      <ConvertToJobDialog
+        {...convertDialogProps}
+        open={isConvertDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) closeConvertDialog();
+        }}
+      />
+
+      <ContactAssignmentDialog
+        {...contactAssignmentDialogProps}
+        open={isContactAssignmentDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) closeContactAssignmentDialog();
+        }}
+      />
+
+      <FarmAssignmentDialog
+        {...farmAssignmentDialogProps}
+        open={isFarmAssignmentDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) closeFarmAssignmentDialog();
+        }}
+      />
 
       {/* Dialog Manager */}
       <DialogManager manager={dialogManager} />

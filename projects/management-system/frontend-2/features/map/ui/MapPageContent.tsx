@@ -37,6 +37,7 @@ import {
 import { useContactPermissions } from "@/hooks/permissions";
 import { useMapDataV2, useMapLegends } from "@/hooks/queries";
 import { useGoogleMapsApi } from "@/providers";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import {
   type BoundaryMapRef,
   CustomizeMapLegendDialog,
@@ -170,7 +171,8 @@ const Maps = () => {
     lng: number;
   } | null>(null);
   const [activeTab, setActiveTab] = useState<MapViewTab>(MapViewTab.JOBS_LEADS);
-  const [isLegendDialogOpen, setIsLegendDialogOpen] = useState(false);
+  const { stack, openModal, closeModalKey } = useModalStack();
+  const isLegendDialogOpen = stack.some((f) => f.key === "customize-map-legend");
 
   const { canRead: hasContactAccess } = useContactPermissions();
   const { isLoaded, loadError } = useGoogleMapsApi();
@@ -736,7 +738,7 @@ const Maps = () => {
                   activeTab={activeTab}
                   getLegendData={getLegendData}
                   isMobile={isMobile}
-                  onLegendClick={() => setIsLegendDialogOpen(true)}
+                  onLegendClick={() => openModal("customize-map-legend")}
                 />
               </>
             )}
@@ -745,7 +747,7 @@ const Maps = () => {
 
         <CustomizeMapLegendDialog
           isOpen={isLegendDialogOpen}
-          onClose={() => setIsLegendDialogOpen(false)}
+          onClose={() => closeModalKey("customize-map-legend")}
         />
       </Card>
     </>

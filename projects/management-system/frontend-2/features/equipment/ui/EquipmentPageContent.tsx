@@ -62,6 +62,7 @@ import {
 import { useRoutePermissions } from "@/hooks/permissions";
 import { useAllEquipment } from "@/hooks/queries";
 import { APP_ROUTES, orgPath } from "@/shared/config/routes";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { bulkConfirmationCopy } from "@/shared/lib";
 import {
   CMS_DEFAULT_PAGE_SIZE as DEFAULT_PAGE_SIZE,
@@ -159,11 +160,13 @@ export default function EquipmentPage() {
   const {
     selectedIds,
     editingEquipment,
-    addEquipmentType,
     setSelectedIds,
     setEditingEquipment,
-    setAddEquipmentType,
   } = useEquipmentPageUi();
+  const { stack, openModal, closeModalKey } = useModalStack();
+  const addEquipmentType =
+    (stack.find((f) => f.key === "add-equipment")?.params
+      .type as EquipmentTypeEnum | undefined) ?? null;
   const { view: currentView, setView } = useViewPreference(
     ViewMode.LIST,
     VIEW_LIST_GRID
@@ -703,9 +706,9 @@ export default function EquipmentPage() {
   const openAddEquipmentModal = useCallback(
     (type: EquipmentTypeEnum) => {
       setEditingEquipment(null);
-      setAddEquipmentType(type);
+      openModal("add-equipment", { type });
     },
-    [setAddEquipmentType, setEditingEquipment]
+    [openModal, setEditingEquipment]
   );
 
   const handleAddEquipmentSubmit = useCallback(
@@ -721,10 +724,10 @@ export default function EquipmentPage() {
       }
 
       if (succeeded) {
-        setAddEquipmentType(null);
+        closeModalKey("add-equipment");
       }
     },
-    [handleAddMachine, handleAddTrailer, handleAddVehicle, setAddEquipmentType]
+    [handleAddMachine, handleAddTrailer, handleAddVehicle, closeModalKey]
   );
 
   const isAddEquipmentSubmitting =
@@ -882,17 +885,10 @@ export default function EquipmentPage() {
               onViewChange={handleViewChange}
             />
             <DialogManager manager={dialogManager} />
-            {addEquipmentType ? (
-              <AddEquipmentModal
-                equipmentType={addEquipmentType}
-                isSubmitting={isAddEquipmentSubmitting}
-                open={addEquipmentType !== null}
-                onOpenChange={(open) => {
-                  if (!open) setAddEquipmentType(null);
-                }}
-                onSubmit={handleAddEquipmentSubmit}
-              />
-            ) : null}
+            {/* The "Add Equipment" modal is rendered globally via the URL modal
+                stack (key `add-equipment`, AddEquipmentModalConnected) so it can
+                open over any module. This page triggers it via
+                openModal("add-equipment", { type }). */}
           </div>
         );
       }}

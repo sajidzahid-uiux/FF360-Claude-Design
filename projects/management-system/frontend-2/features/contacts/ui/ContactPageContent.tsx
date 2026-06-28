@@ -7,7 +7,6 @@ import { toast } from "sonner";
 
 import type { Contact } from "@/api/types";
 import {
-  AddContactModal,
   CategoriesTab,
   type ContactPageTab,
   ContactsBreadcrumbToolbar,
@@ -36,6 +35,7 @@ import {
   useCmsServerTableQuery,
   useCmsTableQueryActions,
 } from "@/shared/lib/table";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { DialogManager, PageRenderer } from "@/shared/ui/common";
 import { AccessDeniedView } from "@/shared/ui/permissions";
 
@@ -60,12 +60,10 @@ export default function OrgContactPage() {
   const {
     tab,
     addMode,
-    showAddContact,
     expandedParentIds,
     selectedContactIds,
     setTab,
     setAddMode,
-    setShowAddContact,
     toggleExpandedParentId,
     setSelectedContactIds,
     clearSelectedContactIds,
@@ -73,6 +71,8 @@ export default function OrgContactPage() {
   } = useContactsPageUi();
 
   const dialogManager = useDialogManager();
+  const { openModal, stack: modalStack } = useModalStack();
+  const isAddContactOpen = modalStack.some((f) => f.key === "add-contact");
   const storage = usePersistentStorage();
   const { orgId: organizationId } = useRouteIds();
   const { resetSlice: resetTableSlice } = useCmsTableQueryActions();
@@ -173,10 +173,10 @@ export default function OrgContactPage() {
 
   useEffect(() => {
     const action = searchParams.get("action");
-    if (action === "add") {
-      setShowAddContact(true);
+    if (action === "add" && !isAddContactOpen) {
+      openModal("add-contact");
     }
-  }, [searchParams, setShowAddContact]);
+  }, [searchParams, isAddContactOpen, openModal]);
 
   const handleTabChange = useCallback(
     (newTab: ContactPageTab) => {
@@ -309,15 +309,6 @@ export default function OrgContactPage() {
           onTabChange={handleTabChange}
         />
       ) : null}
-      <AddContactModal
-        open={showAddContact}
-        onOpenChange={(open) => {
-          setShowAddContact(open);
-          if (!open) {
-            setAddMode(null);
-          }
-        }}
-      />
       <PageRenderer
         data={isContactsTab ? tableRows : []}
         description="Manage your organization's contacts."
@@ -356,7 +347,7 @@ export default function OrgContactPage() {
                   selectedIds={selectedContactIds}
                   sortRules={sortRules}
                   onAddFarmContact={() => setAddMode("farm_management")}
-                  onAddStandardContact={() => setShowAddContact(true)}
+                  onAddStandardContact={() => openModal("add-contact")}
                   onBulkDelete={handleBulkDelete}
                   onContactLogs={handleContactLogs}
                   onDeleteContact={handleDeleteContact}

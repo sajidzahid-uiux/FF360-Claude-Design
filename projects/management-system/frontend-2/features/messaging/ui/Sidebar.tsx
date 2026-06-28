@@ -1,11 +1,16 @@
 import { ReactNode, useMemo, useState } from "react";
 
-import { Button } from "@fieldflow360/org-ui";
+import {
+  Button,
+  ButtonVariantEnum,
+  ComponentSizeEnum,
+  SearchInput,
+} from "@fieldflow360/org-ui";
+import { Plus } from "lucide-react";
 
 import type { Conversation, MessagePreview } from "@/api/types/chat";
 import type { TeamMember } from "@/api/types/team";
 import MessageListCard from "@/features/messaging/ui/MessageListCard";
-import { SanitizedInput } from "@/shared/ui/primitives";
 
 export default function Sidebar({
   conversations,
@@ -105,30 +110,43 @@ export default function Sidebar({
   };
 
   return (
-    <aside className="bg-bg-surface border-border-subtle flex h-full w-[100%] flex-col gap-2 border-r p-4">
-      <h2 className="text-2xl font-semibold">Messages</h2>
-      <p className="text-text-muted mb-2 text-sm">
-        Chat with team members and clients.
-      </p>
-      {children}
-      {tab === "groups" && (
-        <Button
-          aria-label="Add group"
-          className="mb-2"
-          title="Add group"
-          onClick={onAddGroup}
-        />
-      )}
-      <SanitizedInput
-        className="mb-2 h-8"
-        placeholder="Search messages .."
-        type="search"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+    <aside className="bg-bg-surface border-border-subtle flex h-full w-[100%] flex-col border-r">
+      <div className="border-border-subtle flex flex-col gap-3 border-b px-4 pt-4 pb-3">
+        <div>
+          <h2 className="text-text-primary text-xl font-semibold">Messages</h2>
+          <p className="text-text-muted mt-0.5 text-xs">
+            Chat with team members and clients.
+          </p>
+        </div>
+        {children}
+        <div className="flex items-center gap-2">
+          <SearchInput
+            className="h-9 flex-1"
+            placeholder="Search messages…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onClear={() => setSearch("")}
+          />
+          {tab === "groups" && (
+            <Button
+              iconOnly
+              aria-label="New group"
+              leftIcon={<Plus className="h-5 w-5" />}
+              size={ComponentSizeEnum.MD}
+              variant={ButtonVariantEnum.SURFACE}
+              onClick={onAddGroup}
+            />
+          )}
+        </div>
+      </div>
       {/* Direct Messages Section */}
       {tab === "direct" && (
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto px-2 py-2">
+          {sortedDirectMembers.length === 0 && (
+            <p className="text-text-muted px-3 py-8 text-center text-sm">
+              No conversations found.
+            </p>
+          )}
           {sortedDirectMembers.map((member) => {
             // Find existing conversation with this member
             const existingGroup = directGroups.find((group) => {
@@ -160,7 +178,12 @@ export default function Sidebar({
       )}
       {/* Group Chats Section */}
       {tab === "groups" && (
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto px-2 py-2">
+          {filteredGroups.length === 0 && (
+            <p className="text-text-muted px-3 py-8 text-center text-sm">
+              No groups found.
+            </p>
+          )}
           {filteredGroups.map((group) => {
             const latest = latestMessages[group.id];
             // For groups, we don't pass memberId since it's a group chat

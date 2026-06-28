@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import type { ContactCategory } from "@/api/types";
 import { CategoryDialog } from "@/features/contacts";
 import { useCategoryMutations, useDialogManager } from "@/hooks";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { CmsOrgUiTable } from "@/shared/ui";
 import { DialogManager } from "@/shared/ui/common";
 import { getErrorMessage } from "@/utils/apiError";
@@ -80,10 +81,21 @@ export function CategoriesTab({
   canDelete = false,
 }: CategoriesTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] =
-    useState<ContactCategory | null>(null);
+  const { stack, openModal, closeModalKey } = useModalStack();
+
+  const showAddCategoryDialog = stack.some((f) => f.key === "add-category");
+  const editFrame = stack.find((f) => f.key === "edit-category");
+  const editDialogOpen = editFrame !== undefined;
+  const editingCategoryId = editFrame
+    ? Number(editFrame.params.id)
+    : null;
+  const editingCategory = useMemo(
+    () =>
+      editingCategoryId !== null
+        ? (categories.find((c) => c.id === editingCategoryId) ?? null)
+        : null,
+    [categories, editingCategoryId]
+  );
 
   const dialogManager = useDialogManager();
   const {
@@ -97,10 +109,12 @@ export function CategoriesTab({
     [categories, searchQuery]
   );
 
-  const handleEdit = useCallback((category: ContactCategory) => {
-    setEditingCategory(category);
-    setEditDialogOpen(true);
-  }, []);
+  const handleEdit = useCallback(
+    (category: ContactCategory) => {
+      openModal("edit-category", { id: String(category.id) });
+    },
+    [openModal]
+  );
 
   const handleDelete = useCallback(
     (category: ContactCategory) => {
@@ -133,8 +147,7 @@ export function CategoriesTab({
         id: editingCategory.id,
         data: { name, color },
       });
-      setEditDialogOpen(false);
-      setEditingCategory(null);
+      closeModalKey("edit-category");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "Failed to update category"));
       throw error;
@@ -235,7 +248,7 @@ export function CategoriesTab({
                       <Plus aria-hidden className="h-4 w-4" strokeWidth={2} />
                     }
                     title="Add category"
-                    onClick={() => setShowAddCategoryDialog(true)}
+                    onClick={() => openModal("add-category")}
                   />
                 ) : undefined
               }
@@ -256,7 +269,9 @@ export function CategoriesTab({
         categoryName=""
         open={showAddCategoryDialog}
         title="Add New Category"
-        onOpenChange={setShowAddCategoryDialog}
+        onOpenChange={(o) => {
+          if (!o) closeModalKey("add-category");
+        }}
         onSave={handleCreateCategory}
       />
 
@@ -267,10 +282,11 @@ export function CategoriesTab({
         open={editDialogOpen}
         title="Edit Category"
         onCancel={() => {
-          setEditDialogOpen(false);
-          setEditingCategory(null);
+          closeModalKey("edit-category");
         }}
-        onOpenChange={setEditDialogOpen}
+        onOpenChange={(o) => {
+          if (!o) closeModalKey("edit-category");
+        }}
         onSave={handleSaveEdit}
       />
 

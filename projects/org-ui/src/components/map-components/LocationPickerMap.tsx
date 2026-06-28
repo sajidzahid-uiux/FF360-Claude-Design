@@ -19,6 +19,8 @@ const DEFAULT_ZOOM = 12;
 const MIN_ZOOM = 4;
 const MAX_ZOOM = 18;
 const MAX_SEARCH_RESULTS = 5;
+const MIN_MAP_HEIGHT = 200;
+const MAX_MAP_HEIGHT = 800;
 
 function createPinIconUrl(accentColor: string): string {
   return (
@@ -163,6 +165,13 @@ export function LocationPickerMap({
   const searchRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const hasCenteredOnInitialLocationRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const resizeStateRef = useRef<{ startY: number; startHeight: number } | null>(
+    null
+  );
+  const [resizedHeight, setResizedHeight] = useState<number | null>(null);
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const effectiveHeight = resizedHeight ?? height;
   const pinIconUrl = useMemo(
     () => createPinIconUrl(accentColor || "#d9f46e"),
     [accentColor]
@@ -309,10 +318,54 @@ export function LocationPickerMap({
     }));
   }, []);
 
+  const handleResizeMove = useCallback((event: PointerEvent) => {
+    const state = resizeStateRef.current;
+    if (!state) return;
+    const delta = event.clientY - state.startY;
+    const next = Math.min(
+      MAX_MAP_HEIGHT,
+      Math.max(MIN_MAP_HEIGHT, state.startHeight + delta)
+    );
+    setResizedHeight(next);
+  }, []);
+
+  const handleResizeEnd = useCallback(() => {
+    resizeStateRef.current = null;
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+    window.removeEventListener("pointermove", handleResizeMove);
+    window.removeEventListener("pointerup", handleResizeEnd);
+  }, [handleResizeMove]);
+
+  const handleResizeStart = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      const startHeight =
+        containerRef.current?.getBoundingClientRect().height ?? MIN_MAP_HEIGHT;
+      resizeStateRef.current = { startY: event.clientY, startHeight };
+      document.body.style.cursor = "ns-resize";
+      document.body.style.userSelect = "none";
+      window.addEventListener("pointermove", handleResizeMove);
+      window.addEventListener("pointerup", handleResizeEnd);
+    },
+    [handleResizeEnd, handleResizeMove]
+  );
+
+  useEffect(() => {
+    return () => {
+      window.removeEventListener("pointermove", handleResizeMove);
+      window.removeEventListener("pointerup", handleResizeEnd);
+    };
+  }, [handleResizeMove, handleResizeEnd]);
+
   return (
-    <div className="relative overflow-visible" style={{ height }}>
+    <div
+      ref={containerRef}
+      className="relative overflow-visible"
+      style={{ height: effectiveHeight }}
+    >
       <div className="border-border-subtle bg-bg-surface-elevated h-full rounded-2xl border p-0">
-        <div className="h-full overflow-hidden rounded-2xl">
+        <div className="relative h-full overflow-hidden rounded-2xl">
           <DeckGL
             viewState={viewState}
             onViewStateChange={(event) => {
@@ -334,8 +387,21 @@ export function LocationPickerMap({
               maxZoom={MAX_ZOOM}
               attributionControl={false}
               reuseMaps={false}
+              onLoad={(event) => {
+                const map = event.target;
+                if (map.areTilesLoaded()) {
+                  setIsMapLoaded(true);
+                  return;
+                }
+                map.once("idle", () => setIsMapLoaded(true));
+              }}
             />
           </DeckGL>
+          {!isMapLoaded ? (
+            <div className="bg-bg-surface-elevated pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-2xl">
+              <div className="location-picker-map-shimmer absolute inset-0" />
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -375,6 +441,18 @@ export function LocationPickerMap({
       </div>
       ) : null}
       <MapZoomControls onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} />
+
+      <div
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Resize map"
+        onPointerDown={handleResizeStart}
+        className="group absolute inset-x-0 bottom-0 z-20 flex h-4 translate-y-1/2 cursor-ns-resize items-center justify-center"
+      >
+        <div className="bg-bg-surface-elevated border-border-subtle flex h-2.5 w-12 items-center justify-center rounded-full border shadow-md transition-colors group-hover:border-text-muted">
+          <div className="bg-text-muted h-0.5 w-6 rounded-full" />
+        </div>
+      </div>
     </div>
   );
 }

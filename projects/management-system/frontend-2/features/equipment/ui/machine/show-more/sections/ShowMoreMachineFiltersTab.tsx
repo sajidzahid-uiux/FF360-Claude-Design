@@ -25,7 +25,8 @@ export function ShowMoreMachineFiltersTab({ vm }: Props) {
     isDisabled,
     availableFiltersToAdd,
     isAddFilterModalOpen,
-    setIsAddFilterModalOpen,
+    openAddFilterModal,
+    closeAddFilterModal,
     selectedNewFilter,
     addFilterError,
     setAddFilterError,
@@ -59,7 +60,7 @@ export function ShowMoreMachineFiltersTab({ vm }: Props) {
               onFilterSelect={(filter) => {
                 setAddFilterError(null);
                 setSelectedNewFilter(filter);
-                setIsAddFilterModalOpen(true);
+                openAddFilterModal();
               }}
             />
           )}
@@ -71,7 +72,9 @@ export function ShowMoreMachineFiltersTab({ vm }: Props) {
             open={isAddFilterModalOpen}
             title={selectedNewFilter?.title || ""}
             onAdd={handleAddFilterSubmit}
-            onOpenChange={setIsAddFilterModalOpen}
+            onOpenChange={(open) => {
+              if (!open) closeAddFilterModal();
+            }}
           />
         </div>
         {machineData.maintenance_attributes &&

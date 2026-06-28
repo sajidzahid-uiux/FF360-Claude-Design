@@ -10,7 +10,10 @@ import { getEquipmentRecordId } from "@/features/equipment";
 import type { useShowMoreMachineCard } from "@/features/equipment/hooks/useShowMoreMachineCard";
 import type { MachineDetailRecord } from "@/features/equipment/model/show-more-card";
 import { DownloadMaintenanceLogButton } from "@/features/equipment/ui";
-import { useOpenAddMaintenanceDialog } from "@/features/maintenance";
+import {
+  AddMaintenanceModalMount,
+  useOpenAddMaintenanceDialog,
+} from "@/features/maintenance";
 import { Dropdown } from "@/shared/ui/common";
 import { Card, Label, SanitizedInput } from "@/shared/ui/primitives";
 import { getErrorMessage } from "@/utils/apiError";
@@ -588,6 +591,7 @@ export function ShowMoreMachineViewDetailsTab({ vm }: Props) {
           </div>
         </div>
       </div>
+      <AddMaintenanceModalMount />
     </>
   );
 }

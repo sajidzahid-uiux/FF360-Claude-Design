@@ -41,6 +41,7 @@ import {
   useCmsServerTableQuery,
 } from "@/shared/lib/table";
 import { FilterState } from "@/shared/ui/common";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 
 import { jobLeadPathsFromConfig } from "../lib/jobLeadPaths";
 import { jobsTableQueryToListParams } from "../lib/jobs-table-query";
@@ -117,8 +118,9 @@ export function JobListPage({ config }: JobListPageProps) {
   );
 
   const dialogManager = useDialogManager();
-  const [isAddJobOpen, setIsAddJobOpen] = useState(false);
-  const [isJobStatusOpen, setIsJobStatusOpen] = useState(false);
+  const { stack, openModal, closeModalKey } = useModalStack();
+  const isAddJobOpen = stack.some((f) => f.key === "add-job");
+  const isJobStatusOpen = stack.some((f) => f.key === "manage-job-status");
   const { data: statusTypes, addStatus } = useOrganizationStatuses({
     jobType: config.apiType,
   });
@@ -207,7 +209,7 @@ export function JobListPage({ config }: JobListPageProps) {
           await createRepairJob.mutateAsync(payload);
         }
 
-        setIsAddJobOpen(false);
+        closeModalKey("add-job");
       } catch (error: unknown) {
         console.error("Failed to create job:", error);
         toast.error(getLeadCreateErrorMessage(error, "Failed to create job"));
@@ -233,15 +235,15 @@ export function JobListPage({ config }: JobListPageProps) {
     createRepairJob.isPending;
 
   const openJobForm = useCallback(() => {
-    setIsAddJobOpen(true);
-  }, []);
+    openModal("add-job");
+  }, [openModal]);
 
   useEffect(() => {
     const action = searchParams.get("action");
-    if (action === "add" && statusTypes && statusTypes.length > 0) {
+    if (action === "add" && !isAddJobOpen) {
       openJobForm();
     }
-  }, [openJobForm, searchParams, statusTypes]);
+  }, [isAddJobOpen, openJobForm, searchParams]);
 
   const handleFilterChange = useCallback(
     (newFilters: FilterState) => {
@@ -303,7 +305,7 @@ export function JobListPage({ config }: JobListPageProps) {
         },
         Type: config.apiType,
       });
-      setIsJobStatusOpen(false);
+      closeModalKey("manage-job-status");
       toast.success("Status added successfully");
     } catch (error: unknown) {
       console.error("Failed to add status:", error);
@@ -415,7 +417,7 @@ export function JobListPage({ config }: JobListPageProps) {
             statusTypes={statusTypes || []}
             view={currentView as TableViewMode}
             onAddJob={openJobForm}
-            onAddJobStatus={() => setIsJobStatusOpen(true)}
+            onAddJobStatus={() => openModal("manage-job-status")}
             onArchive={handleArchive}
             onArchiveSelectedJobs={handleArchiveSelectedJobs}
             onFilterChange={handleFilterChange}
@@ -434,20 +436,16 @@ export function JobListPage({ config }: JobListPageProps) {
         title={config.listTitle}
       />
 
-      <JobLeadForm
-        {...jobLeadFormProps}
-        isOpen={isAddJobOpen}
-        isSubmitting={isAddJobSubmitting}
-        requireTypeSelection={searchParams.get("pick") === "1"}
-        onCancel={() => setIsAddJobOpen(false)}
-        onOpenChange={setIsAddJobOpen}
-        onSubmit={handleAddJobSubmit}
-      />
+      {/* The "Add Job" form is rendered globally via the URL modal stack
+          (key `add-job`, AddJobModalConnected) so it can open over any module.
+          This page only triggers it via openModal("add-job"). */}
 
       <JobStatusModal
         isSubmitting={addStatus.isPending}
         open={isJobStatusOpen}
-        onOpenChange={setIsJobStatusOpen}
+        onOpenChange={(open) => {
+          if (!open) closeModalKey("manage-job-status");
+        }}
         onSubmit={handleAddStatus}
       />
     </>

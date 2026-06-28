@@ -1,5 +1,6 @@
 export { AddMaintenanceForm } from "./AddMaintenanceForm";
 export type { AddMaintenanceFormProps } from "./AddMaintenanceForm";
+export { AddMaintenanceModalMount } from "./AddMaintenanceModalMount";
 export { useOpenAddMaintenanceDialog } from "../hooks/useOpenAddMaintenanceDialog";
 export type { OpenAddMaintenanceDialogParams } from "../hooks/useOpenAddMaintenanceDialog";
 export { MaintenanceGridCard } from "./MaintenanceGridCard";

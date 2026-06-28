@@ -34,6 +34,7 @@ export type {
 } from "./model";
 export {
   AddEquipmentModal,
+  AddEquipmentModalConnected,
   AddMaintenanceFilterDropdown,
   AddMaintenanceFilterModal,
   BatteryReplacement,

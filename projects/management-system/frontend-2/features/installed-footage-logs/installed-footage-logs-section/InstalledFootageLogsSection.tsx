@@ -20,6 +20,7 @@ import {
   useInstalledFootageLogs,
 } from "@/hooks";
 import { DialogManager } from "@/shared/ui/common";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 
 import { EditInstalledFootageLogDialog } from "./EditInstalledFootageLogDialog";
 import { InstalledFootageLogsAllModal } from "./InstalledFootageLogsAllModal";
@@ -49,6 +50,8 @@ export function InstalledFootageLogsSection({
   onLogsChanged,
 }: InstalledFootageLogsSectionProps) {
   const dialogManager = useDialogManager();
+  const { stack, openModal, closeModalKey } = useModalStack();
+  const isAllModalOpen = stack.some((f) => f.key === "view-installed-footage");
   const [tab, setTab] = useState<InstalledFootageLogType>("main");
 
   const { data, isLoading, isError } = useInstalledFootageLogs(jobId, tab);
@@ -104,18 +107,7 @@ export function InstalledFootageLogsSection({
   }
 
   function openFootageLogsAllModal() {
-    dialogManager.openDialog({
-      type: "component",
-      component: InstalledFootageLogsAllModal,
-      props: {
-        jobId,
-        disabled,
-        canUpdateInstalledFootage,
-        canUpdateInstalledRaisers,
-        initialTab: tab,
-        onLogsChanged,
-      },
-    });
+    openModal("view-installed-footage", { tab });
   }
 
   const tableProps = {
@@ -172,6 +164,24 @@ export function InstalledFootageLogsSection({
         <RaisersFootageTable
           {...tableProps}
           rows={previewRows.filter((e) => e.log_type === "raisers")}
+        />
+      ) : null}
+
+      {isAllModalOpen ? (
+        <InstalledFootageLogsAllModal
+          canUpdateInstalledFootage={canUpdateInstalledFootage}
+          canUpdateInstalledRaisers={canUpdateInstalledRaisers}
+          disabled={disabled}
+          initialTab={
+            (stack.find((f) => f.key === "view-installed-footage")?.params
+              .tab as InstalledFootageLogType | undefined) ?? tab
+          }
+          jobId={jobId}
+          open={isAllModalOpen}
+          onLogsChanged={onLogsChanged}
+          onOpenChange={(o) => {
+            if (!o) closeModalKey("view-installed-footage");
+          }}
         />
       ) : null}
 

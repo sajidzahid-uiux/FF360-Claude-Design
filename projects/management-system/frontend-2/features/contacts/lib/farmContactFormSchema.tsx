@@ -23,6 +23,7 @@ import {
   useOrganizationData,
   useRouteIds,
 } from "@/hooks";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { type BoundaryMapRef, CenterOnLocation } from "@/shared/ui/common/map";
 import { Label, SanitizedInput } from "@/shared/ui/primitives";
 import { validateZipCode } from "@/utils/validation/contactValidation";
@@ -189,7 +190,8 @@ function FarmContactFormContent({
 }: FarmContactFormContentProps) {
   const formData = value || DEFAULT_FARM_CONTACT_FORM_DATA;
   const [openTooltips, setOpenTooltips] = useState<Record<string, boolean>>({});
-  const [showCategoryDialog, setShowCategoryDialog] = useState(false);
+  const { stack, openModal, closeModalKey } = useModalStack();
+  const showCategoryDialog = stack.some((f) => f.key === "add-category");
   const mapLocationRef = useRef<BoundaryMapRef>(null);
 
   const {
@@ -508,7 +510,7 @@ function FarmContactFormContent({
                 <Button
                   aria-label="Add New Category"
                   title="Add New Category"
-                  onClick={() => setShowCategoryDialog(true)}
+                  onClick={() => openModal("add-category")}
                 />
               ) : null}
 
@@ -531,11 +533,13 @@ function FarmContactFormContent({
         categoryName=""
         open={showCategoryDialog}
         title="Add New Category"
-        onCancel={() => setShowCategoryDialog(false)}
-        onOpenChange={setShowCategoryDialog}
+        onCancel={() => closeModalKey("add-category")}
+        onOpenChange={(o) => {
+          if (!o) closeModalKey("add-category");
+        }}
         onSave={async (name, color) => {
           await createCategory.mutateAsync({ name, color });
-          setShowCategoryDialog(false);
+          closeModalKey("add-category");
         }}
       />
     </div>

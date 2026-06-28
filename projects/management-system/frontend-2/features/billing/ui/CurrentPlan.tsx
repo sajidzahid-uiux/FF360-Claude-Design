@@ -19,6 +19,7 @@ import {
 import Features from "@/features/billing/ui/Features";
 import { useBilling, useSeatUsage, useTeamData } from "@/hooks";
 import type { SubscriptionInfo } from "@/hooks/useBilling";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { ContactSalesDialog } from "@/shared/ui/common";
 import {
   Badge,
@@ -43,6 +44,135 @@ const PLAN_FEATURES = [
   "Equipment & Maintenance",
   "Dashboards & Analytics",
 ] as const;
+
+interface ChangePlanCardProps {
+  plan: PlanData;
+  billingCycle: "monthly" | "yearly";
+  isUpdating: boolean;
+  selected: PlanData | null;
+  currentPlanApiId?: string;
+  onSelect: (plan: PlanData) => void;
+}
+
+/**
+ * A single plan in the "Change plan" horizontal stack. One component drives both
+ * the monthly and yearly views off `billingCycle`, so the four plans line up in
+ * an even, equal-height row.
+ */
+function ChangePlanCard({
+  plan,
+  billingCycle,
+  isUpdating,
+  selected,
+  currentPlanApiId,
+  onSelect,
+}: ChangePlanCardProps) {
+  const isCurrent = plan.apiId[billingCycle] === currentPlanApiId;
+  const price = billingCycle === "monthly" ? plan.monthlyPrice : plan.yearlyPrice;
+  const perJob =
+    billingCycle === "monthly"
+      ? plan.perJobPrice.monthly
+      : plan.perJobPrice.yearly;
+  const isProcessing = isUpdating && selected?.id === plan.id;
+
+  const ctaLabel = isProcessing
+    ? "Processing..."
+    : plan.id === "enterprise"
+      ? "Contact Sales"
+      : isCurrent
+        ? "Current plan"
+        : "Select Plan";
+
+  return (
+    <Card
+      className={`flex h-full flex-col rounded-xl border ${
+        plan.popular ? "border-accent ring-accent/30 ring-1" : ""
+      }`}
+    >
+      <div className="flex h-full flex-col p-5">
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h3 className="text-text-primary font-semibold">{plan.name}</h3>
+            <p className="text-text-muted text-xs">{plan.description}</p>
+            {plan.maxUsers != null ? (
+              <p className="text-text-muted text-xs">
+                {plan.maxUsers} user{plan.maxUsers === 1 ? "" : "s"}
+              </p>
+            ) : null}
+          </div>
+          {plan.popular ? (
+            <Badge
+              className="bg-accent text-text-inverse shrink-0 border-0 text-xs"
+              variant="outline"
+            >
+              POPULAR
+            </Badge>
+          ) : null}
+        </div>
+
+        <div className="mb-1">
+          {price ? (
+            <>
+              <span className="text-text-primary text-2xl font-bold">
+                ${price}
+              </span>
+              <span className="text-text-muted text-sm">
+                /{billingCycle === "monthly" ? "month" : "year"}
+              </span>
+            </>
+          ) : (
+            <span className="text-text-primary text-2xl font-bold">
+              Custom Pricing
+            </span>
+          )}
+        </div>
+
+        {billingCycle === "yearly" && plan.yearlyDiscount ? (
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-text-muted text-xs line-through">
+              ${plan.monthlyPrice ? plan.monthlyPrice * 12 : 0}/year
+            </span>
+            <Badge
+              className="bg-accent text-text-inverse border-0 text-xs"
+              variant="outline"
+            >
+              -{plan.yearlyDiscount}%
+            </Badge>
+          </div>
+        ) : null}
+
+        {perJob ? (
+          <p className="text-text-muted mb-3 text-xs">{perJob}</p>
+        ) : null}
+
+        {plan.freeTrialDays ? (
+          <div className="mb-3">
+            <Badge
+              className="bg-accent text-text-inverse border-0 text-xs"
+              variant="outline"
+            >
+              {plan.freeTrialDays} day free trial
+            </Badge>
+          </div>
+        ) : null}
+
+        <div className="mt-auto pt-2">
+          <Button
+            aria-label={ctaLabel}
+            className="w-full"
+            disabled={isUpdating || isCurrent}
+            loading={isProcessing}
+            title={ctaLabel}
+            variant={
+              plan.popular ? ButtonVariantEnum.DEFAULT : ButtonVariantEnum.SURFACE
+            }
+            onClick={() => onSelect(plan)}
+          />
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 interface CurrentPlanProps {
   subscriptionInfo: SubscriptionInfo | null;
@@ -74,7 +204,8 @@ export default function CurrentPlan({
   );
   const [showContactSales, setShowContactSales] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const { stack, openModal, closeModalKey } = useModalStack();
+  const showCancelDialog = stack.some((f) => f.key === "cancel-subscription");
   const [localSubscriptionInfo, setLocalSubscriptionInfo] =
     useState(subscriptionInfo);
 
@@ -84,10 +215,7 @@ export default function CurrentPlan({
   // Extract plan info based on current_plan in organization data
   useEffect(() => {
     if (currentPlanId) {
-      // For debugging
-
       const cycle = getBillingCycle(currentPlanId);
-
       const planData = getPlanByApiId(currentPlanId);
 
       if (planData) {
@@ -119,11 +247,9 @@ export default function CurrentPlan({
 
   const handleToggleAutoRenew = async () => {
     try {
-      // Pass the new desired state (opposite of current state)
       const newAutoRenewState = !localSubscriptionInfo?.auto_renew;
       await toggleAutoRenew(newAutoRenewState);
 
-      // Update local state (in a real app you would re-fetch the data)
       if (localSubscriptionInfo) {
         setLocalSubscriptionInfo({
           ...localSubscriptionInfo,
@@ -138,14 +264,14 @@ export default function CurrentPlan({
   };
 
   const handleCancelSubscription = async () => {
-    setShowCancelDialog(true);
+    openModal("cancel-subscription");
   };
 
   const handleConfirmCancelSubscription = async () => {
     setIsCancelling(true);
     try {
       await cancelSubscription();
-      setShowCancelDialog(false);
+      closeModalKey("cancel-subscription");
     } catch (error) {
       console.error("Error cancelling subscription:", error);
     } finally {
@@ -186,12 +312,10 @@ export default function CurrentPlan({
     try {
       const planId = selectedPlan.apiId[billingCycle];
       await changePlan(planId);
-      // Re-fetch subscription info after plan change
       const updatedInfo = await getSubscriptionInfoWithPermission(true);
       setLocalSubscriptionInfo(updatedInfo);
       setIsChangingPlan(false);
 
-      // Call the callback to refresh organization data
       if (onPlanChange) {
         onPlanChange();
       }
@@ -227,227 +351,37 @@ export default function CurrentPlan({
             />
           </CardHeader>
           <CardContent className="space-y-6 pt-0">
-            <div className="flex justify-end">
+            <div className="flex justify-center">
               <TabsSwitcher
                 items={[
                   { value: "monthly", label: "Monthly" },
                   { value: "yearly", label: "Yearly" },
                 ]}
                 value={billingCycle}
-                onChange={(value) => setBillingCycle(value)}
+                onChange={(value) =>
+                  setBillingCycle(value as "monthly" | "yearly")
+                }
               />
             </div>
-            <div>
-              {billingCycle === "monthly" ? (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                  {plans
-                    .filter((plan) => plan.id !== "enterprise_yearly")
-                    .map((plan) => (
-                      <Card
-                        key={plan.id}
-                        className="flex h-full flex-col overflow-hidden rounded-xl border"
-                      >
-                        <div className="flex h-full flex-col p-6">
-                          <div className="mb-3 flex items-start justify-between">
-                            <div>
-                              <h3 className="text-text-primary font-semibold">
-                                {plan.name}
-                              </h3>
-                              <p className="text-text-muted text-xs">
-                                {plan.description}
-                              </p>
-                              <p className="text-text-muted text-xs">
-                                {plan.maxUsers != null
-                                  ? `${plan.maxUsers} user${plan.maxUsers === 1 ? "" : "s"}`
-                                  : ""}
-                              </p>
-                            </div>
-                            {plan.popular && (
-                              <Badge
-                                className="bg-accent text-text-inverse border-0 text-xs"
-                                variant="outline"
-                              >
-                                POPULAR
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="mb-2">
-                            {plan.monthlyPrice ? (
-                              <>
-                                <span className="text-text-primary text-2xl font-bold">
-                                  ${plan.monthlyPrice}
-                                </span>
-                                <span className="text-text-muted text-sm">
-                                  /month
-                                </span>
-                              </>
-                            ) : (
-                              <span className="text-text-primary text-2xl font-bold">
-                                Custom Pricing
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-text-muted mb-4 text-xs">
-                            {plan.perJobPrice.monthly}
-                          </p>
-                          {plan.freeTrialDays && (
-                            <div className="flex h-full items-end justify-start">
-                              <Badge
-                                className="bg-accent text-text-inverse h-fit border-0 text-xs"
-                                variant="outline"
-                              >
-                                {plan.freeTrialDays} day free trial
-                              </Badge>
-                            </div>
-                          )}
-                          <div className="mt-auto pt-2">
-                            <Button
-                              aria-label={
-                                isUpdatingPlan && selectedPlan?.id === plan.id
-                                  ? "Processing..."
-                                  : plan.id === "enterprise"
-                                    ? "Contact Sales"
-                                    : "Select Plan"
-                              }
-                              className="w-full"
-                              disabled={isUpdatingPlan}
-                              loading={
-                                isUpdatingPlan && selectedPlan?.id === plan.id
-                              }
-                              title={
-                                isUpdatingPlan && selectedPlan?.id === plan.id
-                                  ? "Processing..."
-                                  : plan.id === "enterprise"
-                                    ? "Contact Sales"
-                                    : "Select Plan"
-                              }
-                              variant={
-                                plan.popular
-                                  ? ButtonVariantEnum.DEFAULT
-                                  : ButtonVariantEnum.SURFACE
-                              }
-                              onClick={() => handleSelectPlan(plan)}
-                            />
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                  {plans
-                    .filter((plan) => plan.id !== "enterprise_yearly")
-                    .map((plan) => (
-                      <Card
-                        key={plan.id}
-                        className="flex h-full flex-col overflow-hidden rounded-xl border"
-                      >
-                        <div className="flex h-full flex-col p-6">
-                          <div className="mb-3 flex items-start justify-between">
-                            <div>
-                              <h3 className="text-text-primary font-semibold">
-                                {plan.name}
-                              </h3>
-                              <p className="text-text-muted text-xs">
-                                {plan.description}
-                              </p>
-                              <p className="text-text-muted text-xs">
-                                {plan.maxUsers != null
-                                  ? `${plan.maxUsers} user${plan.maxUsers === 1 ? "" : "s"}`
-                                  : ""}
-                              </p>
-                            </div>
-                            {plan.popular && (
-                              <Badge
-                                className="bg-accent text-text-inverse border-0 text-xs"
-                                variant="outline"
-                              >
-                                POPULAR
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="mb-2">
-                            {plan.yearlyPrice ? (
-                              <>
-                                <span className="text-text-primary text-2xl font-bold">
-                                  ${plan.yearlyPrice}
-                                </span>
-                                <span className="text-text-muted text-sm">
-                                  /year
-                                </span>
-                              </>
-                            ) : (
-                              <span className="text-text-primary text-2xl font-bold">
-                                Custom Pricing
-                              </span>
-                            )}
-                          </div>
-                          {plan.yearlyDiscount && (
-                            <div className="mb-4 flex h-full items-center gap-2">
-                              <p className="text-text-muted block flex h-full items-center justify-center text-xs line-through">
-                                $
-                                {plan.monthlyPrice
-                                  ? plan.monthlyPrice * 12
-                                  : "0"}{" "}
-                                / year
-                              </p>
-                              <div className="flex h-full items-center justify-center">
-                                <Badge
-                                  className="bg-accent text-text-inverse border-0 text-xs"
-                                  variant="outline"
-                                >
-                                  -${plan.yearlyDiscount}%
-                                </Badge>
-                              </div>
-                            </div>
-                          )}
-                          <p className="text-text-muted mb-4 text-xs">
-                            {plan.perJobPrice.yearly}
-                          </p>
-                          {plan.freeTrialDays && (
-                            <div className="flex h-full items-end justify-start">
-                              <Badge
-                                className="bg-accent text-text-inverse h-fit border-0 text-xs"
-                                variant="outline"
-                              >
-                                {plan.freeTrialDays} day free trial
-                              </Badge>
-                            </div>
-                          )}
-                          <div className="mt-auto pt-2">
-                            <Button
-                              aria-label={
-                                isUpdatingPlan && selectedPlan?.id === plan.id
-                                  ? "Processing..."
-                                  : plan.id === "enterprise"
-                                    ? "Contact Sales"
-                                    : "Select Plan"
-                              }
-                              className="w-full"
-                              disabled={isUpdatingPlan}
-                              loading={
-                                isUpdatingPlan && selectedPlan?.id === plan.id
-                              }
-                              title={
-                                isUpdatingPlan && selectedPlan?.id === plan.id
-                                  ? "Processing..."
-                                  : plan.id === "enterprise"
-                                    ? "Contact Sales"
-                                    : "Select Plan"
-                              }
-                              variant={
-                                plan.popular
-                                  ? ButtonVariantEnum.DEFAULT
-                                  : ButtonVariantEnum.SURFACE
-                              }
-                              onClick={() => handleSelectPlan(plan)}
-                            />
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                </div>
-              )}
+            <div
+              className="grid gap-4"
+              style={{
+                gridTemplateColumns: "repeat(auto-fit, minmax(175px, 1fr))",
+              }}
+            >
+              {plans
+                .filter((plan) => plan.id !== "enterprise_yearly")
+                .map((plan) => (
+                  <ChangePlanCard
+                    key={plan.id}
+                    billingCycle={billingCycle}
+                    currentPlanApiId={currentPlanId}
+                    isUpdating={isUpdatingPlan}
+                    plan={plan}
+                    selected={selectedPlan}
+                    onSelect={handleSelectPlan}
+                  />
+                ))}
             </div>
           </CardContent>
         </Card>
@@ -469,7 +403,9 @@ export default function CurrentPlan({
           planName={planName}
           renewalDate={localSubscriptionInfo?.renewal_date || ""}
           onConfirm={handleConfirmCancelSubscription}
-          onOpenChange={setShowCancelDialog}
+          onOpenChange={(o) => {
+            if (!o) closeModalKey("cancel-subscription");
+          }}
         />
       </>
     );
@@ -491,9 +427,29 @@ export default function CurrentPlan({
   return (
     <>
       <Card className="rounded-2xl">
-        <CardHeader>
-          <CardTitle className="text-lg">Current plan</CardTitle>
-          <CardDescription>Your current subscription plan.</CardDescription>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <CardTitle className="text-lg">Current plan</CardTitle>
+            <CardDescription>Your current subscription plan.</CardDescription>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              leftIcon={<Repeat className="h-4 w-4" />}
+              size={ComponentSizeEnum.SM}
+              title="Change plan"
+              onClick={handleChangePlan}
+            />
+            {!localSubscriptionInfo?.trialing ? (
+              <Button
+                disabled={isCancelling}
+                loading={isCancelling}
+                size={ComponentSizeEnum.SM}
+                title={isCancelling ? "Cancelling..." : "Cancel subscription"}
+                variant={ButtonVariantEnum.DELETE}
+                onClick={handleCancelSubscription}
+              />
+            ) : null}
+          </div>
         </CardHeader>
         <CardContent className="space-y-6 pt-0">
           <div className="bg-bg-app border-border-subtle flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-start sm:justify-between">
@@ -582,37 +538,17 @@ export default function CurrentPlan({
             </ul>
           </div>
 
-          <div className="border-border-subtle flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size={ComponentSizeEnum.SM}
-                title="Change plan"
-                variant={ButtonVariantEnum.SURFACE}
-                onClick={handleChangePlan}
-              />
-              {!localSubscriptionInfo?.trialing ? (
-                <Button
-                  disabled={isCancelling}
-                  loading={isCancelling}
-                  size={ComponentSizeEnum.SM}
-                  title={isCancelling ? "Cancelling..." : "Cancel subscription"}
-                  variant={ButtonVariantEnum.DELETE}
-                  onClick={handleCancelSubscription}
-                />
-              ) : null}
+          {localSubscriptionInfo?.renewal_date ? (
+            <div className="border-border-subtle text-text-muted flex items-center gap-2 border-t pt-4 text-sm">
+              <Repeat className="h-4 w-4 shrink-0" />
+              <p>
+                {localSubscriptionInfo.auto_renew ? "Renews" : "Expires"} on{" "}
+                {new Date(
+                  localSubscriptionInfo.renewal_date
+                ).toLocaleDateString()}
+              </p>
             </div>
-            {localSubscriptionInfo?.renewal_date ? (
-              <div className="text-text-muted flex items-center gap-2 text-sm">
-                <Repeat className="h-4 w-4 shrink-0" />
-                <p>
-                  {localSubscriptionInfo.auto_renew ? "Renews" : "Expires"} on{" "}
-                  {new Date(
-                    localSubscriptionInfo.renewal_date
-                  ).toLocaleDateString()}
-                </p>
-              </div>
-            ) : null}
-          </div>
+          ) : null}
         </CardContent>
       </Card>
       <CancelSubscriptionDialog
@@ -621,7 +557,9 @@ export default function CurrentPlan({
         planName={planName}
         renewalDate={localSubscriptionInfo?.renewal_date || ""}
         onConfirm={handleConfirmCancelSubscription}
-        onOpenChange={setShowCancelDialog}
+        onOpenChange={(o) => {
+          if (!o) closeModalKey("cancel-subscription");
+        }}
       />
     </>
   );

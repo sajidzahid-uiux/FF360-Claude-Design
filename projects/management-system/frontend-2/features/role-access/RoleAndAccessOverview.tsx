@@ -1,21 +1,66 @@
 "use client";
 
 import { useAuth0 } from "@auth0/auth0-react";
-import { cn } from "@fieldflow360/org-ui";
-import { Shield } from "lucide-react";
+import { Avatar, Table, type Column } from "@fieldflow360/org-ui";
+import { Check, ShieldCheck } from "lucide-react";
 
 import type { UserPermissionsResponse } from "@/api/types";
 import { useUserPermissions } from "@/hooks";
 import {
   Badge,
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/shared/ui/primitives";
 
+import type { ConfigPermissionGroup } from "./utils/groupPermissionsByConfig";
 import { groupPermissionsByConfig } from "./utils/groupPermissionsByConfig";
+
+type PermissionRow = ConfigPermissionGroup & { id: string };
+
+const PERMISSION_COLUMNS: Column<PermissionRow>[] = [
+  {
+    key: "module",
+    header: "Module",
+    width: "30%",
+    render: (row) => (
+      <span className="text-text-primary font-medium">{row.entityTitle}</span>
+    ),
+  },
+  {
+    key: "access",
+    header: "Access",
+    width: "140px",
+    render: () => (
+      <span className="bg-[var(--color-feedback-success-soft)] text-[var(--color-feedback-success-text)] inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium">
+        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />
+        Granted
+      </span>
+    ),
+  },
+  {
+    key: "permissions",
+    header: "Permissions",
+    render: (row) => (
+      <div className="flex flex-wrap gap-1.5">
+        {row.actionLabels.map((label, idx) => (
+          <span
+            key={`${row.id}-${label}-${idx}`}
+            className="bg-bg-app text-text-secondary inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs"
+          >
+            <Check
+              aria-hidden
+              className="text-[var(--color-feedback-success)] h-3 w-3 shrink-0"
+              strokeWidth={2.5}
+            />
+            {label}
+          </span>
+        ))}
+      </div>
+    ),
+  },
+];
 
 export default function RoleAndAccessOverview() {
   const { user } = useAuth0();
@@ -37,25 +82,35 @@ export default function RoleAndAccessOverview() {
     );
   }
 
-  const role = (data as UserPermissionsResponse).role;
-  const permissions = (data as UserPermissionsResponse).permissions ?? [];
+  const typed = data as UserPermissionsResponse;
+  const role = typed.role;
+  // The my-permissions endpoint returns a flat `permission_codes` array; the
+  // richer `permissions` object array isn't always populated, so fall back.
+  const permissionCodes =
+    typed.permission_codes?.length > 0
+      ? typed.permission_codes
+      : (typed.permissions ?? []).map((p) => p.code);
   const roleName = role?.name ?? "No role assigned";
+  const displayName = user?.name ?? user?.email ?? "User";
+  const isAdmin = role?.is_admin === true || roleName === "Admin";
   const roleDescription = getRoleDescription(roleName);
-  const permissionGroups = groupPermissionsByConfig(permissions);
+  const permissionRows: PermissionRow[] = groupPermissionsByConfig(
+    permissionCodes
+  ).map((group) => ({ ...group, id: group.entityTitle }));
 
   return (
     <div className="w-full min-w-0 space-y-6">
       <Card className="rounded-2xl">
         <CardHeader>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
-              <span className="bg-bg-app text-text-secondary flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
-                <Shield className="h-5 w-5" />
-              </span>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-4">
+              <Avatar
+                size="lg"
+                alt={displayName}
+                fallback={getInitials(user?.name, user?.email)}
+              />
               <div className="min-w-0">
-                <CardTitle className="truncate text-lg">
-                  {user?.name ?? user?.email ?? "User"}
-                </CardTitle>
+                <CardTitle className="truncate text-lg">{displayName}</CardTitle>
                 {user?.email ? (
                   <CardDescription className="truncate">
                     {user.email}
@@ -64,8 +119,8 @@ export default function RoleAndAccessOverview() {
               </div>
             </div>
             <Badge
-              className="shrink-0 self-start px-3 py-1 text-xs font-semibold"
-              variant="secondary"
+              className="shrink-0 self-start px-3 py-1 text-xs font-semibold sm:self-center"
+              variant={isAdmin ? "default" : "secondary"}
             >
               {roleName}
             </Badge>
@@ -78,7 +133,7 @@ export default function RoleAndAccessOverview() {
         </CardHeader>
       </Card>
 
-      {permissionGroups.length > 0 ? (
+      {permissionRows.length > 0 ? (
         <section className="space-y-4">
           <div>
             <h2 className="text-text-primary text-lg font-semibold">
@@ -89,48 +144,39 @@ export default function RoleAndAccessOverview() {
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            {permissionGroups.map((group) => (
-              <Card
-                key={group.entityTitle}
-                className="flex h-full flex-col rounded-2xl"
-              >
-                <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-3">
-                  <CardTitle className="text-base leading-snug">
-                    {group.entityTitle}
-                  </CardTitle>
-                  <span
-                    className={cn(
-                      "inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase",
-                      "bg-[var(--color-feedback-success-soft)] text-[var(--color-feedback-success-strong)]"
-                    )}
-                  >
-                    Granted
-                  </span>
-                </CardHeader>
-                <CardContent className="flex-1 pt-0">
-                  <ul className="space-y-2">
-                    {group.actionLabels.map((label, idx) => (
-                      <li
-                        key={`${group.entityTitle}-${label}-${idx}`}
-                        className="text-text-secondary flex gap-2 text-sm leading-relaxed"
-                      >
-                        <span
-                          aria-hidden
-                          className="text-text-muted mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-accent)]"
-                        />
-                        <span>{label}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {isAdmin ? (
+            <div className="border-[var(--color-feedback-success)]/25 bg-[var(--color-feedback-success-soft)] flex items-start gap-3 rounded-xl border px-4 py-3">
+              <ShieldCheck className="text-[var(--color-feedback-success)] mt-0.5 h-5 w-5 shrink-0" />
+              <p className="text-text-secondary text-sm leading-relaxed">
+                <span className="text-text-primary font-semibold">Admin</span> —
+                full access to every module. The complete breakdown is listed
+                below.
+              </p>
+            </div>
+          ) : null}
+
+          <Table
+            data={permissionRows}
+            columns={PERMISSION_COLUMNS}
+            emptyState={{
+              title: "No permissions",
+              description: "This role has no module access assigned.",
+            }}
+          />
         </section>
       ) : null}
     </div>
   );
+}
+
+function getInitials(name?: string, email?: string): string {
+  const source = name?.trim() || email?.trim() || "";
+  if (!source) return "U";
+  const parts = source.split(/[\s@.]+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return source.slice(0, 2).toUpperCase();
 }
 
 function getRoleDescription(roleName: string): string {

@@ -11,17 +11,25 @@ import { APP_ROUTES, orgUrl } from "@/shared/config/routes";
 
 /**
  * Canonical "create an asset" shortcuts shared by the global "+" menu
- * (top bar) and the floating quick-actions hub. Each target navigates to the
- * relevant list route with `?action=add`, which the list pages already honour
- * to auto-open their add modal — so no new creation flow is invented here.
+ * (top bar) and the floating quick-actions hub.
+ *
+ * Most open a URL-driven modal IN PLACE via `modal` ({ key, params }) — the
+ * `?modal=` frame is layered on the CURRENT path so the underlying module never
+ * changes. Only flows without a modal (the order wizard, the team-invite page)
+ * fall back to navigating via `href`.
  */
 export interface QuickCreateAction {
   id: string;
   label: string;
   description: string;
   icon: LucideIcon;
-  /** Build the destination href for the given org. */
-  href: (orgId: string | number) => string;
+  /**
+   * Open this modal in place on the current path (preferred). When set, the
+   * action must NOT navigate.
+   */
+  modal?: { key: string; params?: Record<string, string> };
+  /** Fallback navigation target for flows that aren't a modal. */
+  href?: (orgId: string | number) => string;
 }
 
 export const QUICK_CREATE_ACTIONS: QuickCreateAction[] = [
@@ -30,29 +38,28 @@ export const QUICK_CREATE_ACTIONS: QuickCreateAction[] = [
     label: "New Lead",
     description: "Capture an incoming opportunity",
     icon: ClipboardList,
-    // `pick=1` opens the modal with no type pre-selected (user picks first).
-    href: (orgId) => orgUrl(orgId, APP_ROUTES.leads, "action=add&pick=1"),
+    modal: { key: "add-lead" },
   },
   {
     id: "add-job",
     label: "New Job",
     description: "Schedule field work",
     icon: Briefcase,
-    href: (orgId) => orgUrl(orgId, APP_ROUTES.jobsTiling, "action=add&pick=1"),
+    modal: { key: "add-job" },
   },
   {
     id: "add-contact",
     label: "New Contact",
     description: "Add a client or vendor",
     icon: UserPlus,
-    href: (orgId) => orgUrl(orgId, APP_ROUTES.contact, "action=add"),
+    modal: { key: "add-contact" },
   },
   {
     id: "add-equipment",
     label: "New Equipment",
     description: "Register a machine or asset",
     icon: Wrench,
-    href: (orgId) => orgUrl(orgId, APP_ROUTES.equipment, "action=add"),
+    modal: { key: "add-equipment", params: { type: "machine" } },
   },
   {
     id: "add-order",

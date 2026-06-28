@@ -10,7 +10,10 @@ import { getEquipmentRecordId } from "@/features/equipment";
 import type { useShowMoreTrailerCard } from "@/features/equipment/hooks/useShowMoreTrailerCard";
 import type { TrailerDetailRecord } from "@/features/equipment/model/show-more-card";
 import { DownloadMaintenanceLogButton } from "@/features/equipment/ui";
-import { useOpenAddMaintenanceDialog } from "@/features/maintenance";
+import {
+  AddMaintenanceModalMount,
+  useOpenAddMaintenanceDialog,
+} from "@/features/maintenance";
 import { Dropdown } from "@/shared/ui/common";
 import { Card, Label, SanitizedInput } from "@/shared/ui/primitives";
 import { getErrorMessage } from "@/utils/apiError";
@@ -60,6 +63,7 @@ export function ShowMoreTrailerViewDetailsTab({ vm }: Props) {
   const openAddMaintenanceDialog = useOpenAddMaintenanceDialog(dialogManager);
 
   return (
+    <>
     <div className="grid grid-cols-1 items-stretch gap-4 sm:gap-6 lg:grid-cols-3">
       {/* Info Card (2/3 width) */}
       <Card className="flex flex-col p-4 sm:p-6 lg:col-span-2">
@@ -533,5 +537,7 @@ export function ShowMoreTrailerViewDetailsTab({ vm }: Props) {
         ))}
       </div>
     </div>
+    <AddMaintenanceModalMount />
+    </>
   );
 }

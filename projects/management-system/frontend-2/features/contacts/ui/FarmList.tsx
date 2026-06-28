@@ -24,6 +24,7 @@ import {
   PERMISSION_RESOURCES,
   usePermissionsFromStorage,
 } from "@/hooks/permissions";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { CmsOrgUiTable } from "@/shared/ui";
 import { DialogManager } from "@/shared/ui/common";
 import { AccessDeniedView } from "@/shared/ui/permissions";
@@ -45,10 +46,15 @@ export default function FarmList({
   const searchParams = useSearchParams();
   const dialogManager = useDialogManager();
   const { openConfirmationDialog } = dialogManager;
-  const [showDialog, setShowDialog] = useState(false);
-  const [editingFarm, setEditingFarm] = useState<Farm | null>(null);
+  const { stack, openModal, closeModalKey } = useModalStack();
   const [searchTerm, setSearchTerm] = useState("");
   const hasAutoOpenedAddFarmRef = useRef(false);
+
+  const isAddFarmOpen = stack.some((f) => f.key === "add-farm");
+  const editFarmFrame = stack.find((f) => f.key === "edit-farm");
+  const editingFarmId = editFarmFrame
+    ? Number(editFarmFrame.params.id)
+    : null;
 
   const { permissionCodes } = usePermissionsFromStorage(
     PERMISSION_RESOURCES.CONTACT_FARM_TAB
@@ -89,19 +95,28 @@ export default function FarmList({
     farmId || 0
   );
 
+  const editingFarm = useMemo<Farm | null>(() => {
+    if (editingFarmId === null) return null;
+    const fromList = farms?.find((f) => f.id === editingFarmId);
+    if (fromList) return fromList;
+    if (specificFarm && specificFarm.id === editingFarmId) return specificFarm;
+    return null;
+  }, [editingFarmId, farms, specificFarm]);
+
+  const showDialog = isAddFarmOpen || editFarmFrame !== undefined;
+
   const closeFarmDialog = useCallback(() => {
-    setShowDialog(false);
-    setEditingFarm(null);
+    closeModalKey("add-farm");
+    closeModalKey("edit-farm");
     clearAddFarmActionFromUrl();
-  }, [clearAddFarmActionFromUrl]);
+  }, [clearAddFarmActionFromUrl, closeModalKey]);
 
   // Auto-open dialog when autoOpenDialog prop is true or when farmId is provided
   useEffect(() => {
     if (autoOpenDialog) {
       if (hasAutoOpenedAddFarmRef.current) return;
       hasAutoOpenedAddFarmRef.current = true;
-      setEditingFarm(null);
-      setShowDialog(true);
+      openModal("add-farm");
       return;
     }
 
@@ -120,16 +135,17 @@ export default function FarmList({
 
       // Only auto-open if we're on a farm-specific page
       if (currentPath.includes("/contact/") && currentPath.includes("/farm/")) {
-        setEditingFarm(specificFarm);
-        setShowDialog(true);
+        openModal("edit-farm", { id: String(specificFarm.id) });
       }
     }
-  }, [autoOpenDialog, farmId, specificFarm, isSpecificFarmLoading]);
+  }, [autoOpenDialog, farmId, specificFarm, isSpecificFarmLoading, openModal]);
 
-  const handleEditFarm = useCallback((farm: Farm) => {
-    setEditingFarm(farm);
-    setShowDialog(true);
-  }, []);
+  const handleEditFarm = useCallback(
+    (farm: Farm) => {
+      openModal("edit-farm", { id: String(farm.id) });
+    },
+    [openModal]
+  );
 
   const handleDeleteFarm = useCallback(
     (farm: Farm) => {
@@ -210,10 +226,7 @@ export default function FarmList({
     <Button
       leftIcon={<Plus aria-hidden className="h-4 w-4" strokeWidth={2} />}
       title={`Create New ${ON_SITE_OPERATION_LABEL}`}
-      onClick={() => {
-        setEditingFarm(null);
-        setShowDialog(true);
-      }}
+      onClick={() => openModal("add-farm")}
     />
   ) : null;
 

@@ -2,7 +2,7 @@
 
 import { TableActions, TableGridCard } from "@fieldflow360/org-ui";
 import type { TableAction } from "@fieldflow360/org-ui";
-import { Pencil, Trash2 } from "lucide-react";
+import { Lock, Pencil, Trash2 } from "lucide-react";
 
 import { INLINE_TABLE_ROW_ACTIONS_PROPS } from "@/shared/lib/table/columns";
 
@@ -13,6 +13,8 @@ export interface StatusItemRow {
   color: string;
   order?: string | number;
   canDelete: boolean;
+  isDefault?: boolean;
+  locked?: boolean;
 }
 
 interface StatusGridCardProps {
@@ -53,6 +55,7 @@ export function StatusGridCard({
 }: StatusGridCardProps) {
   const actions = buildStatusActions(item, onEdit, onDelete);
   const hasOrder = item.order !== undefined && item.order !== " ";
+  const accent = item.color || "#18181B";
 
   return (
     <TableGridCard
@@ -63,31 +66,51 @@ export function StatusGridCard({
           {...INLINE_TABLE_ROW_ACTIONS_PROPS}
         />
       }
-      className="h-auto"
+      className="relative h-auto overflow-hidden pl-5 transition-shadow hover:shadow-sm"
       headerContent={
-        <span className="text-text-muted text-xs">{item.subtitle}</span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-text-muted text-xs">{item.subtitle}</span>
+          {item.isDefault ? (
+            <span className="bg-accent-light text-accent inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase">
+              Default
+            </span>
+          ) : null}
+        </div>
       }
       title={
         <div className="flex min-w-0 items-center gap-2.5">
           {hasOrder ? (
             <span
               aria-hidden
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
-              style={{ backgroundColor: item.color || "#18181B" }}
+              className="ring-border-subtle flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ring-1"
+              style={{ backgroundColor: accent }}
             >
               {item.order}
             </span>
           ) : (
             <span
               aria-hidden
-              className="h-3 w-3 shrink-0 rounded-full"
-              style={{ backgroundColor: item.color || "#18181B" }}
+              className="ring-border-subtle h-3 w-3 shrink-0 rounded-full ring-1"
+              style={{ backgroundColor: accent }}
             />
           )}
           <span className="truncate">{item.title}</span>
+          {item.locked ? (
+            <Lock
+              aria-label="Locked status"
+              className="text-text-muted h-3.5 w-3.5 shrink-0"
+              strokeWidth={2}
+            />
+          ) : null}
         </div>
       }
     >
+      {/* Color accent rail keyed to the status color. */}
+      <span
+        aria-hidden
+        className="absolute inset-y-0 left-0 w-1.5"
+        style={{ backgroundColor: accent }}
+      />
       <span className="sr-only">{item.subtitle}</span>
     </TableGridCard>
   );

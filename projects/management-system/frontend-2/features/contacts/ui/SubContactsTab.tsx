@@ -23,6 +23,7 @@ import {
   useSubContacts,
 } from "@/hooks";
 import { useRoutePermissions } from "@/hooks/permissions";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { OrgUiDataTable, type OrgUiDataTableColumn } from "@/shared/ui";
 import { DialogManager } from "@/shared/ui/common";
 
@@ -72,9 +73,10 @@ export default function SubContactsTab({
   const { orgId } = useRouteIds();
   const dialogManager = useDialogManager();
   const { write: canEditContact } = useRoutePermissions() || {};
+  const { stack, openModal, closeModalKey } = useModalStack();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [showAddDialog, setShowAddDialog] = useState(false);
+  const isAddOpen = stack.some((f) => f.key === "add-subcontact");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const { subContacts, isLoading, refetch } = useSubContacts(parentContactId);
@@ -247,7 +249,7 @@ export default function SubContactsTab({
             <Button
               aria-label="Add"
               title="Add"
-              onClick={() => setShowAddDialog(true)}
+              onClick={() => openModal("add-subcontact")}
             />
           ) : undefined
         }
@@ -260,13 +262,15 @@ export default function SubContactsTab({
         }
       />
 
-      {showAddDialog ? (
+      {isAddOpen ? (
         <AddSubContactDialog
           linkedSubContactIds={linkedIds}
-          open={showAddDialog}
+          open={isAddOpen}
           parentContactId={parentContactId}
           onLinked={() => void refetch()}
-          onOpenChange={setShowAddDialog}
+          onOpenChange={(o) => {
+            if (!o) closeModalKey("add-subcontact");
+          }}
         />
       ) : null}
 

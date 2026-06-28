@@ -25,7 +25,7 @@ import { StakeholderPrimaryButton } from "@/shared/ui/common/StakeholderPrimaryB
 import { DialogTemplate } from "@/shared/ui/common/dialogs";
 import { SanitizedInput } from "@/shared/ui/primitives";
 
-interface FarmAssignmentDialogProps {
+export interface FarmAssignmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   entityType: "job" | "lead";

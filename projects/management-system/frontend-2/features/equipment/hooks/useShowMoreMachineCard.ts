@@ -28,6 +28,7 @@ import {
 } from "@/hooks";
 import { useTrashMachine, useUpdateMachine } from "@/hooks/mutations";
 import { orgPath } from "@/shared/config/routes";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { getErrorMessage } from "@/utils/apiError";
 
 export function useShowMoreMachineCard({
@@ -74,7 +75,18 @@ export function useShowMoreMachineCard({
     );
   }, [orgId, router, machineData]);
 
-  const [isAddFilterModalOpen, setIsAddFilterModalOpen] = useState(false);
+  const { stack, openModal, closeModalKey } = useModalStack();
+  const isAddFilterModalOpen = stack.some(
+    (f) => f.key === "add-equipment-filter"
+  );
+  const openAddFilterModal = useCallback(
+    () => openModal("add-equipment-filter"),
+    [openModal]
+  );
+  const closeAddFilterModal = useCallback(
+    () => closeModalKey("add-equipment-filter"),
+    [closeModalKey]
+  );
   const [selectedNewFilter, setSelectedNewFilter] = useState<
     { title: string; name: string } | undefined
   >(undefined);
@@ -337,7 +349,7 @@ export function useShowMoreMachineCard({
         ...prev,
         maintenance_attributes: updatedMachine.maintenance_attributes,
       }));
-      setIsAddFilterModalOpen(false);
+      closeAddFilterModal();
       setSelectedNewFilter(undefined);
       toast.success(`${selectedNewFilter.title} filter added successfully`);
     } catch (error: unknown) {
@@ -467,7 +479,8 @@ export function useShowMoreMachineCard({
     machineRecordId,
     navigateToEquipmentLogs,
     isAddFilterModalOpen,
-    setIsAddFilterModalOpen,
+    openAddFilterModal,
+    closeAddFilterModal,
     selectedNewFilter,
     setSelectedNewFilter,
     addFilterError,

@@ -1,30 +1,25 @@
 import { FC } from "react";
 
+import { cn } from "@fieldflow360/org-ui";
+
 interface MessageUnseenBadgeProps {
   count: number;
+  className?: string;
 }
 
-const MessageUnseenBadge: FC<MessageUnseenBadgeProps> = ({ count }) => {
+const MessageUnseenBadge: FC<MessageUnseenBadgeProps> = ({
+  count,
+  className,
+}) => {
   if (!count || count <= 0) return null;
   return (
     <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: 20,
-        height: 20,
-        borderRadius: 8,
-        border: "2px solid var(--primary)", // neutral-200
-        background: "var(--primary)",
-        color: "#fff",
-        fontWeight: 500,
-        fontSize: 12,
-        boxSizing: "border-box",
-        padding: "0 8px",
-      }}
+      className={cn(
+        "bg-accent text-text-inverse inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold",
+        className
+      )}
     >
-      {count}
+      {count > 99 ? "99+" : count}
     </span>
   );
 };

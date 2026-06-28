@@ -7,6 +7,7 @@ import { Download, Eye, Info, Trash2 } from "lucide-react";
 
 import { MediaViewer } from "@/features/equipment/ui";
 import axiosInstance from "@/lib/axios";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { TouchSlideText } from "@/shared/ui/common";
 import { FileDescriptionModal } from "@/shared/ui/common/FileDescriptionModal";
 import { Card, CardContent } from "@/shared/ui/primitives";
@@ -58,7 +59,10 @@ export default function FileCard({
   checked?: boolean;
   onCheck?: () => void;
 }) {
-  const [showDescription, setShowDescription] = useState(false);
+  const { stack, openModal, closeModalKey } = useModalStack();
+  const showDescription = stack.some(
+    (f) => f.key === "view-file-description" && f.params.id === String(file.id)
+  );
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const [viewerType, setViewerType] = useState<"image" | "pdf">("image");
@@ -207,7 +211,9 @@ export default function FileCard({
               />
               <Info
                 className="h-5 w-5 cursor-pointer"
-                onClick={() => setShowDescription(true)}
+                onClick={() =>
+                  openModal("view-file-description", { id: String(file.id) })
+                }
               />
             </div>
           )}
@@ -216,7 +222,9 @@ export default function FileCard({
       <FileDescriptionModal
         description={file.description}
         open={showDescription}
-        onOpenChange={setShowDescription}
+        onOpenChange={(o) => {
+          if (!o) closeModalKey("view-file-description");
+        }}
       />
       <MediaViewer
         open={viewerOpen}

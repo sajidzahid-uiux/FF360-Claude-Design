@@ -107,17 +107,18 @@ import {
   toUploadFileArray,
 } from "@/shared/lib/mapFilesV2";
 import { parseEntityId } from "@/shared/lib/parseEntityId";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { SitesPopUp } from "@/shared/ui/common";
 import type { BoundaryMapRef } from "@/shared/ui/common/map";
 import { getErrorMessage } from "@/utils/apiError";
 import { validateKmlFile } from "@/utils/kml.utils";
 import { resolveNotesTabAccessForJob } from "@/utils/notes";
 
-import {
-  ContactAssignmentDialog,
-  ConvertToJobDialog,
-  FarmAssignmentDialog,
-  ReshareDialog,
+import type {
+  ContactAssignmentDialogProps,
+  ConvertToJobDialogProps,
+  FarmAssignmentDialogProps,
+  ReshareDialogProps,
 } from "../dialogs";
 import { type EntityDataState, mergeEntityDataState } from "../entityDataState";
 import type { HandleCustomerPatchValue } from "../handleCustomerPatchValue";
@@ -393,6 +394,28 @@ export interface UseShowMoreCardReturn {
       sites?: OneCallSite[];
       error?: string | null;
     }) => void;
+    // URL-driven modals (mounted in ShowMoreCard)
+    isReshareDialogOpen: boolean;
+    isConvertDialogOpen: boolean;
+    isContactAssignmentDialogOpen: boolean;
+    isFarmAssignmentDialogOpen: boolean;
+    closeReshareDialog: () => void;
+    closeConvertDialog: () => void;
+    closeContactAssignmentDialog: () => void;
+    closeFarmAssignmentDialog: () => void;
+    reshareDialogProps: Omit<ReshareDialogProps, "onClose">;
+    convertDialogProps: Omit<
+      ConvertToJobDialogProps,
+      "open" | "onOpenChange"
+    >;
+    contactAssignmentDialogProps: Omit<
+      ContactAssignmentDialogProps,
+      "open" | "onOpenChange"
+    >;
+    farmAssignmentDialogProps: Omit<
+      FarmAssignmentDialogProps,
+      "open" | "onOpenChange"
+    >;
   };
 
   // Utilities
@@ -417,6 +440,7 @@ export function useShowMoreCard({
   const router = useRouter();
   const queryClient = useQueryClient();
   const dialogManager = useDialogManager();
+  const { stack: modalStack, openModal, closeModalKey } = useModalStack();
   const { orgId } = useRouteIds();
   const { resolveFilteredMemberId, evaluateJobAssignmentState } =
     useAssignmentMembershipHelper();
@@ -1573,7 +1597,7 @@ export function useShowMoreCard({
           });
         }
         await refreshEntityDetail();
-        dialogManager.closeDialog();
+        closeModalKey("assign-contact");
         toast.success("Contacts updated");
       } catch (error: unknown) {
         console.error("Error updating contacts:", error);
@@ -1587,7 +1611,7 @@ export function useShowMoreCard({
       entityType,
       patchHook,
       refreshEntityDetail,
-      dialogManager,
+      closeModalKey,
     ]
   );
 
@@ -1613,7 +1637,7 @@ export function useShowMoreCard({
           });
         }
         await refreshEntityDetail();
-        dialogManager.closeDialog();
+        closeModalKey("assign-farm");
         toast.success("Farms updated");
       } catch (error: unknown) {
         console.error("Error updating farms:", error);
@@ -1627,7 +1651,7 @@ export function useShowMoreCard({
       entityType,
       patchHook,
       refreshEntityDetail,
-      dialogManager,
+      closeModalKey,
     ]
   );
 
@@ -2517,112 +2541,139 @@ export function useShowMoreCard({
   // ============================================
   // DIALOG HELPERS
   // ============================================
+  // ---------------------------------------------------------------------------
+  // URL-driven modal stack (Pattern B). The dialogs below are mounted in
+  // ShowMoreCard (index.tsx); here we only expose triggers, open flags, and the
+  // prop bundles (built from this hook's internal state/closures).
+  // ---------------------------------------------------------------------------
+  const RESHARE_MODAL_KEY = "reshare-files";
+  const CONVERT_MODAL_KEY = "convert-to-job";
+  const CONTACT_MODAL_KEY = "assign-contact";
+  const FARM_MODAL_KEY = "assign-farm";
+
+  const isReshareDialogOpen = modalStack.some((f) => f.key === RESHARE_MODAL_KEY);
+  const isConvertDialogOpen = modalStack.some((f) => f.key === CONVERT_MODAL_KEY);
+  const isContactAssignmentDialogOpen = modalStack.some(
+    (f) => f.key === CONTACT_MODAL_KEY
+  );
+  const isFarmAssignmentDialogOpen = modalStack.some(
+    (f) => f.key === FARM_MODAL_KEY
+  );
+
   const openReshareDialog = useCallback(() => {
-    dialogManager.openDialog({
-      type: "component",
-      component: ReshareDialog as unknown as ComponentType<
-        Record<string, unknown>
-      >,
-      props: {
-        files,
-        entityType,
-      },
-    });
-  }, [dialogManager, files, entityType]);
+    openModal(RESHARE_MODAL_KEY);
+  }, [openModal]);
 
   const openConvertDialog = useCallback(() => {
-    dialogManager.openDialog({
-      type: "component",
-      component: ConvertToJobDialog as unknown as ComponentType<
-        Record<string, unknown>
-      >,
-      props: {
-        config,
-        entityDataState,
-        allTeam,
-        allEquipment,
-        convertHook,
-        canWriteExcavationEquipment,
-        onSuccess: props.onClose,
-        router,
-        leadData: props.leadData,
-        entityData,
-      },
-    });
-  }, [
-    dialogManager,
-    config,
-    entityDataState,
-    allTeam,
-    allEquipment,
-    convertHook,
-    canWriteExcavationEquipment,
-    props,
-    router,
-    entityData,
-  ]);
+    openModal(CONVERT_MODAL_KEY);
+  }, [openModal]);
 
   const openContactAssignmentDialog = useCallback(() => {
-    dialogManager.openDialog({
-      type: "component",
-      component: ContactAssignmentDialog,
-      props: {
-        open: true,
-        onOpenChange: (open: boolean) => {
-          if (!open) dialogManager.closeDialog();
-        },
-        entityType,
-        recordJobType,
-        contacts: entityDataState.contacts,
-        primaryContactId,
-        fallbackContactName: entityDataState.contact_info?.full_name,
-        readOnly: !canEditStakeholders,
-        onSave: handleContactsSave,
-        isSaving: stakeholderSavePending,
-      },
-    });
-  }, [
-    dialogManager,
-    entityType,
-    recordJobType,
-    entityDataState.contacts,
-    entityDataState.contact_info?.full_name,
-    primaryContactId,
-    canEditStakeholders,
-    handleContactsSave,
-    stakeholderSavePending,
-  ]);
+    openModal(CONTACT_MODAL_KEY);
+  }, [openModal]);
 
   const openFarmAssignmentDialog = useCallback(() => {
-    dialogManager.openDialog({
-      type: "component",
-      component: FarmAssignmentDialog,
-      props: {
-        open: true,
-        onOpenChange: (open: boolean) => {
-          if (!open) dialogManager.closeDialog();
-        },
-        entityType,
-        recordJobType,
-        contacts: entityDataState.contacts,
-        farms: entityDataState.farms,
-        primaryFarmId,
-        readOnly: !canEditStakeholders,
-        onSave: handleFarmsSave,
-        isSaving: stakeholderSavePending,
-      },
-    });
-  }, [
-    dialogManager,
-    entityType,
-    recordJobType,
-    entityDataState.contacts,
-    entityDataState.farms,
-    primaryFarmId,
-    canEditStakeholders,
-    handleFarmsSave,
-    stakeholderSavePending,
-  ]);
+    openModal(FARM_MODAL_KEY);
+  }, [openModal]);
+
+  const closeReshareDialog = useCallback(() => {
+    closeModalKey(RESHARE_MODAL_KEY);
+  }, [closeModalKey]);
+
+  const closeConvertDialog = useCallback(() => {
+    closeModalKey(CONVERT_MODAL_KEY);
+  }, [closeModalKey]);
+
+  const closeContactAssignmentDialog = useCallback(() => {
+    closeModalKey(CONTACT_MODAL_KEY);
+  }, [closeModalKey]);
+
+  const closeFarmAssignmentDialog = useCallback(() => {
+    closeModalKey(FARM_MODAL_KEY);
+  }, [closeModalKey]);
+
+  const reshareDialogProps = useMemo(
+    () => ({
+      files,
+      entityType,
+    }),
+    [files, entityType]
+  );
+
+  const convertDialogProps = useMemo(
+    () => ({
+      config,
+      entityDataState,
+      entityData,
+      allTeam: allTeam || [],
+      allEquipment,
+      convertHook: convertHook as ShowMoreCardConvertHookResult,
+      canWriteExcavationEquipment,
+      onSuccess: props.onClose,
+      leadData: props.leadData,
+    }),
+    [
+      config,
+      entityDataState,
+      entityData,
+      allTeam,
+      allEquipment,
+      convertHook,
+      canWriteExcavationEquipment,
+      props.onClose,
+      props.leadData,
+    ]
+  );
+
+  const contactAssignmentDialogProps = useMemo(
+    () => ({
+      entityType: (entityType === ResourceType.JOB ? "job" : "lead") as
+        | "job"
+        | "lead",
+      recordJobType,
+      contacts: entityDataState.contacts,
+      primaryContactId,
+      fallbackContactName: entityDataState.contact_info?.full_name,
+      readOnly: !canEditStakeholders,
+      onSave: handleContactsSave,
+      isSaving: stakeholderSavePending,
+    }),
+    [
+      entityType,
+      recordJobType,
+      entityDataState.contacts,
+      entityDataState.contact_info?.full_name,
+      primaryContactId,
+      canEditStakeholders,
+      handleContactsSave,
+      stakeholderSavePending,
+    ]
+  );
+
+  const farmAssignmentDialogProps = useMemo(
+    () => ({
+      entityType: (entityType === ResourceType.JOB ? "job" : "lead") as
+        | "job"
+        | "lead",
+      recordJobType,
+      contacts: entityDataState.contacts,
+      farms: entityDataState.farms,
+      primaryFarmId,
+      readOnly: !canEditStakeholders,
+      onSave: handleFarmsSave,
+      isSaving: stakeholderSavePending,
+    }),
+    [
+      entityType,
+      recordJobType,
+      entityDataState.contacts,
+      entityDataState.farms,
+      primaryFarmId,
+      canEditStakeholders,
+      handleFarmsSave,
+      stakeholderSavePending,
+    ]
+  );
 
   // ============================================
   // RETURN GROUPED VALUES
@@ -2911,6 +2962,19 @@ export function useShowMoreCard({
       openContactAssignmentDialog,
       openFarmAssignmentDialog,
       openSitesPopUp,
+      // URL-driven modal state (mounted in ShowMoreCard)
+      isReshareDialogOpen,
+      isConvertDialogOpen,
+      isContactAssignmentDialogOpen,
+      isFarmAssignmentDialogOpen,
+      closeReshareDialog,
+      closeConvertDialog,
+      closeContactAssignmentDialog,
+      closeFarmAssignmentDialog,
+      reshareDialogProps,
+      convertDialogProps,
+      contactAssignmentDialogProps,
+      farmAssignmentDialogProps,
     }),
     [
       dialogManager,
@@ -2919,6 +2983,18 @@ export function useShowMoreCard({
       openContactAssignmentDialog,
       openFarmAssignmentDialog,
       openSitesPopUp,
+      isReshareDialogOpen,
+      isConvertDialogOpen,
+      isContactAssignmentDialogOpen,
+      isFarmAssignmentDialogOpen,
+      closeReshareDialog,
+      closeConvertDialog,
+      closeContactAssignmentDialog,
+      closeFarmAssignmentDialog,
+      reshareDialogProps,
+      convertDialogProps,
+      contactAssignmentDialogProps,
+      farmAssignmentDialogProps,
     ]
   );
 

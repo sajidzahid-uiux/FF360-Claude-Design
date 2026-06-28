@@ -26,6 +26,7 @@ import {
   useJobTimeEntries,
 } from "@/hooks/queries";
 import { StorageKey, useDataFromStorageByKey } from "@/hooks/storage-data";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { DetailFormSection, DialogManager } from "@/shared/ui/common";
 
 export interface JobOnSiteTimeTrackingSectionProps {
@@ -42,6 +43,10 @@ export function JobOnSiteTimeTrackingSection({
   onExportExcel,
 }: JobOnSiteTimeTrackingSectionProps) {
   const dialogManager = useDialogManager();
+  const { stack, openModal, closeModalKey } = useModalStack();
+  const isInstalledHoursOpen = stack.some(
+    (f) => f.key === "view-installed-hours"
+  );
   const addTimeEntry = useAddJobTimeEntry();
   const updateTimeEntry = useUpdateJobTimeEntry();
   const deleteTimeEntry = useDeleteJobTimeEntry();
@@ -86,28 +91,6 @@ export function JobOnSiteTimeTrackingSection({
       }}
     />
   );
-
-  function openInstalledHoursLogsAll() {
-    dialogManager.openDialog({
-      type: "installedHoursLogsAllModal",
-      component: InstalledHoursLogsAllModal,
-      props: {
-        jobId,
-        jobType,
-        currentMemberId,
-        canModifyOwnEntries: canUpdateTimeTracking,
-        actionsDisabled: disabled || actionsBusy,
-        onEdit: (row: InstalledHoursLogRow) => {
-          dialogManager.closeDialog();
-          openEdit(row);
-        },
-        onDelete: (row: InstalledHoursLogRow) => {
-          dialogManager.closeDialog();
-          handleDeleteRequest(row);
-        },
-      },
-    });
-  }
 
   function openEdit(row: InstalledHoursLogRow) {
     dialogManager.openDialog({
@@ -218,7 +201,7 @@ export function JobOnSiteTimeTrackingSection({
             disabled={disabled}
             title="View all logs"
             variant={ButtonVariantEnum.SURFACE}
-            onClick={openInstalledHoursLogsAll}
+            onClick={() => openModal("view-installed-hours")}
           />
         }
         description="Recent installed hours for this job."
@@ -241,6 +224,26 @@ export function JobOnSiteTimeTrackingSection({
           />
         )}
       </DetailFormSection>
+
+      <InstalledHoursLogsAllModal
+        actionsDisabled={disabled || actionsBusy}
+        canModifyOwnEntries={canUpdateTimeTracking}
+        currentMemberId={currentMemberId}
+        jobId={jobId}
+        jobType={jobType}
+        open={isInstalledHoursOpen}
+        onDelete={(row) => {
+          closeModalKey("view-installed-hours");
+          handleDeleteRequest(row);
+        }}
+        onEdit={(row) => {
+          closeModalKey("view-installed-hours");
+          openEdit(row);
+        }}
+        onOpenChange={(open) => {
+          if (!open) closeModalKey("view-installed-hours");
+        }}
+      />
 
       <DialogManager manager={dialogManager} />
     </>

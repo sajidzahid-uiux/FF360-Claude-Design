@@ -5,26 +5,39 @@ import { type ReactNode, useMemo } from "react";
 import {
   Avatar,
   type Column,
+  type TableFilterDefinition,
+  type TableFilterValue,
   type TableGridViewConfig,
+  type TableSearchConfig,
+  type TableSortRule,
   type TableViewMode,
-  TableViewSwitcher,
 } from "@fieldflow360/org-ui";
 import { Shield } from "lucide-react";
 
 import type { TeamMember } from "@/api/types";
 import { API_URL } from "@/constants";
+import { JobLeadTable } from "@/features/job-lead";
 import { TeamMemberRoleBadges } from "@/features/team";
-import { CmsOrgUiTable } from "@/shared/ui";
 
 export interface TeamMembersTableProps {
   members: TeamMember[];
   isLoading?: boolean;
   view: TableViewMode;
   onViewChange: (view: TableViewMode) => void;
+  organizationId?: string | number | null;
   /** Resolves a member's human-readable role label. */
   getRoleDisplayName: (member: TeamMember) => string;
   /** Renders the per-row actions menu (role change, flags, remove). */
   renderRowActions?: (member: TeamMember) => ReactNode;
+  /** Unified toolbar — same layout as the lead/job listings. */
+  search: TableSearchConfig;
+  filterDefinitions: TableFilterDefinition[];
+  filterValues: TableFilterValue[];
+  onFilterValuesChange: (values: TableFilterValue[]) => void;
+  sortableColumns: { key: string; label: string }[];
+  sortRules: TableSortRule[];
+  onSortRulesChange: (rules: TableSortRule[]) => void;
+  toolbarActions: ReactNode;
 }
 
 function memberDisplayName(member: TeamMember): string {
@@ -66,19 +79,30 @@ export function TeamMembersTable({
   isLoading,
   view,
   onViewChange,
+  organizationId,
   getRoleDisplayName,
   renderRowActions,
+  search,
+  filterDefinitions,
+  filterValues,
+  onFilterValuesChange,
+  sortableColumns,
+  sortRules,
+  onSortRulesChange,
+  toolbarActions,
 }: TeamMembersTableProps) {
   const columns = useMemo<Column<TeamMember>[]>(
     () => [
       {
         key: "name",
         header: "Name",
+        sortable: true,
         render: (member) => <MemberIdentity member={member} />,
       },
       {
         key: "role",
         header: "Role",
+        sortable: true,
         render: (member) => (
           <span className="flex items-center gap-2">
             <span className="text-sm">{getRoleDisplayName(member)}</span>
@@ -93,6 +117,7 @@ export function TeamMembersTable({
       {
         key: "username",
         header: "Username",
+        sortable: true,
         render: (member) => (
           <span className="text-sm">{member.user.username}</span>
         ),
@@ -109,6 +134,7 @@ export function TeamMembersTable({
       {
         key: "email",
         header: "Email",
+        sortable: true,
         render: (member) => (
           <span className="text-sm">{member.user.email || "—"}</span>
         ),
@@ -175,22 +201,31 @@ export function TeamMembersTable({
   );
 
   return (
-    <CmsOrgUiTable
-      compact
+    <JobLeadTable
+      bulkActions={[]}
       columns={columns}
       data={members}
       emptyState={{
         title: "No team members",
-        description: "Team members will appear here.",
+        description: "Try adjusting your search or filters to find members.",
       }}
+      filterDefinitions={filterDefinitions}
+      filterValues={filterValues}
       grid={grid}
       isLoading={isLoading}
-      toolbar={
-        <div className="flex justify-end pb-3">
-          <TableViewSwitcher value={view} onValueChange={onViewChange} />
-        </div>
-      }
+      organizationId={organizationId}
+      search={search}
+      selectable={false}
+      selectedIds={[]}
+      sortableColumns={sortableColumns}
+      sortRules={sortRules}
+      storageKeyPrefix="team-members"
+      toolbarActions={toolbarActions}
       view={view}
+      onFilterValuesChange={onFilterValuesChange}
+      onSelectChange={() => {}}
+      onSortRulesChange={onSortRulesChange}
+      onViewChange={onViewChange}
     />
   );
 }

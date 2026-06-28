@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 import {
   Button,
   ButtonVariantEnum,
@@ -8,6 +6,7 @@ import {
 
 import { useSeatUsage } from "@/hooks";
 import type { SubscriptionInfo } from "@/hooks/useBilling";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import {
   Card,
   CardContent,
@@ -32,18 +31,19 @@ export default function YearlyEnterprisePlan({
   onCancelSubscription,
   isCancelling = false,
 }: YearlyEnterprisePlanProps) {
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const { stack, openModal, closeModalKey } = useModalStack();
+  const showCancelDialog = stack.some((f) => f.key === "cancel-subscription");
   const { data: seatUsage, isLoading: seatUsageLoading } = useSeatUsage();
 
   const handleCancelSubscription = () => {
-    setShowCancelDialog(true);
+    openModal("cancel-subscription");
   };
 
   const handleConfirmCancelSubscription = async () => {
     if (onCancelSubscription) {
       await onCancelSubscription();
     }
-    setShowCancelDialog(false);
+    closeModalKey("cancel-subscription");
   };
 
   return (
@@ -86,7 +86,9 @@ export default function YearlyEnterprisePlan({
         planName={planName}
         renewalDate={subscriptionInfo?.renewal_date || ""}
         onConfirm={handleConfirmCancelSubscription}
-        onOpenChange={setShowCancelDialog}
+        onOpenChange={(o) => {
+          if (!o) closeModalKey("cancel-subscription");
+        }}
       />
     </>
   );

@@ -43,6 +43,7 @@ import {
   useCmsServerTableQuery,
 } from "@/shared/lib/table";
 import { FilterState } from "@/shared/ui/common";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 
 import { jobLeadPathsFromConfig } from "../lib/jobLeadPaths";
 import { leadsTableQueryToListParams } from "../lib/leads-table-query";
@@ -117,8 +118,9 @@ export function LeadListPage({ config }: LeadListPageProps) {
 
   const dialogManager = useDialogManager();
   const { data: leadTypes } = useLeadTypes();
-  const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
-  const [isLeadSourceOpen, setIsLeadSourceOpen] = useState(false);
+  const { stack, openModal, closeModalKey } = useModalStack();
+  const isAddLeadOpen = stack.some((f) => f.key === "add-lead");
+  const isLeadSourceOpen = stack.some((f) => f.key === "add-lead-source");
   const { addLeadType } = useLeadTypesSettings({
     enabled: hasSettingsPermission(),
   });
@@ -214,7 +216,7 @@ export function LeadListPage({ config }: LeadListPageProps) {
           await createRepairLead.mutateAsync(payload);
         }
 
-        setIsAddLeadOpen(false);
+        closeModalKey("add-lead");
       } catch (error: unknown) {
         console.error("Failed to create lead:", error);
         toast.error(getLeadCreateErrorMessage(error, "Failed to create lead"));
@@ -240,15 +242,15 @@ export function LeadListPage({ config }: LeadListPageProps) {
     createRepairLead.isPending;
 
   const openLeadForm = useCallback(() => {
-    setIsAddLeadOpen(true);
-  }, []);
+    openModal("add-lead");
+  }, [openModal]);
 
   useEffect(() => {
     const action = searchParams.get("action");
-    if (action === "add" && leadStatuses && leadStatuses.length > 0) {
+    if (action === "add" && !isAddLeadOpen) {
       openLeadForm();
     }
-  }, [leadStatuses, openLeadForm, searchParams]);
+  }, [isAddLeadOpen, openLeadForm, searchParams]);
 
   const handleFilterChange = useCallback(
     (newFilters: FilterState) => {
@@ -296,7 +298,7 @@ export function LeadListPage({ config }: LeadListPageProps) {
         title: values.title,
         color: values.color,
       });
-      setIsLeadSourceOpen(false);
+      closeModalKey("add-lead-source");
       toast.success("Lead source added successfully");
     } catch (error: unknown) {
       console.error("Failed to add lead source:", error);
@@ -391,7 +393,7 @@ export function LeadListPage({ config }: LeadListPageProps) {
             teamData={teamData}
             view={currentView}
             onAddLead={openLeadForm}
-            onAddLeadType={() => setIsLeadSourceOpen(true)}
+            onAddLeadType={() => openModal("add-lead-source")}
             onArchive={handleArchive}
             onArchiveSelectedLeads={handleArchiveSelectedLeads}
             onFilterChange={handleFilterChange}
@@ -409,20 +411,16 @@ export function LeadListPage({ config }: LeadListPageProps) {
         title={config.listTitle}
       />
 
-      <JobLeadForm
-        {...jobLeadFormProps}
-        isOpen={isAddLeadOpen}
-        isSubmitting={isAddLeadSubmitting}
-        requireTypeSelection={searchParams.get("pick") === "1"}
-        onCancel={() => setIsAddLeadOpen(false)}
-        onOpenChange={setIsAddLeadOpen}
-        onSubmit={handleAddLeadSubmit}
-      />
+      {/* The "Add Lead" form is rendered globally via the URL modal stack
+          (key `add-lead`, AddLeadModalConnected) so it can open over any
+          module. This page only triggers it via openModal("add-lead"). */}
 
       <LeadSourceModal
         isSubmitting={addLeadType.isPending}
         open={isLeadSourceOpen}
-        onOpenChange={setIsLeadSourceOpen}
+        onOpenChange={(open) => {
+          if (!open) closeModalKey("add-lead-source");
+        }}
         onSubmit={handleAddLeadTypeSubmit}
       />
     </>

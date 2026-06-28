@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 
 import {
@@ -15,7 +14,7 @@ import { ResourceType } from "@/constants/enums";
 import { useRouteIds } from "@/hooks";
 import { useContactPermissions } from "@/hooks/permissions";
 import { useRecordContacts } from "@/hooks/useRecordData";
-import { orgUrl } from "@/shared/config/routes";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 
 export interface JobContactSelectProps {
   value: string;
@@ -34,8 +33,8 @@ export function JobContactSelect({
   error,
   disabled = false,
 }: JobContactSelectProps) {
-  const router = useRouter();
   const { orgId } = useRouteIds();
+  const { openModal } = useModalStack();
   const { canAdd: canAddContact } = useContactPermissions();
   const { data: contactsData, isLoading } = useRecordContacts({
     resourceType,
@@ -90,7 +89,7 @@ export function JobContactSelect({
           }
           title="Create new contact"
           variant={ButtonVariantEnum.GHOST}
-          onClick={() => router.push(orgUrl(orgId, "/contact", "action=add"))}
+          onClick={() => openModal("add-contact")}
         />
       ) : null}
     </div>

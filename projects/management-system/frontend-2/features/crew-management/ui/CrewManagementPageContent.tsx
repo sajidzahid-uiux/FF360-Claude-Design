@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import {
   CrewDirectoryView,
@@ -11,28 +11,45 @@ import {
   type CrewManagementTab,
 } from "@/features/crew-management";
 import { useRoutePermissions } from "@/hooks/permissions";
+import { useAllCrewGroups } from "@/hooks/queries";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { PageRenderer } from "@/shared/ui/common";
 import { AccessDeniedView } from "@/shared/ui/permissions";
 
 export default function CrewManagementPage() {
   const [activeTab, setActiveTab] = useState<CrewManagementTab>("groups");
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [editContext, setEditContext] = useState<
-    CrewGroupFormEditContext | undefined
-  >();
+  const { stack, openModal, closeModalKey } = useModalStack();
+  const { data: crewGroups } = useAllCrewGroups();
+
+  const createModalOpen = stack.some((f) => f.key === "create-crew-group");
+  const editFrame = stack.find((f) => f.key === "edit-crew-group");
+  const editGroupId = editFrame ? Number(editFrame.params.id) : null;
+  const editContext = useMemo<CrewGroupFormEditContext | undefined>(
+    () =>
+      editGroupId !== null
+        ? crewGroups?.find((g) => g.id === editGroupId)
+        : undefined,
+    [crewGroups, editGroupId]
+  );
 
   const { read: canViewCrewManagement, write: canEditCrewManagement } =
     useRoutePermissions() || {};
 
-  const handleEditGroup = useCallback((context: CrewGroupFormEditContext) => {
-    setEditContext(context);
-  }, []);
+  const handleEditGroup = useCallback(
+    (context: CrewGroupFormEditContext) => {
+      openModal("edit-crew-group", { id: String(context.id) });
+    },
+    [openModal]
+  );
 
-  const closeEditModal = useCallback((open: boolean) => {
-    if (!open) {
-      setEditContext(undefined);
-    }
-  }, []);
+  const closeEditModal = useCallback(
+    (open: boolean) => {
+      if (!open) {
+        closeModalKey("edit-crew-group");
+      }
+    },
+    [closeModalKey]
+  );
 
   return (
     <PageRenderer
@@ -59,7 +76,7 @@ export default function CrewManagementPage() {
             <CrewManagementBreadcrumbToolbar
               activeTab={activeTab}
               canEdit={!!canEditCrewManagement}
-              onAddGroup={() => setCreateModalOpen(true)}
+              onAddGroup={() => openModal("create-crew-group")}
               onTabChange={setActiveTab}
             />
 
@@ -72,13 +89,15 @@ export default function CrewManagementPage() {
             <CrewGroupFormModal
               mode="create"
               open={createModalOpen}
-              onOpenChange={setCreateModalOpen}
+              onOpenChange={(o) => {
+                if (!o) closeModalKey("create-crew-group");
+              }}
             />
 
             <CrewGroupFormModal
               editContext={editContext}
               mode="edit"
-              open={editContext !== undefined}
+              open={editFrame !== undefined}
               onOpenChange={closeEditModal}
             />
           </div>

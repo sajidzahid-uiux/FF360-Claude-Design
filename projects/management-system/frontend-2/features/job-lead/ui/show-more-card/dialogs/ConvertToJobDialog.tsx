@@ -21,7 +21,7 @@ import type {
   ShowMoreCardConvertHookResult,
 } from "../types";
 
-interface ConvertToJobDialogProps {
+export interface ConvertToJobDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   config: ShowMoreCardConfig;

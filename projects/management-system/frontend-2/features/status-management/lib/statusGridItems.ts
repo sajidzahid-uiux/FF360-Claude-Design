@@ -18,13 +18,16 @@ import {
 export function toJobStatusGridItem(
   status: TransformedJobStatus
 ): StatusItemRow {
+  const canDelete = canDeleteJobStatus(status);
   return {
     id: status.id,
     title: formatJobStatusTitle(status.title),
     subtitle: getJobStatusSubtitle(status),
     color: status.color,
     order: status.number,
-    canDelete: canDeleteJobStatus(status),
+    canDelete,
+    isDefault: status.is_default,
+    locked: status.is_default && !canDelete,
   };
 }
 
@@ -37,6 +40,7 @@ export function toLeadStatusGridItem(
     subtitle: getLeadStatusSubtitle(status),
     color: status.color,
     canDelete: !status.is_default,
+    isDefault: status.is_default,
   };
 }
 
@@ -49,6 +53,7 @@ export function toLeadTypeGridItem(
     subtitle: getLeadSourceSubtitle(status),
     color: status.color,
     canDelete: !status.is_default,
+    isDefault: status.is_default,
   };
 }
 
@@ -59,6 +64,7 @@ export function toPaymentStatusGridItem(status: PaymentStatus): StatusItemRow {
     subtitle: status.is_default ? "Default type" : "Custom type",
     color: status.color,
     canDelete: !status.is_default,
+    isDefault: status.is_default,
   };
 }
 
@@ -71,5 +77,7 @@ export function toProjectTypeGridItem(projectType: ProjectType): StatusItemRow {
       : "Custom type",
     color: projectType.color,
     canDelete: !projectType.is_default,
+    isDefault: projectType.is_default,
+    locked: projectType.is_default,
   };
 }

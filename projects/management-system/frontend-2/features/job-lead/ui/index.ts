@@ -37,6 +37,8 @@ export { JobsListBreadcrumbToolbar } from "./JobsListBreadcrumbToolbar";
 export type { JobsListBreadcrumbToolbarProps } from "./JobsListBreadcrumbToolbar";
 export { JobListPage } from "./JobListPage";
 export { LeadListPage } from "./LeadListPage";
+export { AddLeadModalConnected } from "./AddLeadModalConnected";
+export { AddJobModalConnected } from "./AddJobModalConnected";
 export {
   JobLeadTable,
   filterStateToTableValues,

@@ -1,12 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
-import { Avatar, Button, ComponentSizeEnum } from "@fieldflow360/org-ui";
-import { ArrowDownCircle, FileIcon } from "lucide-react";
+import { Avatar, Button, ComponentSizeEnum, cn } from "@fieldflow360/org-ui";
+import { ArrowDownCircle, FileIcon, MessageSquare } from "lucide-react";
 
 import type { ChatMessage, ChatWindowProps } from "@/api/types/chat";
 import { API_URL } from "@/constants";
 import { useIsMobile } from "@/hooks";
-import { Card } from "@/shared/ui/primitives";
 
 // Helper to make file URLs absolute
 const makeAbsoluteUrl = (url: string | undefined) => {
@@ -31,14 +37,28 @@ const getFileType = (url: string): "image" | "audio" | "file" => {
   return "file";
 };
 
-// Helper to format ISO date strings
-const formatDate = (dateString?: string) => {
+// Helper to format the time shown inside a message bubble
+const formatTime = (dateString?: string) => {
   if (!dateString) return "";
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return dateString;
-  return date.toLocaleString([], {
+  return date.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
+  });
+};
+
+// Helper to label a day separator (Today / Yesterday / explicit date)
+const formatDayLabel = (dateString?: string) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "";
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (date.toDateString() === today.toDateString()) return "Today";
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return date.toLocaleDateString([], {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -364,6 +384,114 @@ export default function ChatWindow({
     [isFromCurrentUser]
   );
 
+  // Shared message list renderer (presentational) used by both layouts.
+  const renderMessageList = () => {
+    let lastDayKey = "";
+    return safeMessages.map((msg, idx) => {
+      const rawDate = msg.created_at || msg.timestamp || "";
+      const dayKey = rawDate ? new Date(rawDate).toDateString() : "";
+      const showDaySeparator = Boolean(dayKey) && dayKey !== lastDayKey;
+      if (showDaySeparator) lastDayKey = dayKey;
+      const mine = isFromCurrentUser(msg);
+      const showSenderName = !mine && !conversation?.is_private;
+      const timeLabel =
+        msg.time ||
+        (msg.created_at ? formatTime(msg.created_at) : "") ||
+        (msg.timestamp ? formatTime(msg.timestamp) : "") ||
+        "";
+
+      return (
+        <Fragment key={`${conversationId}-${msg.id || msg.timestamp || idx}`}>
+          {showDaySeparator && (
+            <div className="my-2 flex items-center justify-center">
+              <span className="bg-bg-surface text-text-muted rounded-full px-3 py-1 text-[11px] font-medium">
+                {formatDayLabel(rawDate)}
+              </span>
+            </div>
+          )}
+          <div
+            className={mine ? "flex justify-end" : "flex justify-start"}
+            id={`message-${msg.id || msg.created_at || msg.timestamp || idx}`}
+          >
+            <div
+              className={cn(
+                "flex max-w-[78%] gap-2 sm:max-w-[65%]",
+                mine ? "flex-row-reverse" : "flex-row"
+              )}
+            >
+              {!mine && (
+                <Avatar
+                  alt={getSenderName(msg)}
+                  className="mt-auto shrink-0"
+                  fallback={msg.from?.[0] || getAuthorInitial(msg.author) || "U"}
+                  size="sm"
+                />
+              )}
+              <div
+                className={cn(
+                  "flex min-w-0 flex-col gap-1",
+                  mine ? "items-end" : "items-start"
+                )}
+              >
+                {showSenderName && (
+                  <span className="text-text-secondary px-1 text-xs font-semibold">
+                    {getSenderName(msg)}
+                  </span>
+                )}
+                <div
+                  className={cn(
+                    "max-w-full rounded-2xl px-3.5 py-2 text-sm shadow-sm",
+                    mine
+                      ? "bg-accent text-text-inverse rounded-br-sm"
+                      : "bg-bg-surface-elevated text-text-primary border-border-subtle/70 rounded-bl-sm border"
+                  )}
+                >
+                  {renderMessageContent(msg)}
+                  <div
+                    className={cn(
+                      "mt-1 text-right text-[10px]",
+                      mine ? "text-text-inverse/70" : "text-text-muted"
+                    )}
+                  >
+                    {timeLabel}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Fragment>
+      );
+    });
+  };
+
+  // Typing indicator with animated dots
+  const typingIndicator = typingUsers.length > 0 && (
+    <div className="flex items-center gap-2">
+      <div className="bg-bg-surface-elevated border-border-subtle/70 flex items-center gap-1 rounded-2xl rounded-bl-sm border px-3.5 py-3">
+        <span className="bg-text-muted h-1.5 w-1.5 animate-bounce rounded-full [animation-delay:-0.3s]" />
+        <span className="bg-text-muted h-1.5 w-1.5 animate-bounce rounded-full [animation-delay:-0.15s]" />
+        <span className="bg-text-muted h-1.5 w-1.5 animate-bounce rounded-full" />
+      </div>
+      <span className="text-text-muted text-xs italic">
+        {typingUsers.join(", ")} {typingUsers.length === 1 ? "is" : "are"}{" "}
+        typing…
+      </span>
+    </div>
+  );
+
+  // Empty state when a conversation has no messages
+  const emptyState = (
+    <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+      <div className="bg-bg-surface text-text-muted flex h-12 w-12 items-center justify-center rounded-full">
+        <MessageSquare className="h-6 w-6" />
+      </div>
+      <p className="text-text-secondary text-sm font-medium">No messages yet</p>
+      <p className="text-text-muted text-xs">
+        Send a message to start the conversation.
+      </p>
+    </div>
+  );
+
   if (isMobile) {
     // MOBILE: Only render the scrollable messages area, no input
     return (
@@ -373,59 +501,14 @@ export default function ChatWindow({
           ref={containerRef}
           className="bg-bg-app min-h-0 flex-1 overflow-y-auto p-4"
         >
-          <div className="flex min-h-full flex-col gap-4">
-            {safeMessages.map((msg, idx) => (
-              <div
-                key={`${conversationId}-${msg.id || msg.timestamp || idx}`}
-                className={
-                  isFromCurrentUser(msg)
-                    ? "flex justify-end"
-                    : "flex justify-start"
-                }
-                id={`message-${
-                  msg.id || msg.created_at || msg.timestamp || idx
-                }`}
-              >
-                <div className="flex max-w-[60%] items-end gap-2">
-                  {!isFromCurrentUser(msg) && (
-                    <Avatar
-                      alt={getSenderName(msg)}
-                      fallback={
-                        msg.from?.[0] || getAuthorInitial(msg.author) || "U"
-                      }
-                      size="sm"
-                    />
-                  )}
-                  <Card
-                    className={
-                      isFromCurrentUser(msg)
-                        ? "bg-bg-surface-elevated text-text-primary rounded-lg px-4 py-2"
-                        : "bg-bg-surface-elevated text-text-primary rounded-lg px-4 py-2"
-                    }
-                  >
-                    {!conversation?.is_private && (
-                      <div className="text-text-muted mb-1 text-xs font-semibold">
-                        {getSenderName(msg)}
-                      </div>
-                    )}
-                    {renderMessageContent(msg)}
-                    <div className="text-text-muted mt-1 text-right text-xs">
-                      {msg.time ||
-                        (msg.created_at ? formatDate(msg.created_at) : "") ||
-                        (msg.timestamp ? formatDate(msg.timestamp) : "") ||
-                        ""}
-                    </div>
-                  </Card>
-                </div>
-              </div>
-            ))}
-            {typingUsers.length > 0 && (
-              <div className="text-text-muted mt-2 text-xs italic">
-                {typingUsers.join(", ")}{" "}
-                {typingUsers.length === 1 ? "is" : "are"} typing...
-              </div>
-            )}
-          </div>
+          {safeMessages.length === 0 && typingUsers.length === 0 ? (
+            emptyState
+          ) : (
+            <div className="flex min-h-full flex-col gap-3">
+              {renderMessageList()}
+              {typingIndicator}
+            </div>
+          )}
         </div>
         {/* Scroll to bottom button */}
         {showScrollButton && (
@@ -450,57 +533,14 @@ export default function ChatWindow({
         ref={containerRef}
         className="bg-bg-app absolute inset-0 overflow-y-auto p-8"
       >
-        <div className="flex min-h-full flex-col gap-4">
-          {safeMessages.map((msg, idx) => (
-            <div
-              key={`${conversationId}-${msg.id || msg.timestamp || idx}`}
-              className={
-                isFromCurrentUser(msg)
-                  ? "flex justify-end"
-                  : "flex justify-start"
-              }
-              id={`message-${msg.id || msg.created_at || msg.timestamp || idx}`}
-            >
-              <div className="flex max-w-[60%] items-end gap-2">
-                {!isFromCurrentUser(msg) && (
-                  <Avatar
-                    alt={getSenderName(msg)}
-                    fallback={
-                      msg.from?.[0] || getAuthorInitial(msg.author) || "U"
-                    }
-                    size="sm"
-                  />
-                )}
-                <Card
-                  className={
-                    isFromCurrentUser(msg)
-                      ? "bg-bg-surface-elevated text-text-primary rounded-lg px-4 py-2"
-                      : "bg-bg-surface-elevated text-text-primary rounded-lg px-4 py-2"
-                  }
-                >
-                  {!conversation?.is_private && (
-                    <div className="text-text-muted mb-1 text-xs font-semibold">
-                      {getSenderName(msg)}
-                    </div>
-                  )}
-                  {renderMessageContent(msg)}
-                  <div className="text-text-muted text-right text-xs">
-                    {msg.time ||
-                      (msg.created_at ? formatDate(msg.created_at) : "") ||
-                      (msg.timestamp ? formatDate(msg.timestamp) : "") ||
-                      ""}
-                  </div>
-                </Card>
-              </div>
-            </div>
-          ))}
-          {typingUsers.length > 0 && (
-            <div className="text-text-muted mt-2 text-xs italic">
-              {typingUsers.join(", ")} {typingUsers.length === 1 ? "is" : "are"}{" "}
-              typing...
-            </div>
-          )}
-        </div>
+        {safeMessages.length === 0 && typingUsers.length === 0 ? (
+          emptyState
+        ) : (
+          <div className="mx-auto flex min-h-full max-w-3xl flex-col gap-3">
+            {renderMessageList()}
+            {typingIndicator}
+          </div>
+        )}
       </div>
       {/* Scroll to bottom button */}
       {showScrollButton && (

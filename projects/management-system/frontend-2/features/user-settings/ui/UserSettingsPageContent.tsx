@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import useUserData from "@/hooks/useUserData";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { PageRenderer } from "@/shared/ui/common/page-renderer";
 import {
   Card,
@@ -87,7 +88,8 @@ export default function UserProfilePage() {
     phone_number: thisUser?.phone_number || "",
   });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [showEmailModal, setShowEmailModal] = useState(false);
+  const { stack, openModal, closeModalKey } = useModalStack();
+  const showEmailModal = stack.some((f) => f.key === "change-email");
 
   const {
     file: profileImage,
@@ -393,7 +395,7 @@ export default function UserProfilePage() {
                   size={ComponentSizeEnum.SM}
                   title="Change email"
                   variant={ButtonVariantEnum.SURFACE}
-                  onClick={() => setShowEmailModal(true)}
+                  onClick={() => openModal("change-email")}
                 />
                 {isSocial ? (
                   <p className="text-text-muted text-xs">
@@ -436,7 +438,9 @@ export default function UserProfilePage() {
 
           <ChangeEmailModal
             open={showEmailModal}
-            onOpenChange={setShowEmailModal}
+            onOpenChange={(o) => {
+              if (!o) closeModalKey("change-email");
+            }}
             onUpdateEmail={handleUpdateEmail}
           />
         </div>

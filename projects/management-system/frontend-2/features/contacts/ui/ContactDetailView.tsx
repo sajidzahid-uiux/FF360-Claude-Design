@@ -44,6 +44,7 @@ import {
   usePermissionsFromStorage,
   useRoutePermissions,
 } from "@/hooks/permissions";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { orgPath } from "@/shared/config/routes";
 import {
   DetailViewEditActions,
@@ -92,9 +93,11 @@ export function ContactDetailView({
     ? FARM_CONTACT_INFO_TAB
     : CONTACT_DETAIL_TAB_CONTACT;
 
+  const { stack, openModal, closeModalKey } = useModalStack();
+  const showCategoryDialog = stack.some((f) => f.key === "add-category");
+
   const [isEditingForm, setIsEditingForm] = useState(false);
   const [activeTab, setActiveTab] = useState(defaultInfoTab);
-  const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [formMethodsRef, setFormMethodsRef] = useState<UseFormReturn<
     Record<string, unknown>
   > | null>(null);
@@ -134,9 +137,9 @@ export function ContactDetailView({
             isEdit: true,
             hideActionButtons: true,
             lockedCategoryIds,
-            onOpenCategoryDialog: () => setShowCategoryDialog(true),
+            onOpenCategoryDialog: () => openModal("add-category"),
           }),
-    [isFarmManagement, lockedCategoryIds]
+    [isFarmManagement, lockedCategoryIds, openModal]
   );
 
   const handleCreateCategory = useCallback(
@@ -375,7 +378,7 @@ export function ContactDetailView({
             isSaving={patchContact.isPending}
             onCancel={() => {
               formMethodsRef?.reset(initialValues);
-              setShowCategoryDialog(false);
+              closeModalKey("add-category");
               setIsEditingForm(false);
             }}
             onEdit={() => setIsEditingForm(true)}
@@ -399,7 +402,9 @@ export function ContactDetailView({
             categoryName=""
             open={showCategoryDialog}
             title="Add New Category"
-            onOpenChange={setShowCategoryDialog}
+            onOpenChange={(o) => {
+              if (!o) closeModalKey("add-category");
+            }}
             onSave={handleCreateCategory}
           />
 
@@ -480,7 +485,7 @@ export function ContactDetailView({
             successMessage="Contact updated successfully"
             onCancel={() => {
               formMethodsRef?.reset(initialValues);
-              setShowCategoryDialog(false);
+              closeModalKey("add-category");
               setIsEditingForm(false);
             }}
             onError={handleError}

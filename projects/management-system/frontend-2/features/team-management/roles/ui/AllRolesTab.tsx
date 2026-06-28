@@ -15,6 +15,7 @@ import { useRoleMutations } from "@/hooks/mutations";
 import { useRoutePermissions } from "@/hooks/permissions";
 import { useRoles } from "@/hooks/queries";
 import { StorageKey, useDataFromStorageByKey } from "@/hooks/storage-data";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { DialogManager, Dropdown } from "@/shared/ui/common";
 import {
   Card,
@@ -38,9 +39,10 @@ export default function AllRolesTab({ onEditRole }: AllRolesTabProps) {
   const { data: roles, isLoading } = useRoles();
   const { deleteRole } = useRoleMutations();
   const dialogManager = useDialogManager();
+  const { stack, openModal, closeModalKey } = useModalStack();
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [roleName, setRoleName] = useState("");
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const createDialogOpen = stack.some((f) => f.key === "create-role");
 
   const isAdmin =
     useDataFromStorageByKey(StorageKey.USER_ROLE)?.is_admin === true;
@@ -169,7 +171,7 @@ export default function AllRolesTab({ onEditRole }: AllRolesTabProps) {
                 leftIcon={<PlusCircle className="h-4 w-4" />}
                 size={ComponentSizeEnum.SM}
                 title="Add role"
-                onClick={() => setCreateDialogOpen(true)}
+                onClick={() => openModal("create-role")}
               />
             </CardAction>
           ) : null}
@@ -240,7 +242,9 @@ export default function AllRolesTab({ onEditRole }: AllRolesTabProps) {
 
       <CreateRoleDialog
         open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
+        onOpenChange={(o) => {
+          if (!o) closeModalKey("create-role");
+        }}
         onRoleCreated={handleRoleCreated}
       />
 

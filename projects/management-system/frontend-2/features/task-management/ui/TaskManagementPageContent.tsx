@@ -24,6 +24,7 @@ import { useTaskMutations, useTaskTypeMutations } from "@/hooks/mutations";
 import { useTodoPermission } from "@/hooks/permissions";
 import { useTaskStatuses, useTaskTypes, useTasks } from "@/hooks/queries";
 import { bulkConfirmationCopy, bulkDeleteSuccessMessage } from "@/shared/lib";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import {
   DialogManager,
   FilterState,
@@ -50,8 +51,7 @@ export default function TaskManagement() {
   const taskTypeMutations = useTaskTypeMutations();
 
   const dialogManager = useDialogManager();
-  const [showAddTask, setShowAddTask] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const { stack, openModal, closeModalKey } = useModalStack();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTaskIds, setSelectedTaskIds] = useState<(string | number)[]>(
     []
@@ -140,6 +140,14 @@ export default function TaskManagement() {
     })) as Task[];
   }, [tasks]);
 
+  const isAddTaskOpen = stack.some((f) => f.key === "add-task");
+  const editTaskFrame = stack.find((f) => f.key === "edit-task");
+  const editingTask = useMemo<Task | null>(() => {
+    if (!editTaskFrame) return null;
+    const id = Number(editTaskFrame.params.id);
+    return convertedTasks.find((t) => t.id === id) ?? null;
+  }, [editTaskFrame, convertedTasks]);
+
   const handleDeleteTask = useCallback(
     (task: Task) => {
       const taskName = task.task_name || `Task #${task.id}`;
@@ -213,8 +221,8 @@ export default function TaskManagement() {
   );
 
   const handleAddTaskClick = useCallback(() => {
-    setShowAddTask(true);
-  }, []);
+    openModal("add-task");
+  }, [openModal]);
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
@@ -419,9 +427,12 @@ export default function TaskManagement() {
     return Array.from(seen.values());
   }, [taskStatusesData, convertedTasks]);
 
-  const openEditTaskDialog = useCallback((task: Task) => {
-    setEditingTask(task);
-  }, []);
+  const openEditTaskDialog = useCallback(
+    (task: Task) => {
+      openModal("edit-task", { id: String(task.id) });
+    },
+    [openModal]
+  );
 
   const handleRowDoubleClick = useCallback(
     (task: Task) => {
@@ -506,10 +517,14 @@ export default function TaskManagement() {
               onTypeChange={handleTypeChange}
             />
             <AddTaskModal
-              open={showAddTask}
+              open={isAddTaskOpen}
               taskStatuses={statusOptions}
               taskTypes={(taskTypes || []) as TaskType[]}
-              onOpenChange={setShowAddTask}
+              onOpenChange={(open: boolean) => {
+                if (!open) {
+                  closeModalKey("add-task");
+                }
+              }}
             />
             <EditTaskModal
               open={editingTask != null}
@@ -518,7 +533,7 @@ export default function TaskManagement() {
               taskTypes={(taskTypes || []) as TaskType[]}
               onOpenChange={(open: boolean) => {
                 if (!open) {
-                  setEditingTask(null);
+                  closeModalKey("edit-task");
                 }
               }}
             />
