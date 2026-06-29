@@ -11,13 +11,11 @@ import {
   type TablePaginationConfig,
   type TableSearchConfig,
   type TableSortRule,
-  TableVariantEnum,
   type TableViewMode,
 } from "@fieldflow360/org-ui";
 import { Archive, ListTree, PlusCircle, Trash2, Undo2 } from "lucide-react";
 
 import type { DesignRequestStatus, Status, TeamMember } from "@/api/types";
-import { useAuth } from "@/features/auth/hooks/useAuth";
 import {
   type JobLeadArchiveTab,
   LeadType,
@@ -35,10 +33,7 @@ import {
   LeadTableRow,
   getLeadOrgUiColumns,
 } from "@/features/leads/lib/columns";
-import { useLeadColumnPreferences } from "@/features/leads/lib/useLeadColumnPreferences";
-import { LeadColumnScopeMenu } from "@/features/leads/ui/LeadColumnScopeMenu";
 import { LeadGridCard } from "@/features/leads/ui/LeadGridCard";
-import { useIsAdmin } from "@/hooks/queries/useIsAdmin";
 import { FilterState, FilterType } from "@/shared/ui/common";
 
 export interface LeadsTableProps {
@@ -153,15 +148,6 @@ export function LeadsTable({
     () => getLeadOrgUiColumns(columnHandlers),
     [columnHandlers]
   );
-
-  const isAdmin = useIsAdmin();
-  const { currentUser } = useAuth();
-  const columnPreferences = useLeadColumnPreferences(allColumns, {
-    leadType,
-    organizationId,
-    userId: currentUser?.id ?? null,
-    defaultVariant: TableVariantEnum.PLAIN,
-  });
 
   const filterDefinitions = useMemo(
     (): TableFilterDefinition[] => [
@@ -290,14 +276,6 @@ export function LeadsTable({
 
   const toolbarActions = (
     <div className="flex shrink-0 items-center gap-2">
-      <LeadColumnScopeMenu
-        activeScope={columnPreferences.activeScope}
-        hasUserPreference={columnPreferences.hasUserPreference}
-        isAdmin={isAdmin}
-        isDirty={columnPreferences.isDirty}
-        onReset={columnPreferences.resetToDefault}
-        onSave={columnPreferences.saveForScope}
-      />
       {canEdit ? (
         <Button
           leftIcon={<PlusCircle aria-hidden className="h-4 w-4" />}
@@ -320,7 +298,6 @@ export function LeadsTable({
   return (
     <JobLeadTable
       bulkActions={bulkActions}
-      columnPreferences={columnPreferences}
       columns={allColumns}
       data={data}
       emptyState={{
@@ -340,7 +317,7 @@ export function LeadsTable({
       selectedIds={selectedIds}
       sortableColumns={[...LEAD_SORTABLE_COLUMNS]}
       sortRules={sortRules}
-      storageKeyPrefix="leads"
+      storageKeyPrefix={`leads-${leadType}`}
       toolbarActions={toolbarActions}
       view={resolvedView}
       onFilterValuesChange={handleFilterValuesChange}

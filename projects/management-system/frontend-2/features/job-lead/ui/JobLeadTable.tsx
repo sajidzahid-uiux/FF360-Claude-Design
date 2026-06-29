@@ -22,6 +22,8 @@ import {
 
 import { CmsOrgUiTable } from "@/shared/ui";
 
+import { useTableRefinementMemory } from "@/features/job-lead/lib/useTableRefinementMemory";
+
 export interface JobLeadTableProps<T extends { id: string | number }> {
   bulkActions: TableBulkAction[];
   columns: Column<T>[];
@@ -124,6 +126,15 @@ export function JobLeadTable<T extends { id: string | number }>({
   const tablePreferences = columnPreferences ?? internalPreferences;
   const columns = tablePreferences.applyColumns(allColumns);
 
+  const { filterPersistence, sortPersistence } = useTableRefinementMemory({
+    storageKeyPrefix,
+    organizationId,
+    filterValues,
+    onFilterValuesChange,
+    sortRules,
+    onSortRulesChange,
+  });
+
   const handleViewChange = useCallback(
     (nextView: TableViewMode) => onViewChange(nextView),
     [onViewChange]
@@ -148,11 +159,13 @@ export function JobLeadTable<T extends { id: string | number }>({
       toolbar={
         <TableToolbar
           actions={toolbarActions}
+          filterPersistence={filterPersistence}
           filters={filterDefinitions}
           filterValues={filterValues}
           search={search}
           showKanbanView={showKanbanView}
           sortableColumns={sortableColumns}
+          sortPersistence={sortPersistence}
           sortRules={sortRules}
           tableSettings={tablePreferences.tableSettings}
           variant={tablePreferences.variant}

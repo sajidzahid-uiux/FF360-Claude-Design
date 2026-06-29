@@ -25,6 +25,7 @@ export type { ResolveTableToolbarRefinementsOptions } from './resolveTableToolba
 export { TableToolbar } from './TableToolbar';
 export type {
   TableColumnEditorConfig,
+  TableRefinementPersistence,
   TableSortableColumn,
   TableToolbarProps,
 } from './TableToolbar';

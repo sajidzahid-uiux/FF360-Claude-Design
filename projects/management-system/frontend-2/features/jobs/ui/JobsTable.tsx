@@ -352,7 +352,7 @@ export function JobsTable({
       showKanbanView={showKanbanView}
       sortableColumns={[...JOB_SORTABLE_COLUMNS]}
       sortRules={sortRules}
-      storageKeyPrefix="jobs"
+      storageKeyPrefix={`jobs-${jobType}`}
       toolbarActions={toolbarActions}
       view={resolvedView}
       onFilterValuesChange={handleFilterValuesChange}

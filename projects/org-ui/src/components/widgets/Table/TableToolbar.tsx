@@ -1,6 +1,8 @@
 import { ArrowUpDown, ListFilter, Plus, Settings2, X } from 'lucide-react';
 import { ReactNode, useCallback, useMemo, useRef, useState } from 'react';
+import { ComponentSizeEnum } from '../../../constants';
 import { cn } from '../../../utils/cn';
+import { Checkbox } from '../../ui-components/Checkbox';
 import { Dropdown } from '../../ui-components/Dropdown';
 import { SearchInput } from '../../ui-components/SearchInput';
 import { TableColumnEditorPanel } from './TableColumnEditorPanel';
@@ -32,6 +34,18 @@ export interface TableSortableColumn {
   label: string;
 }
 
+/**
+ * "Remember for this list" toggle surfaced in the sticky footer of the filter
+ * and sort panels. The host owns persistence (e.g. localStorage); the toolbar
+ * only reflects `remembered` and reports changes via `onRememberedChange`.
+ */
+export interface TableRefinementPersistence {
+  remembered: boolean;
+  onRememberedChange: (remembered: boolean) => void;
+  /** Override the checkbox label (defaults differ for filter vs sort). */
+  label?: string;
+}
+
 export interface TableToolbarProps {
   /** Primary actions such as “Add field” — rendered on the right. */
   actions?: ReactNode;
@@ -47,6 +61,10 @@ export interface TableToolbarProps {
   sortRules?: TableSortRule[];
   onSortRulesChange?: (rules: TableSortRule[]) => void;
   sortableColumns?: TableSortableColumn[];
+  /** Adds a "Remember filters for this list" toggle to the filter panel footer. */
+  filterPersistence?: TableRefinementPersistence;
+  /** Adds a "Remember sort for this list" toggle to the sort panel footer. */
+  sortPersistence?: TableRefinementPersistence;
   /**
    * Column visibility and table variant — prefer with {@link useTablePreferences}.
    * @deprecated Use `tableSettings` for columns + card/plain variant together.
@@ -199,6 +217,39 @@ function ToolbarDivider() {
   );
 }
 
+/**
+ * Sticky bottom bar for the filter / sort panels: a "remember for this list"
+ * checkbox on the left and a Done action on the right. Negative margins pull it
+ * flush to the popover edges so it reads as a footer.
+ */
+function RefinementFooter({
+  persistence,
+  label,
+  onDone,
+}: {
+  persistence: TableRefinementPersistence;
+  label: string;
+  onDone: () => void;
+}) {
+  return (
+    <div className="border-border-subtle bg-bg-surface-elevated sticky bottom-0 z-10 -mx-5 -mb-5 mt-4 flex items-center justify-between gap-3 border-t px-5 py-3">
+      <Checkbox
+        checked={persistence.remembered}
+        onChange={(event) => persistence.onRememberedChange(event.target.checked)}
+        label={persistence.label ?? label}
+        size={ComponentSizeEnum.SM}
+      />
+      <button
+        type="button"
+        onClick={onDone}
+        className="bg-accent hover:bg-accent/90 inline-flex h-8 shrink-0 items-center rounded-md px-3.5 text-xs font-semibold text-black transition-colors"
+      >
+        Done
+      </button>
+    </div>
+  );
+}
+
 export function TableToolbar({
   actions,
   view,
@@ -212,6 +263,8 @@ export function TableToolbar({
   sortRules = [],
   onSortRulesChange,
   sortableColumns = [],
+  filterPersistence,
+  sortPersistence,
   columnEditor,
   tableSettings,
   className,
@@ -276,6 +329,10 @@ export function TableToolbar({
 
   const togglePanel = useCallback((panel: ToolbarPanel) => {
     setOpenPanel((current) => (current === panel ? null : panel));
+  }, []);
+
+  const closePanel = useCallback(() => {
+    setOpenPanel(null);
   }, []);
 
   const handleFilterToggle = useCallback(
@@ -380,6 +437,13 @@ export function TableToolbar({
               </div>
             );
           })}
+          {filterPersistence ? (
+            <RefinementFooter
+              persistence={filterPersistence}
+              label="Remember filters for this list"
+              onDone={closePanel}
+            />
+          ) : null}
         </div>
       );
     }
@@ -456,6 +520,13 @@ export function TableToolbar({
               Add sort
             </button>
           ) : null}
+          {sortPersistence ? (
+            <RefinementFooter
+              persistence={sortPersistence}
+              label="Remember sort for this list"
+              onDone={closePanel}
+            />
+          ) : null}
         </div>
       );
     }
@@ -464,6 +535,9 @@ export function TableToolbar({
   }, [
     activeFilterCount,
     canAddSortRule,
+    closePanel,
+    filterPersistence,
+    sortPersistence,
     handleResetFilters,
     handleResetSort,
     hasTableSettings,
@@ -485,10 +559,6 @@ export function TableToolbar({
   ]);
 
   const panelOpen = openPanel !== null && hasRefinements;
-  
-  const closePanel = useCallback(() => {
-    setOpenPanel(null);
-  }, []);
 
   if (!hasSearch && !hasRefinements && !actions && !showSwitcher) {
     return null;

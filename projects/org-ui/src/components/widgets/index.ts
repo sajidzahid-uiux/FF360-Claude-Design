@@ -152,6 +152,7 @@ export type {
   TableSortableColumn,
   TableToolbarProps,
   TableToolbarPanelProps,
+  TableRefinementPersistence,
   TableRevealProps,
   TableViewMode,
   TableViewSwitcherProps,
