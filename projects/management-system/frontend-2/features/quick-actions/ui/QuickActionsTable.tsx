@@ -1,22 +1,33 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 import {
   Button,
   type TableBulkAction,
   TableDataModeEnum,
+  type TableFilterDefinition,
+  type TableFilterValue,
+  type TableGridViewConfig,
   type TablePaginationConfig,
   type TableSearchConfig,
   type TableSortRule,
   TableToolbar,
+  type TableViewMode,
   TableVariantEnum,
   useTablePreferences,
 } from "@fieldflow360/org-ui";
 import { Plus, Trash2 } from "lucide-react";
 
 import type { QuickAction } from "@/api/types";
+import { type NotKanbanView, ViewMode } from "@/constants";
+import { CONVERSION_TYPES, CONVERSION_TYPE_LABELS } from "@/constants/enums";
 import { getQuickActionOrgUiColumns } from "@/features/quick-actions/lib/columns";
+import {
+  QUICK_ACTION_MODULE_FILTER_ID,
+  QUICK_ACTION_UNCONVERTED,
+} from "@/features/quick-actions/lib/quickActionModules";
+import { QuickActionGridCard } from "@/features/quick-actions/ui/QuickActionGridCard";
 import { CmsOrgUiTable } from "@/shared/ui";
 
 export interface QuickActionsTableProps {
@@ -27,6 +38,10 @@ export interface QuickActionsTableProps {
   search: TableSearchConfig;
   sortRules: TableSortRule[];
   onSortRulesChange: (rules: TableSortRule[]) => void;
+  view: NotKanbanView;
+  onViewChange: (view: NotKanbanView) => void;
+  filterValues: TableFilterValue[];
+  onFilterValuesChange: (values: TableFilterValue[]) => void;
   selectable?: boolean;
   selectedIds: (string | number)[];
   onSelectChange: (ids: (string | number)[]) => void;
@@ -44,6 +59,21 @@ const QUICK_ACTION_SORTABLE_COLUMNS = [
   { key: "email", label: "Email" },
 ] as const;
 
+/** "Module" facet: the conversion targets plus the unconverted bucket. */
+const QUICK_ACTION_FILTER_DEFINITIONS: TableFilterDefinition[] = [
+  {
+    id: QUICK_ACTION_MODULE_FILTER_ID,
+    label: "Module",
+    options: [
+      ...CONVERSION_TYPES.map((type) => ({
+        value: type,
+        label: CONVERSION_TYPE_LABELS[type],
+      })),
+      { value: QUICK_ACTION_UNCONVERTED, label: "Unconverted" },
+    ],
+  },
+];
+
 export function QuickActionsTable({
   data,
   organizationId,
@@ -52,6 +82,10 @@ export function QuickActionsTable({
   search,
   sortRules,
   onSortRulesChange,
+  view,
+  onViewChange,
+  filterValues,
+  onFilterValuesChange,
   selectable = false,
   selectedIds,
   onSelectChange,
@@ -62,15 +96,39 @@ export function QuickActionsTable({
   onDelete,
   onBulkDelete,
 }: QuickActionsTableProps) {
-  const allColumns = useMemo(
-    () =>
-      getQuickActionOrgUiColumns({
-        onView,
-        onEdit,
-        onDelete,
-        canManage,
-      }),
+  const columnHandlers = useMemo(
+    () => ({ onView, onEdit, onDelete, canManage }),
     [canManage, onDelete, onEdit, onView]
+  );
+
+  const allColumns = useMemo(
+    () => getQuickActionOrgUiColumns(columnHandlers),
+    [columnHandlers]
+  );
+
+  const handleViewChange = useCallback(
+    (nextView: TableViewMode) => {
+      if (nextView === ViewMode.KANBAN) return;
+      onViewChange(nextView as NotKanbanView);
+    },
+    [onViewChange]
+  );
+
+  const grid = useMemo(
+    (): TableGridViewConfig<QuickAction> => ({
+      renderCard: (quickAction, context) => (
+        <QuickActionGridCard
+          handlers={columnHandlers}
+          quickAction={quickAction}
+          selectable={selectable}
+          selected={context.selected}
+          onActivate={() => onView(quickAction)}
+          onSelectedChange={context.onSelectedChange}
+        />
+      ),
+      minColumnWidth: "minmax(18rem, 1fr)",
+    }),
+    [columnHandlers, onView, selectable]
   );
 
   const tablePreferences = useTablePreferences(allColumns, {
@@ -115,6 +173,7 @@ export function QuickActionsTable({
         description:
           "There are no quick action items yet. Click Add Quick Action to create one.",
       }}
+      grid={grid}
       isLoading={isLoading}
       pagination={pagination}
       selectable={selectable}
@@ -122,20 +181,27 @@ export function QuickActionsTable({
       sortRules={sortRules}
       toolbar={
         <TableToolbar
+          showViewSwitcher
           actions={toolbarActions}
+          filters={QUICK_ACTION_FILTER_DEFINITIONS}
+          filterValues={filterValues}
           search={{
             ...search,
             placeholder: search.placeholder ?? "Search quick actions…",
           }}
-          showViewSwitcher={false}
           sortableColumns={[...QUICK_ACTION_SORTABLE_COLUMNS]}
           sortRules={sortRules}
           tableSettings={tablePreferences.tableSettings}
           variant={tablePreferences.variant}
+          view={view}
+          onFilterValuesChange={onFilterValuesChange}
           onSortRulesChange={onSortRulesChange}
+          onViewChange={handleViewChange}
         />
       }
       variant={tablePreferences.variant}
+      view={view}
+      onRowActivate={(_, quickAction) => onView(quickAction)}
       onSelectChange={onSelectChange}
       onSortRulesChange={onSortRulesChange}
     />

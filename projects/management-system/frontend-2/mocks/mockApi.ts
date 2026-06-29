@@ -33,7 +33,12 @@ import { routes as equipmentRoutes } from "./data/equipment";
 import { routes as jobRoutes } from "./data/jobs";
 import { routes as leadRoutes } from "./data/leads";
 import { routes as memberRoutes } from "./data/members";
-import { routes as orderPipeRoutes } from "./data/orderPipe";
+import {
+  createMockVendorForm,
+  findCreatedVendorForm,
+  routes as orderPipeRoutes,
+} from "./data/orderPipe";
+import { routes as quickActionRoutes } from "./data/quickActions";
 import { routes as schedulingRoutes } from "./data/scheduling";
 import { routes as taskRoutes } from "./data/tasks";
 import type { MockRoute } from "./data/types";
@@ -56,6 +61,7 @@ const ORG1_DATA_ROUTES: MockRoute[] = [
   ...contactRoutes,
   ...equipmentRoutes,
   ...orderPipeRoutes,
+  ...quickActionRoutes,
   ...schedulingRoutes,
   ...taskRoutes,
   ...memberRoutes,
@@ -161,18 +167,42 @@ function buildDemoNotifications() {
     };
   };
 
+  // A representative notification for every module and all three priority
+  // categories (critical | important | fyi), spread across read/unread and the
+  // Today / Yesterday / Last 7 days / Older date groups. The most recent unread
+  // ones surface in the header bell dropdown (page_size 5, unread only).
   return [
-    mk(1, 2 * HOUR, false, "critical", "jobs", "Repair job overdue", "Repair job #402 at Sandhill Ranch is past its scheduled completion date.", "/organizations/1/jobs/repair"),
-    mk(2, 5 * HOUR, false, "important", "leads", "New lead assigned to you", "Riverside Grain Co. submitted a tiling lead for 200 acres.", "/organizations/1/leads/tiling"),
-    mk(3, 9 * HOUR, true, "fyi", "equipment", "Maintenance reminder", "Excavator EX-12 is due for 250-hour service this week.", "/organizations/1/equipment"),
-    mk(4, DAY + 3 * HOUR, false, "important", "billing", "Invoice paid", "Invoice #6 for $361 was paid successfully.", "/organizations/1/settings/org/billing"),
-    mk(5, DAY + 6 * HOUR, true, "fyi", "team", "New team member joined", "Dana White accepted the invitation and joined as Bookkeeper.", "/organizations/1/settings/org/team"),
-    mk(6, 3 * DAY, false, "critical", "jobs", "Equipment scheduling conflict", "Two jobs are scheduled on the same trencher this week.", "/organizations/1/calendar"),
-    mk(7, 4 * DAY, true, "important", "order-pipes", "Order delivered", "Order #18 (dual-wall pipe) was marked delivered.", "/organizations/1/order-pipes"),
-    mk(8, 5 * DAY, true, "fyi", "leads", "Lead status updated", "Oakridge Agronomy lead moved to 'Estimate sent'.", "/organizations/1/leads/excavation"),
-    mk(9, 10 * DAY, true, "fyi", "billing", "Card expiring soon", "Visa ending 4242 expires in 60 days.", "/organizations/1/settings/org/billing"),
-    mk(10, 12 * DAY, false, "important", "jobs", "Added to crew", "You were added to the crew for the Delta Wetland excavation.", "/organizations/1/jobs/excavation"),
-    mk(11, 14 * DAY, true, "fyi", "todo", "To-do completed", "“Reconcile May invoices” was marked complete.", "/organizations/1/to-do"),
+    // --- Today ---
+    mk(1, 2 * HOUR, false, "critical", "Jobs", "Repair job overdue", "Repair job #402 at Sandhill Ranch is past its scheduled completion date.", "/organizations/1/jobs/repair"),
+    mk(2, 3 * HOUR, false, "critical", "Pending Approval", "Estimate awaiting your approval", "The excavation estimate for Cedar Hollow Farms needs sign-off before work can start.", "/organizations/1/pending/excavation"),
+    mk(3, 5 * HOUR, false, "important", "Leads", "New lead assigned to you", "Riverside Grain Co. submitted a drainage-tiling lead for 200 acres.", "/organizations/1/leads/drainage-tiling"),
+    mk(4, 6 * HOUR, false, "important", "Messages", "New message from client", "Mara Lindqvist replied about the Delta Wetland scheduling.", "/organizations/1/messages"),
+    mk(5, 7 * HOUR, false, "fyi", "Map", "Crew checked in on site", "Crew B checked in at the Oakridge job site at 8:42 AM.", "/organizations/1/map"),
+    mk(6, 8 * HOUR, true, "fyi", "Equipment", "Maintenance reminder", "Excavator EX-12 is due for 250-hour service this week.", "/organizations/1/equipment"),
+
+    // --- Yesterday ---
+    mk(7, DAY + 2 * HOUR, false, "critical", "Billing", "Payment failed", "The payment for Invoice #9 ($1,240) was declined — update the card on file.", "/organizations/1/settings/org/billing"),
+    mk(8, DAY + 5 * HOUR, false, "important", "Quick Actions", "Quick action needs attention", "A quick-action draft for the Maple Ridge tiling job is waiting to be finished.", "/organizations/1/quick-actions"),
+    mk(9, DAY + 8 * HOUR, true, "important", "Order Pipe", "Order delivered", "Order #18 (dual-wall pipe) was marked delivered.", "/organizations/1/order-pipe"),
+    mk(10, DAY + 11 * HOUR, true, "fyi", "Team", "New team member joined", "Dana White accepted the invitation and joined as Bookkeeper.", "/organizations/1/settings/org/team"),
+
+    // --- Last 7 days ---
+    mk(11, 2 * DAY, false, "critical", "Calendar", "Equipment scheduling conflict", "Two jobs are scheduled on the same trencher this week.", "/organizations/1/calendar"),
+    mk(12, 3 * DAY, false, "important", "Maintenance", "Service due this week", "Tractor TR-04 is approaching its scheduled maintenance window.", "/organizations/1/maintenance"),
+    mk(13, 3 * DAY + 6 * HOUR, true, "important", "Pending Approval", "Repair quote approved", "Your repair quote for Birchwood Co-op was approved by the client.", "/organizations/1/pending/repair"),
+    mk(14, 4 * DAY, false, "important", "Tasks", "Task assigned to you", "“Confirm material counts for the Delta Wetland dig” was assigned to you.", "/organizations/1/task-management"),
+    mk(15, 5 * DAY, true, "fyi", "Leads", "Lead status updated", "Oakridge Agronomy lead moved to ‘Estimate sent’.", "/organizations/1/leads/excavation"),
+    mk(16, 6 * DAY, true, "fyi", "Book Keeping", "Monthly statement ready", "Your May bookkeeping statement is ready to review.", "/organizations/1/book-keeping"),
+    mk(17, 6 * DAY + 4 * HOUR, true, "fyi", "Status Management", "New job status added", "The status “Awaiting Permit” was added to the Jobs workflow.", "/organizations/1/status-management"),
+
+    // --- Older ---
+    mk(18, 9 * DAY, true, "important", "Billing", "Invoice paid", "Invoice #6 for $361 was paid successfully.", "/organizations/1/settings/org/billing"),
+    mk(19, 10 * DAY, true, "fyi", "Billing", "Card expiring soon", "Visa ending 4242 expires in 60 days.", "/organizations/1/settings/org/billing"),
+    mk(20, 11 * DAY, true, "critical", "Security", "New sign-in detected", "A new sign-in to your account was detected from Des Moines, IA.", "/organizations/1/settings/user/security"),
+    mk(21, 12 * DAY, true, "important", "Roles & Access", "Your role was updated", "You were granted the “Approve Estimates” permission.", "/organizations/1/settings/org/role-access"),
+    mk(22, 12 * DAY + 8 * HOUR, true, "fyi", "Jobs", "Added to crew", "You were added to the crew for the Delta Wetland excavation.", "/organizations/1/jobs/excavation"),
+    mk(23, 14 * DAY, true, "fyi", "System Settings", "System settings updated", "Default unit system for the organization was changed to Imperial.", "/organizations/1/system-settings"),
+    mk(24, 20 * DAY, true, "fyi", "Trash", "Items scheduled for cleanup", "3 archived records in Trash will be permanently removed in 7 days.", "/organizations/1/settings/org/trash"),
   ];
 }
 
@@ -484,6 +514,23 @@ export const mockAdapter: AxiosAdapter = async (config) => {
   // (handled below as a raw array), so match my-permissions specifically.
   if (/my-permissions\/?$/.test(url) && method === "get") {
     return makeResponse(DEMO_PERMISSIONS, config);
+  }
+
+  // --- Order Pipe create flow (org 1) -----------------------------------------
+  // POST creates a fresh vendor form (Create Order modal); GET by id resolves a
+  // session-created order to its own data. Existing static order ids fall through
+  // to the orderPipe route table below (which serves the fully-shaped demo order).
+  if (orgIdOf(url) === "1") {
+    if (method === "post" && /vendor_forms-v2\/?$/.test(url)) {
+      return makeResponse(createMockVendorForm(parseBody(config.data)), config, 201);
+    }
+    if (method === "get") {
+      const detailMatch = url.match(/vendor_forms-v2\/(\d+)\/?$/);
+      if (detailMatch) {
+        const created = findCreatedVendorForm(detailMatch[1]);
+        if (created) return makeResponse(created, config);
+      }
+    }
   }
 
   // --- Org-1 dummy dataset ----------------------------------------------------

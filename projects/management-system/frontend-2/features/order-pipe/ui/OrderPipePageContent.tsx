@@ -8,7 +8,8 @@ import type {
   TableKanbanViewConfig,
   TableViewMode,
 } from "@fieldflow360/org-ui";
-import { TableActions } from "@fieldflow360/org-ui";
+import { Button, TableActions } from "@fieldflow360/org-ui";
+import { Plus } from "lucide-react";
 
 import type { VendorFormV2 } from "@/api/types";
 import {
@@ -24,7 +25,7 @@ import {
   useRouteIds,
   useViewPreference,
 } from "@/hooks";
-import { useDeleteVendorForm } from "@/hooks/mutations";
+import { useCreateVendorForm, useDeleteVendorForm } from "@/hooks/mutations";
 import {
   PERMISSION_RESOURCES,
   usePermissionsFromStorage,
@@ -44,20 +45,24 @@ import { FilterState, FilterType } from "@/shared/ui/common";
 import { buildRowActions } from "@/utils/actions";
 
 import type { TransformedVendorForm } from "../model/types";
+import { CreateOrderModal } from "./CreateOrderModal";
 import { OrderPipeCard } from "./OrderPipeCard";
 import { OrderPipePageLayout } from "./OrderPipePageLayout";
 
+// Order Pipe list page: table/grid/kanban + Create Order flow.
 export default function OrderPipePage() {
   const { permissionCodes: orderPipesPermissions } = usePermissionsFromStorage(
     PERMISSION_RESOURCES.ORDER_PIPES_LIST
   );
   const canViewPage = orderPipesPermissions.includes("read");
+  const canCreate = orderPipesPermissions.includes("write");
   const canDelete = orderPipesPermissions.includes("delete");
   const { orgId } = useRouteIds();
 
   const [filters, setFilters] = useState<FilterState>({
     [FilterType.STATUS]: [],
   });
+  const [showCreateOrder, setShowCreateOrder] = useState(false);
   const router = useRouter();
   const { view: currentView, setView } = useViewPreference(ViewMode.LIST);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -80,7 +85,17 @@ export default function OrderPipePage() {
 
   const { vendorForms, isLoading, error } = useVendorFormsV2(listParams);
   const deleteVendorForm = useDeleteVendorForm();
+  const createVendorForm = useCreateVendorForm();
   const dialogManager = useDialogManager();
+
+  const handleCreateOrder = useCallback(
+    async (jobId: number) => {
+      const created = await createVendorForm.mutateAsync({ job: jobId });
+      setShowCreateOrder(false);
+      router.push(orgPath(orgId, `/order-pipe/${created.id}`));
+    },
+    [createVendorForm, orgId, router]
+  );
 
   const handleDeleteOrder = useCallback(
     (orderId: number | string, orderName?: string) => {
@@ -301,69 +316,86 @@ export default function OrderPipePage() {
   const isListView = currentView === ViewMode.LIST;
   const tableData = isListView ? paginatedData : transformedVendorForms;
 
-  return (
-    <OrderPipePageLayout
-      canViewPage={!!canViewPage}
-      data={transformedVendorForms}
-      description="Manage your pipe orders, track status, and organize deliveries."
-      dialogManager={dialogManager}
-      emptyState={{
-        title: "No orders found",
-        description: "There are no pipe orders available at this time.",
-      }}
-      error={
-        error || vendorMappingsError
-          ? new Error(
-              (error && error.message) ||
-                (vendorMappingsError && vendorMappingsError.message) ||
-                "Failed to load orders or statuses."
-            )
-          : null
-      }
-      isLoading={isLoading || vendorMappingsIsLoading}
-      loadingMessage="Loading orders..."
-      table={
-        <OrgUiDataTable
-          columns={columns}
-          data={tableData}
-          emptyState={{
-            title: "No orders found",
-            description: "There are no pipe orders available at this time.",
-          }}
-          filterDefinitions={filterDefinitions}
-          filterValues={filterStateToTableValues(filters)}
-          grid={grid}
-          isLoading={isLoading}
-          kanban={kanban}
-          pagination={
-            isListView
-              ? {
-                  currentPage: currentPageRef.current,
-                  isLoading,
-                  itemLabel: "orders",
-                  onPageChange: handlePageChange,
-                  pageSize: DEFAULT_PAGE_SIZE,
-                  totalCount: paginationInfo.totalCount,
-                  totalPages: paginationInfo.totalPages,
-                }
-              : undefined
-          }
-          search={{
-            value: searchQuery,
-            onChange: setSearchQuery,
-            placeholder: "Search orders...",
-          }}
-          showKanbanView={true}
-          storageKey={`order-pipe-table:${orgId ?? "unknown"}`}
-          view={currentView as TableViewMode}
-          onFilterValuesChange={(values) =>
-            setFilters(tableValuesToFilterState<FilterState>(values))
-          }
-          onRowDoubleClick={handleRowDoubleClick}
-          onViewChange={(view) => setView(view as ViewMode)}
-        />
-      }
-      title="Order Pipe"
+  const toolbarActions = canCreate ? (
+    <Button
+      leftIcon={<Plus aria-hidden className="h-4 w-4" strokeWidth={2} />}
+      title="Create Order"
+      onClick={() => setShowCreateOrder(true)}
     />
+  ) : null;
+
+  return (
+    <>
+      <OrderPipePageLayout
+        canViewPage={!!canViewPage}
+        data={transformedVendorForms}
+        description="Manage your pipe orders, track status, and organize deliveries."
+        dialogManager={dialogManager}
+        emptyState={{
+          title: "No orders found",
+          description: "There are no pipe orders available at this time.",
+        }}
+        error={
+          error || vendorMappingsError
+            ? new Error(
+                (error && error.message) ||
+                  (vendorMappingsError && vendorMappingsError.message) ||
+                  "Failed to load orders or statuses."
+              )
+            : null
+        }
+        isLoading={isLoading || vendorMappingsIsLoading}
+        loadingMessage="Loading orders..."
+        table={
+          <OrgUiDataTable
+            columns={columns}
+            data={tableData}
+            emptyState={{
+              title: "No orders found",
+              description: "There are no pipe orders available at this time.",
+            }}
+            filterDefinitions={filterDefinitions}
+            filterValues={filterStateToTableValues(filters)}
+            grid={grid}
+            isLoading={isLoading}
+            kanban={kanban}
+            pagination={
+              isListView
+                ? {
+                    currentPage: currentPageRef.current,
+                    isLoading,
+                    itemLabel: "orders",
+                    onPageChange: handlePageChange,
+                    pageSize: DEFAULT_PAGE_SIZE,
+                    totalCount: paginationInfo.totalCount,
+                    totalPages: paginationInfo.totalPages,
+                  }
+                : undefined
+            }
+            search={{
+              value: searchQuery,
+              onChange: setSearchQuery,
+              placeholder: "Search orders...",
+            }}
+            showKanbanView={true}
+            storageKey={`order-pipe-table:${orgId ?? "unknown"}`}
+            toolbarActions={toolbarActions}
+            view={currentView as TableViewMode}
+            onFilterValuesChange={(values) =>
+              setFilters(tableValuesToFilterState<FilterState>(values))
+            }
+            onRowDoubleClick={handleRowDoubleClick}
+            onViewChange={(view) => setView(view as ViewMode)}
+          />
+        }
+        title="Order Pipe"
+      />
+      <CreateOrderModal
+        isSubmitting={createVendorForm.isPending}
+        open={showCreateOrder}
+        onOpenChange={setShowCreateOrder}
+        onSubmit={handleCreateOrder}
+      />
+    </>
   );
 }

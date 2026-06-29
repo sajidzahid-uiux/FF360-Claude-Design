@@ -756,6 +756,17 @@ const detailById = new Map<number, Record<string, unknown>>(
 // A representative detail fallback so any /<type>/<id>/ resolves a full record.
 const detailFallback = detailById.get(101);
 
+/**
+ * Cross-module lookup for mock wiring (e.g. order-pipe create resolves the chosen
+ * job's name / customer / farm so the new order reads like a real one). Returns
+ * the raw job record (active or completed/cancelled) or undefined.
+ */
+export function getMockJobById(id: number): Record<string, unknown> | undefined {
+  return [...allActiveJobs, ...completedCancelledJobs].find(
+    (job) => (job as { id: number }).id === id
+  ) as Record<string, unknown> | undefined;
+}
+
 export const routes: MockRoute[] = [
   // -------- LIST routes (must precede detail routes) --------
   {

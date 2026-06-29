@@ -6,6 +6,7 @@ import type { RemainedOrderedItem, VendorFormV2 } from "@/api/types";
 import {
   useOrderPipeWizardActions,
   useOrderPipeWizardSession,
+  useOrderPipeWizardStore,
 } from "@/features/order-pipe/model/order-pipe-wizard-store";
 import { usePipeDropPayload } from "@/hooks/queries";
 
@@ -230,7 +231,23 @@ function OrderPipeWizardContent({
   }, [closeSession, initialStep, openSession, order]);
 
   const session = useOrderPipeWizardSession(order.id);
+  const activeSessionId = useOrderPipeWizardStore(
+    (state) => state.activeSessionId
+  );
   const currentStep = session?.currentStep ?? initialStep;
+
+  // `openSession` runs in the effect above (after the first render), but the
+  // wizard layout reads the active session synchronously via useVendorContext.
+  // Until the session for THIS order is active, render a loader so opening an
+  // order on first load (e.g. a fresh tab, deep link, or right after creating
+  // one) doesn't throw "must be used within VendorProvider".
+  if (!session || activeSessionId !== order.id) {
+    return (
+      <p className="bg-bg-app text-text-muted flex items-center justify-center p-4 md:p-6">
+        Loading order pipe...
+      </p>
+    );
+  }
 
   return (
     <VendorProvider>

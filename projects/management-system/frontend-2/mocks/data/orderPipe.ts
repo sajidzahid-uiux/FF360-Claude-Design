@@ -1,3 +1,4 @@
+import { getMockJobById } from "./jobs";
 import type { MockRoute } from "./types";
 
 /**
@@ -661,6 +662,70 @@ const vendorForms = [
     job_kmlmap: null,
   },
 ];
+
+// --- Create flow (Create Order button → Select-Job modal → wizard) -----------
+// Orders created in the demo are kept in-memory for the session so the new order
+// (a) shows up at the top of the list (same array reference the LIST route serves)
+// and (b) resolves to its OWN fresh data when the wizard fetches it by id —
+// modelled on order 112 (Pending, no vendor, no items, ready to walk the wizard).
+let createdOrderSeq = 9000;
+const createdVendorForms: Record<string, unknown>[] = [];
+
+/** Build + register a fresh vendor form for the chosen job. */
+export function createMockVendorForm(payload: {
+  job?: number | string;
+  vendor_id?: number | null;
+  location?: string;
+}): Record<string, unknown> {
+  const jobId = Number(payload.job);
+  const job = Number.isFinite(jobId) ? getMockJobById(jobId) : undefined;
+  const id = ++createdOrderSeq;
+
+  const newForm: Record<string, unknown> = {
+    id,
+    job: Number.isFinite(jobId) ? jobId : id,
+    job_id: Number.isFinite(jobId) ? jobId : id,
+    job_name:
+      (job?.title as string | undefined) ??
+      (job?.description as string | undefined) ??
+      `New order #${id}`,
+    vendor_id: payload.vendor_id ?? null,
+    vendor: null,
+    contractor_name: "Sajid & Sons Contractors",
+    contact_info: (job?.contact_info as unknown) ?? null,
+    farm_name: (job?.farm_name as string | undefined) ?? null,
+    location: payload.location ?? null,
+    longitude: null,
+    latitude: null,
+    items: null,
+    delivery_locations: [],
+    order_pdf: null,
+    order_status: "Pending",
+    vendor_status: "Pending",
+    estimate_number: (job?.estimate_number as string | undefined) ?? null,
+    po_number: null,
+    is_ready_for_review: false,
+    job_field_boundaries: null,
+    job_farms: [],
+    job_core_points: [],
+    job_xmlmap: null,
+    job_shpmap: null,
+    job_kmlmap: null,
+  };
+
+  createdVendorForms.unshift(newForm);
+  (vendorForms as unknown as Record<string, unknown>[]).unshift(newForm);
+  return newForm;
+}
+
+/** Resolve a session-created order by id (null when it's a static demo order). */
+export function findCreatedVendorForm(
+  id: number | string
+): Record<string, unknown> | null {
+  return (
+    createdVendorForms.find((form) => String(form.id) === String(id)) ?? null
+  );
+}
 
 export const routes: MockRoute[] = [
   // LIST — RAW array of vendor forms (search/order_status filter applied client-side)

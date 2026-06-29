@@ -16,6 +16,7 @@ import {
   TableToolbar,
   TableVariantEnum,
   type TableViewMode,
+  type UseTablePreferencesResult,
   useTablePreferences,
 } from "@fieldflow360/org-ui";
 
@@ -24,6 +25,12 @@ import { CmsOrgUiTable } from "@/shared/ui";
 export interface JobLeadTableProps<T extends { id: string | number }> {
   bulkActions: TableBulkAction[];
   columns: Column<T>[];
+  /**
+   * Externally-managed column preferences (visibility / order / variant). When
+   * provided, the table uses it instead of its own auto-saving localStorage
+   * preferences — e.g. the leads tables persist per lead type with user/org scope.
+   */
+  columnPreferences?: UseTablePreferencesResult<T>;
   data: T[];
   emptyState: {
     title: string;
@@ -82,6 +89,7 @@ export function toNumericIds(ids: (string | number)[]): number[] {
 export function JobLeadTable<T extends { id: string | number }>({
   bulkActions,
   columns: allColumns,
+  columnPreferences,
   data,
   emptyState,
   filterDefinitions,
@@ -106,12 +114,14 @@ export function JobLeadTable<T extends { id: string | number }>({
   view,
   onRowActivate,
 }: JobLeadTableProps<T>) {
-  const tablePreferences = useTablePreferences(allColumns, {
-    storageKey: organizationId
-      ? `${storageKeyPrefix}-table-columns:${organizationId}`
-      : undefined,
+  const internalPreferences = useTablePreferences(allColumns, {
+    storageKey:
+      columnPreferences || !organizationId
+        ? undefined
+        : `${storageKeyPrefix}-table-columns:${organizationId}`,
     defaultVariant: TableVariantEnum.PLAIN,
   });
+  const tablePreferences = columnPreferences ?? internalPreferences;
   const columns = tablePreferences.applyColumns(allColumns);
 
   const handleViewChange = useCallback(

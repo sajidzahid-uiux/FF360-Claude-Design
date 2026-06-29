@@ -3,18 +3,27 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { applyTableSort } from "@fieldflow360/org-ui";
+import {
+  applyTableFilters,
+  applyTableSort,
+  type TableFilterValue,
+} from "@fieldflow360/org-ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { QuickActionsService } from "@/api/services";
 import type { QuickAction, QuickActionCreatePayload } from "@/api/types";
+import { type NotKanbanView, ViewMode } from "@/constants";
 import {
   AddQuickActionModal,
   EditQuickActionModal,
   type QuickActionFormValues,
   QuickActionsTable,
 } from "@/features/quick-actions";
+import {
+  QUICK_ACTION_MODULE_FILTER_ID,
+  quickActionMatchesModuleFilter,
+} from "@/features/quick-actions/lib/quickActionModules";
 import { useDialogManager, useMapping, useRouteIds } from "@/hooks";
 import { useCreateQuickAction, useDeleteQuickAction } from "@/hooks/mutations";
 import {
@@ -44,6 +53,8 @@ export default function QuickActionsPage() {
 
   const { stack, openModal, closeModalKey } = useModalStack();
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
+  const [view, setView] = useState<NotKanbanView>(ViewMode.LIST);
+  const [filterValues, setFilterValues] = useState<TableFilterValue[]>([]);
 
   const showAddQuickAction = stack.some((f) => f.key === "add-quick-action");
   const editQuickActionFrame = stack.find(
@@ -98,9 +109,17 @@ export default function QuickActionsPage() {
   const createMutation = useCreateQuickAction();
   const deleteMutation = useDeleteQuickAction();
 
+  const filteredItems = useMemo(
+    () =>
+      applyTableFilters(quickActions, filterValues, {
+        [QUICK_ACTION_MODULE_FILTER_ID]: quickActionMatchesModuleFilter,
+      }),
+    [quickActions, filterValues]
+  );
+
   const sortedItems = useMemo(
     () =>
-      applyTableSort(quickActions, sortRules, (row, columnKey) => {
+      applyTableSort(filteredItems, sortRules, (row, columnKey) => {
         switch (columnKey) {
           case "name":
             return row.name ?? "";
@@ -112,7 +131,7 @@ export default function QuickActionsPage() {
             return "";
         }
       }),
-    [quickActions, sortRules]
+    [filteredItems, sortRules]
   );
 
   const totalCount = sortedItems.length;
@@ -317,6 +336,7 @@ export default function QuickActionsPage() {
           <QuickActionsTable
             canManage={isAdmin}
             data={paginatedData}
+            filterValues={filterValues}
             isLoading={isLoading}
             organizationId={organizationId ?? null}
             pagination={pagination}
@@ -324,13 +344,16 @@ export default function QuickActionsPage() {
             selectable={isAdmin}
             selectedIds={selectedIds}
             sortRules={sortRules}
+            view={view}
             onAdd={handleAddClick}
             onBulkDelete={handleBulkDelete}
             onDelete={handleDelete}
             onEdit={handleEdit}
+            onFilterValuesChange={setFilterValues}
             onSelectChange={setSelectedIds}
             onSortRulesChange={setSortRules}
             onView={handleView}
+            onViewChange={setView}
           />
           <AddQuickActionModal
             isSubmitting={createMutation.isPending}

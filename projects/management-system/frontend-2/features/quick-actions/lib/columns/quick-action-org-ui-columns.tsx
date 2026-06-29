@@ -5,16 +5,24 @@ import {
   Eye,
   type TableAction,
   TableActions,
+  TableHeaderLabel,
   Trash2,
 } from "@fieldflow360/org-ui";
-import { Mail, Pencil, User } from "lucide-react";
+import { Layers, Mail, Pencil, User } from "lucide-react";
 
 import type { QuickAction } from "@/api/types";
+import { CONVERSION_TYPE_LABELS } from "@/constants/enums";
 import {
   orgUiTouchSlideTextColumn,
   tableActionsColumnShell,
 } from "@/shared/lib/table/org-ui";
+import { TableStatusBadge } from "@/shared/ui";
 
+import {
+  MODULE_BADGE_COLOR,
+  UNCONVERTED_BADGE_COLOR,
+  getQuickActionModules,
+} from "../quickActionModules";
 import {
   type QuickActionOrgUiColumnHandlers,
   buildQuickActionRowActions,
@@ -22,7 +30,32 @@ import {
 
 export type { QuickActionOrgUiColumnHandlers };
 
-function buildQuickActionTableActions(
+/** Module badge(s) for a quick action — shared by the list column and grid card. */
+export function QuickActionModuleBadges({
+  quickAction,
+}: {
+  quickAction: QuickAction;
+}) {
+  const modules = getQuickActionModules(quickAction);
+
+  if (modules.length === 0) {
+    return <TableStatusBadge color={UNCONVERTED_BADGE_COLOR} title="Unconverted" />;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {modules.map((type) => (
+        <TableStatusBadge
+          key={type}
+          color={MODULE_BADGE_COLOR[type]}
+          title={CONVERSION_TYPE_LABELS[type]}
+        />
+      ))}
+    </div>
+  );
+}
+
+export function buildQuickActionTableActions(
   quickAction: QuickAction,
   handlers: QuickActionOrgUiColumnHandlers
 ): TableAction<QuickAction>[] {
@@ -73,6 +106,15 @@ export function getQuickActionOrgUiColumns(
       truncateHeader: false,
       getText: (quickAction) => quickAction.email,
     }),
+    {
+      key: "module",
+      label: "Module",
+      header: <TableHeaderLabel icon={Layers} label="Module" />,
+      width: "160px",
+      render: (quickAction: QuickAction) => (
+        <QuickActionModuleBadges quickAction={quickAction} />
+      ),
+    },
     {
       ...tableActionsColumnShell<QuickAction>({
         render: (quickAction) => (
