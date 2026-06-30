@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 
 import {
-  Button,
-  ButtonVariantEnum,
   ComponentSizeEnum,
   Dropdown,
   Toggle,
@@ -19,6 +17,7 @@ import {
 } from "@/features/team";
 import { usePaymentStatuses, useTeamData } from "@/hooks";
 import { usePatchLead } from "@/hooks/mutations";
+import { DetailViewEditActions } from "@/shared/ui/common";
 import {
   Card,
   CardContent,
@@ -275,37 +274,18 @@ export default function FinancialAndScheduling({
               Financial & Scheduling
             </CardTitle>
             <div className="flex gap-2">
-              {isEditing ? (
-                <>
-                  <Button
-                    aria-label="Discard"
-                    disabled={disabled || patchLead.isPending}
-                    size={ComponentSizeEnum.SM}
-                    title="Discard"
-                    variant={ButtonVariantEnum.SURFACE}
-                    onClick={handleDiscard}
-                  />
-                  <Button
-                    aria-label="Save"
-                    disabled={disabled || patchLead.isPending}
-                    loading={patchLead.isPending}
-                    size={ComponentSizeEnum.SM}
-                    title="Save"
-                    onClick={handleSave}
-                  />
-                </>
-              ) : (
-                !disabled && (
-                  <Button
-                    aria-label="Edit"
-                    disabled={patchLead.isPending}
-                    size={ComponentSizeEnum.SM}
-                    title="Edit"
-                    variant={ButtonVariantEnum.SURFACE}
-                    onClick={handleEdit}
-                  />
-                )
-              )}
+              <DetailViewEditActions
+                canEdit={!disabled}
+                editAriaLabel="Edit financial & scheduling"
+                editLabel="Edit"
+                isEditing={isEditing}
+                isSaving={patchLead.isPending}
+                saveLabel="Save"
+                size={ComponentSizeEnum.SM}
+                onCancel={handleDiscard}
+                onEdit={handleEdit}
+                onSave={handleSave}
+              />
             </div>
           </div>
         </CardHeader>
@@ -438,37 +418,18 @@ export default function FinancialAndScheduling({
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-semibold">Financial & Scheduling</h2>
           <div className="flex gap-2">
-            {isEditing ? (
-              <>
-                <Button
-                  aria-label="Discard"
-                  disabled={disabled || patchLead.isPending}
-                  size={ComponentSizeEnum.SM}
-                  title="Discard"
-                  variant={ButtonVariantEnum.SURFACE}
-                  onClick={handleDiscard}
-                />
-                <Button
-                  aria-label="Save"
-                  disabled={disabled || patchLead.isPending}
-                  loading={patchLead.isPending}
-                  size={ComponentSizeEnum.SM}
-                  title="Save"
-                  onClick={handleSave}
-                />
-              </>
-            ) : (
-              !disabled && (
-                <Button
-                  aria-label="Edit"
-                  disabled={patchLead.isPending}
-                  size={ComponentSizeEnum.SM}
-                  title="Edit"
-                  variant={ButtonVariantEnum.SURFACE}
-                  onClick={handleEdit}
-                />
-              )
-            )}
+            <DetailViewEditActions
+              canEdit={!disabled}
+              editAriaLabel="Edit financial & scheduling"
+              editLabel="Edit"
+              isEditing={isEditing}
+              isSaving={patchLead.isPending}
+              saveLabel="Save"
+              size={ComponentSizeEnum.SM}
+              onCancel={handleDiscard}
+              onEdit={handleEdit}
+              onSave={handleSave}
+            />
           </div>
         </div>
       </CardHeader>

@@ -22,6 +22,7 @@ import {
   useFinancialMachineAssignments,
   useJobFinancial,
 } from "@/hooks/queries";
+import { DetailViewEditActions } from "@/shared/ui/common";
 import {
   Card,
   CardContent,
@@ -83,6 +84,11 @@ export default function FinancialTab({
     useCreateFinancialMachineAssignment();
   const updateFinancialMachineAssignment =
     useUpdateFinancialMachineAssignment();
+
+  // Explicit edit mode: fields are read-only until the user clicks Edit, then
+  // Save/Cancel persist or revert — consistent with every other detail tab.
+  const [isEditing, setIsEditing] = useState(false);
+  const editDisabled = disabled || !isEditing;
 
   // Local state for form fields
   const [salesPrice, setSalesPrice] = useState<string>("");
@@ -402,6 +408,7 @@ export default function FinancialTab({
         materialDescription: materialDescription || "",
         materialPrice: materialPrice || "",
       });
+      setIsEditing(false);
     } catch (error) {
       console.error("Error saving financial data:", error);
     }
@@ -409,6 +416,7 @@ export default function FinancialTab({
 
   // Handle cancel - revert changes to original values
   const handleCancel = () => {
+    setIsEditing(false);
     setSalesPrice(originalFinancialValues.salesPrice);
     setBudgetLaborHours(originalFinancialValues.budgetLaborHours);
     setActualLaborHours(originalFinancialValues.actualLaborHours);
@@ -558,25 +566,25 @@ export default function FinancialTab({
 
   return (
     <div className="mt-8 flex flex-col gap-4 p-2 sm:p-4">
-      {/* Save and Cancel Buttons - Top (only show if there are changes and not disabled) */}
-      {hasFinancialChanges && !disabled && (
-        <div className="flex justify-end gap-2">
-          <Button
-            aria-label="Cancel"
-            disabled={updateJobFinancial.isPending}
-            title="Cancel"
-            variant={ButtonVariantEnum.SURFACE}
-            onClick={handleCancel}
-          />
-          <Button
-            aria-label="Save"
-            disabled={updateJobFinancial.isPending}
-            loading={updateJobFinancial.isPending}
-            title="Save"
-            onClick={handleSave}
+      {/* Section header: Edit → Save/Cancel, matching every other detail tab. */}
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-text-primary text-base font-semibold">Financial</h2>
+        <div className="flex items-center gap-2">
+          <DetailViewEditActions
+            canEdit={!disabled}
+            canSave={hasFinancialChanges}
+            editAriaLabel="Edit financial details"
+            editLabel="Edit"
+            isEditing={isEditing}
+            isSaving={updateJobFinancial.isPending}
+            saveLabel="Save"
+            size={ComponentSizeEnum.SM}
+            onCancel={handleCancel}
+            onEdit={() => setIsEditing(true)}
+            onSave={handleSave}
           />
         </div>
-      )}
+      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -588,7 +596,7 @@ export default function FinancialTab({
           </CardHeader>
           <CardContent>
             <SanitizedInput
-              disabled={disabled}
+              disabled={editDisabled}
               placeholder="0.00"
               step="0.01"
               type="number"
@@ -655,7 +663,7 @@ export default function FinancialTab({
                 Budget Labor Hours
               </Label>
               <SanitizedInput
-                disabled={disabled}
+                disabled={editDisabled}
                 id="budget-labor-hours"
                 placeholder="0.00"
                 step="0.01"
@@ -696,7 +704,7 @@ export default function FinancialTab({
                 Budget Operator Hours
               </Label>
               <SanitizedInput
-                disabled={disabled}
+                disabled={editDisabled}
                 id="budget-operator-hours"
                 placeholder="0.00"
                 step="0.01"
@@ -710,7 +718,7 @@ export default function FinancialTab({
                 Actual Operator Hours
               </Label>
               <SanitizedInput
-                disabled={disabled}
+                disabled={editDisabled}
                 id="actual-operator-hours"
                 placeholder="0.00"
                 step="0.01"
@@ -734,7 +742,7 @@ export default function FinancialTab({
                   {distUnit}
                 </Label>
                 <SanitizedInput
-                  disabled={disabled}
+                  disabled={editDisabled}
                   id="miles"
                   placeholder="0.00"
                   step="0.01"
@@ -748,7 +756,7 @@ export default function FinancialTab({
                   {distUnit} Rate
                 </Label>
                 <SanitizedInput
-                  disabled={disabled}
+                  disabled={editDisabled}
                   id="miles-rate"
                   placeholder="0.00"
                   step="0.01"
@@ -787,7 +795,7 @@ export default function FinancialTab({
                   Travel Hours
                 </Label>
                 <SanitizedInput
-                  disabled={disabled}
+                  disabled={editDisabled}
                   id="travel-hours"
                   placeholder="0.00"
                   step="0.01"
@@ -801,7 +809,7 @@ export default function FinancialTab({
                   Travel Rate
                 </Label>
                 <SanitizedInput
-                  disabled={disabled}
+                  disabled={editDisabled}
                   id="travel-rate"
                   placeholder="0.00"
                   step="0.01"
@@ -842,7 +850,7 @@ export default function FinancialTab({
               </Label>
               <SanitizedTextarea
                 className="min-h-[100px]"
-                disabled={disabled}
+                disabled={editDisabled}
                 id="material-description"
                 placeholder="Enter material description"
                 value={materialDescription}
@@ -854,7 +862,7 @@ export default function FinancialTab({
                 Material Price
               </Label>
               <SanitizedInput
-                disabled={disabled}
+                disabled={editDisabled}
                 id="material-price"
                 placeholder="0.00"
                 step="0.01"
@@ -873,8 +881,8 @@ export default function FinancialTab({
           <CardTitle className="text-3xl font-semibold">
             Machine Assignment
           </CardTitle>
-          {/* Cancel and Save Buttons - Top Right (only show if not disabled) */}
-          {!disabled && (
+          {/* Cancel and Save Buttons - Top Right (only while editing) */}
+          {isEditing && (
             <div className="flex gap-2">
               <Button
                 aria-label="Cancel"
@@ -904,7 +912,7 @@ export default function FinancialTab({
               </Label>
               <Dropdown
                 fullWidth
-                disabled={disabled}
+                disabled={editDisabled}
                 options={
                   assignedMachines.length === 0
                     ? [
@@ -931,7 +939,7 @@ export default function FinancialTab({
                   Budget Hours
                 </Label>
                 <SanitizedInput
-                  disabled={disabled}
+                  disabled={editDisabled}
                   id="machine-budget-hours"
                   placeholder="0.00"
                   step="0.01"
@@ -960,7 +968,7 @@ export default function FinancialTab({
                   Machine Rate
                 </Label>
                 <SanitizedInput
-                  disabled={disabled}
+                  disabled={editDisabled}
                   id="machine-rate"
                   placeholder="0.00"
                   step="0.01"
@@ -974,7 +982,7 @@ export default function FinancialTab({
                   Machine & Labor Cost Per Hour
                 </Label>
                 <SanitizedInput
-                  disabled={disabled}
+                  disabled={editDisabled}
                   id="machine-labor-cost"
                   placeholder="0.00"
                   step="0.01"

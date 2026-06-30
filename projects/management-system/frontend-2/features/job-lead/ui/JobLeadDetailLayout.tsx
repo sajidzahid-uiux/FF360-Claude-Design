@@ -43,6 +43,7 @@ export function JobLeadDetailLayout<T extends string>({
   return (
     <DetailViewPage
       actions={toolbar}
+      autoHideChromeOnScroll
       backLabel={backLabel}
       bodyClassName="pb-10"
       className="flex-1"

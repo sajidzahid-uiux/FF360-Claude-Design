@@ -2,15 +2,12 @@
 
 import { useEffect, useState } from "react";
 
-import {
-  Button,
-  ButtonVariantEnum,
-  ComponentSizeEnum,
-} from "@fieldflow360/org-ui";
+import { ComponentSizeEnum } from "@fieldflow360/org-ui";
 import { toast } from "sonner";
 
 import { type Job, type JobEstimate, JobType } from "@/api/types";
 import { useUpdateJobEstimate } from "@/hooks/mutations";
+import { DetailViewEditActions } from "@/shared/ui/common";
 import {
   Card,
   CardContent,
@@ -109,39 +106,20 @@ export default function EstimateJobs({
           <CardTitle className="text-2xl font-semibold">
             Estimate Section
           </CardTitle>
-          {!disabled && (
-            <div className="flex gap-2">
-              {isEditing ? (
-                <>
-                  <Button
-                    aria-label="Discard"
-                    disabled={updateEstimate.isPending}
-                    size={ComponentSizeEnum.SM}
-                    title="Discard"
-                    variant={ButtonVariantEnum.SURFACE}
-                    onClick={handleDiscard}
-                  />
-                  <Button
-                    aria-label="Save"
-                    disabled={updateEstimate.isPending}
-                    loading={updateEstimate.isPending}
-                    size={ComponentSizeEnum.SM}
-                    title="Save"
-                    onClick={handleSave}
-                  />
-                </>
-              ) : (
-                <Button
-                  aria-label="Edit"
-                  disabled={updateEstimate.isPending}
-                  size={ComponentSizeEnum.SM}
-                  title="Edit"
-                  variant={ButtonVariantEnum.SURFACE}
-                  onClick={handleEdit}
-                />
-              )}
-            </div>
-          )}
+          <div className="flex gap-2">
+            <DetailViewEditActions
+              canEdit={!disabled}
+              editAriaLabel="Edit estimate"
+              editLabel="Edit"
+              isEditing={isEditing}
+              isSaving={updateEstimate.isPending}
+              saveLabel="Save"
+              size={ComponentSizeEnum.SM}
+              onCancel={handleDiscard}
+              onEdit={handleEdit}
+              onSave={handleSave}
+            />
+          </div>
         </div>
       </CardHeader>
       <CardContent>

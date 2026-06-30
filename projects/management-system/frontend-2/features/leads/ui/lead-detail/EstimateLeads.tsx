@@ -2,15 +2,12 @@
 
 import { useEffect, useState } from "react";
 
-import {
-  Button,
-  ButtonVariantEnum,
-  ComponentSizeEnum,
-} from "@fieldflow360/org-ui";
+import { ComponentSizeEnum } from "@fieldflow360/org-ui";
 import { toast } from "sonner";
 
 import type { Lead, LeadType, LeadUpdatePayload } from "@/api/types";
 import { usePatchLead } from "@/hooks/mutations";
+import { DetailViewEditActions } from "@/shared/ui/common";
 import {
   Card,
   CardContent,
@@ -103,37 +100,18 @@ export default function EstimateLeads({
             Estimate Section
           </CardTitle>
           <div className="flex gap-2">
-            {isEditing ? (
-              <>
-                <Button
-                  aria-label="Discard"
-                  disabled={disabled || patchLead.isPending}
-                  size={ComponentSizeEnum.SM}
-                  title="Discard"
-                  variant={ButtonVariantEnum.SURFACE}
-                  onClick={handleDiscard}
-                />
-                <Button
-                  aria-label="Save"
-                  disabled={disabled || patchLead.isPending}
-                  loading={patchLead.isPending}
-                  size={ComponentSizeEnum.SM}
-                  title="Save"
-                  onClick={handleSave}
-                />
-              </>
-            ) : (
-              !disabled && (
-                <Button
-                  aria-label="Edit"
-                  disabled={patchLead.isPending}
-                  size={ComponentSizeEnum.SM}
-                  title="Edit"
-                  variant={ButtonVariantEnum.SURFACE}
-                  onClick={handleEdit}
-                />
-              )
-            )}
+            <DetailViewEditActions
+              canEdit={!disabled}
+              editAriaLabel="Edit estimate"
+              editLabel="Edit"
+              isEditing={isEditing}
+              isSaving={patchLead.isPending}
+              saveLabel="Save"
+              size={ComponentSizeEnum.SM}
+              onCancel={handleDiscard}
+              onEdit={handleEdit}
+              onSave={handleSave}
+            />
           </div>
         </div>
       </CardHeader>

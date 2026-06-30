@@ -4,6 +4,8 @@ export { JobLeadNotesPanel } from "./JobLeadNotesPanel";
 export type { JobLeadNotesPanelProps } from "./JobLeadNotesPanel";
 export { JobLeadNotesSection } from "./JobLeadNotesSection";
 export type { JobLeadNotesSectionProps } from "./JobLeadNotesSection";
+export { JobLeadNotesFloatingWidget } from "./JobLeadNotesFloatingWidget";
+export type { JobLeadNotesFloatingWidgetProps } from "./JobLeadNotesFloatingWidget";
 export { JobLeadForm } from "./JobLeadForm";
 export { JobLeadDetailLayout } from "./JobLeadDetailLayout";
 export type { JobLeadDetailLayoutProps } from "./JobLeadDetailLayout";

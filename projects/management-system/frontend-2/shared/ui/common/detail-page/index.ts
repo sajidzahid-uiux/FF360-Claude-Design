@@ -8,3 +8,5 @@ export { DetailReadOnlyField } from "./DetailReadOnlyField";
 export type { DetailReadOnlyFieldProps } from "./DetailReadOnlyField";
 export { DetailViewEditActions } from "./DetailViewEditActions";
 export type { DetailViewEditActionsProps } from "./DetailViewEditActions";
+export { useAutoHideChrome } from "./useAutoHideChrome";
+export type { AutoHideChrome } from "./useAutoHideChrome";

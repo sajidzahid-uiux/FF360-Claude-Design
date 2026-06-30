@@ -1,16 +1,18 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import {
   Button,
   ButtonVariantEnum,
+  ComponentSizeEnum,
   Dropdown,
   Input,
   Textarea,
 } from "@fieldflow360/org-ui";
 import { formatDate } from "date-fns";
 import { MapPin } from "lucide-react";
+import { toast } from "sonner";
 
 import type { TeamMember } from "@/api/types/team";
 import { JobType, PermissionCode, ResourceType } from "@/constants";
@@ -24,8 +26,8 @@ import {
 import type { MapPinItem } from "@/features/map/model/mapPinItem";
 import type { DeckMapLayerContext } from "@/features/map/model/types";
 import {
-  CorePointLocationActions,
   DeckBoundaryMap,
+  JobDetailMapControls,
   MapPinsPanel,
 } from "@/features/map/ui";
 import { deriveStakeholderFarmMapProps } from "@/features/order-pipe/order-pipe-wizard/utils/jobFarmMapUtils";
@@ -40,7 +42,7 @@ import {
   collectShpMaps,
   collectXmlMaps,
 } from "@/shared/lib/mapFilesV2";
-import { DetailFormSection } from "@/shared/ui/common";
+import { DetailFormSection, DetailViewEditActions } from "@/shared/ui/common";
 import type { BoundaryMapRef } from "@/shared/ui/common/map";
 import { CenterOnLocation } from "@/shared/ui/common/map";
 import { PermissionCodeGate } from "@/shared/ui/permissions";
@@ -56,11 +58,6 @@ import {
   JobDetailsTabUtils,
 } from "../types";
 import { DesignerSelection } from "./DesignerSelection";
-
-function clampJobLeadAcreForPatch(value: number | null): number | null {
-  if (value == null) return null;
-  return value < 0 ? 0 : value;
-}
 
 /** Parsed value for `job_lead_acre`, or `undefined` if the raw string should be ignored. */
 function jobLeadAcreFromRawInput(raw: string): number | null | undefined {
@@ -109,11 +106,14 @@ export function JobDetailsTab({
     locationError,
     setTempVertices,
     setTempLocation,
+    patch,
   } = useShowMoreCardMapUi(scopeKey);
 
   const { allTeam, corePoints, mapPins } = data;
 
   const {
+    canEdit,
+    canEditLeadPage,
     canEditFarm,
     canEditCorePoints,
     canViewInstalledFootage,
@@ -137,6 +137,86 @@ export function JobDetailsTab({
 
   const { router, transformVertices, orgId } = utils;
 
+  // --- Job/Lead information section: explicit Edit → Save/Cancel ---------------
+  // Fields in the "information" section buffer their changes locally and only
+  // persist on Save, matching every other detail-page section (Financial,
+  // Scheduling, Estimate). The map section keeps its own dedicated edit flow.
+  const canEditInfo =
+    !isDisabled &&
+    (entityType === ResourceType.JOB ? canEdit : canEditLeadPage);
+  const [isInfoEditing, setIsInfoEditing] = useState(false);
+  const [isInfoSaving, setIsInfoSaving] = useState(false);
+  const infoDisabled = isDisabled || !isInfoEditing;
+
+  type InfoSnapshot = {
+    description: string;
+    designers: number[];
+    job_lead_acre: number | null;
+    job_footage: number | null;
+    raisers_installed: number | null;
+  };
+  const infoSnapshotRef = useRef<InfoSnapshot | null>(null);
+
+  const captureInfoSnapshot = useCallback(
+    (): InfoSnapshot => ({
+      description: entityDataState.description ?? "",
+      designers: [...(entityDataState.designers ?? [])],
+      job_lead_acre: entityDataState.job_lead_acre ?? null,
+      job_footage: entityDataState.job_footage ?? null,
+      raisers_installed: entityDataState.raisers_installed ?? null,
+    }),
+    [entityDataState]
+  );
+
+  const handleInfoEdit = useCallback(() => {
+    infoSnapshotRef.current = captureInfoSnapshot();
+    setIsInfoEditing(true);
+  }, [captureInfoSnapshot]);
+
+  const handleInfoCancel = useCallback(() => {
+    const snap = infoSnapshotRef.current;
+    if (snap) {
+      setEntityDataState((prev: EntityDataState) => ({
+        ...prev,
+        description: snap.description,
+        designers: snap.designers,
+        job_lead_acre: snap.job_lead_acre,
+        job_footage: snap.job_footage,
+        raisers_installed: snap.raisers_installed,
+      }));
+    }
+    setIsInfoEditing(false);
+  }, [setEntityDataState]);
+
+  const handleInfoSave = useCallback(async () => {
+    const snap = infoSnapshotRef.current;
+    const current = captureInfoSnapshot();
+    const changes: Record<string, unknown> = {};
+    if (snap) {
+      if (current.description !== snap.description)
+        changes.description = current.description;
+      if (JSON.stringify(current.designers) !== JSON.stringify(snap.designers))
+        changes.designers = current.designers;
+      if (current.job_lead_acre !== snap.job_lead_acre)
+        changes.job_lead_acre = current.job_lead_acre;
+      if (current.job_footage !== snap.job_footage)
+        changes.job_footage = current.job_footage;
+      if (current.raisers_installed !== snap.raisers_installed)
+        changes.raisers_installed = current.raisers_installed;
+    }
+    if (Object.keys(changes).length === 0) {
+      setIsInfoEditing(false);
+      return;
+    }
+    setIsInfoSaving(true);
+    try {
+      await handleCustomerPatch("all", changes);
+      setIsInfoEditing(false);
+    } finally {
+      setIsInfoSaving(false);
+    }
+  }, [captureInfoSnapshot, handleCustomerPatch]);
+
   const canMutateMapPins =
     Boolean(config.features.mapPins) && !isDisabled && !isTrashed;
 
@@ -144,6 +224,32 @@ export function JobDetailsTab({
     if (!orgId) return;
     router.push(getSystemSettingsPinCategoriesPath(orgId));
   }, [orgId, router]);
+
+  // "Place on Map" hands placement off to the real boundary map: remember the
+  // chosen category, arm pin mode, and prompt the user to click the field.
+  const [pendingPinCategoryId, setPendingPinCategoryId] = useState<
+    number | null
+  >(null);
+
+  const handleArmPlacePinOnMap = useCallback(
+    (categoryId: number) => {
+      setPendingPinCategoryId(categoryId);
+      boundaryMapRef.current?.cancelCorePointMode();
+      patch({ isPinMode: true });
+      toast.info("Click on the map to place the pin.");
+    },
+    [boundaryMapRef, patch]
+  );
+
+  const handlePlacePinOnMap = useCallback(
+    async (lat: number, lng: number) => {
+      if (pendingPinCategoryId == null) return;
+      await handlePinCreate({ categoryId: pendingPinCategoryId, lat, lng });
+      setPendingPinCategoryId(null);
+      patch({ isPinMode: false });
+    },
+    [handlePinCreate, patch, pendingPinCategoryId]
+  );
 
   const farmMapProps = useMemo(
     () => deriveStakeholderFarmMapProps(entityDataState.farms ?? []),
@@ -254,12 +360,31 @@ export function JobDetailsTab({
   const jobMapEditHeight = "min(520px, 65vh)";
 
   return (
-    <div className="flex w-full flex-col gap-5">
+    // Notes moved to a floating widget, so the body spans full width. Split the
+    // information and the on-site/location map into two columns on large screens
+    // to use the freed space instead of leaving a wide, sparse single column.
+    <div className="grid w-full grid-cols-1 items-start gap-5 lg:grid-cols-2">
       <DetailFormSection
         actions={
-          lastUpdatedLabel ? (
-            <span className="text-text-muted text-sm">{lastUpdatedLabel}</span>
-          ) : null
+          <div className="flex items-center gap-2">
+            {lastUpdatedLabel ? (
+              <span className="text-text-muted text-sm">
+                {lastUpdatedLabel}
+              </span>
+            ) : null}
+            <DetailViewEditActions
+              canEdit={canEditInfo}
+              editAriaLabel={`Edit ${infoTitle}`}
+              editLabel="Edit"
+              isEditing={isInfoEditing}
+              isSaving={isInfoSaving}
+              saveLabel="Save"
+              size={ComponentSizeEnum.SM}
+              onCancel={handleInfoCancel}
+              onEdit={handleInfoEdit}
+              onSave={handleInfoSave}
+            />
+          </div>
         }
         title={infoTitle}
       >
@@ -269,16 +394,10 @@ export function JobDetailsTab({
           <>
             <Textarea
               className="h-[150px] w-full resize-none"
-              disabled={isDisabled}
+              disabled={infoDisabled}
               label="Description"
               placeholder="Description"
               value={entityDataState.description || ""}
-              onBlur={() =>
-                handleCustomerPatch(
-                  "description",
-                  entityDataState.description ?? ""
-                )
-              }
               onChange={(e) =>
                 setEntityDataState((prev: EntityDataState) => ({
                   ...prev,
@@ -308,24 +427,12 @@ export function JobDetailsTab({
                   {config.jobType === JobType.TILING && (
                     <div>
                       <Input
-                        disabled={isDisabled}
+                        disabled={infoDisabled}
                         label="Lead acre"
                         min={0}
                         placeholder="Optional"
                         type="number"
                         value={entityDataState.job_lead_acre ?? ""}
-                        onBlur={() => {
-                          const clamped = clampJobLeadAcreForPatch(
-                            entityDataState.job_lead_acre ?? null
-                          );
-                          if (clamped !== entityDataState.job_lead_acre) {
-                            setEntityDataState((prev: EntityDataState) => ({
-                              ...prev,
-                              job_lead_acre: clamped,
-                            }));
-                          }
-                          handleCustomerPatch("job_lead_acre", clamped);
-                        }}
                         onChange={(e) => {
                           const next = jobLeadAcreFromRawInput(e.target.value);
                           if (next === undefined) return;
@@ -343,9 +450,10 @@ export function JobDetailsTab({
               <div className="w-full min-w-0 sm:w-1/2">
                 <DesignerSelection
                   allTeam={allTeam}
+                  deferPatch={isInfoEditing}
                   entityDataState={entityDataState}
                   handleCustomerPatch={handleCustomerPatch}
-                  isDisabled={isDisabled}
+                  isDisabled={infoDisabled}
                   permissionCodes={[
                     jobPageReadPermissionCode,
                     PermissionCode.JOBS_REPAIR_PAGE_READ,
@@ -361,13 +469,13 @@ export function JobDetailsTab({
           <>
             {/* For jobs: Grid layout */}
             {config.features.designerAssignment && (
-              <div className="mb-4 grid grid-cols-1 gap-x-6 gap-y-6 lg:grid-cols-2 xl:grid-cols-4">
-                {/* Assigned Designer — wider column so dropdown min-width doesn’t overlap Acres */}
-                <div className="w-full min-w-0 lg:col-span-2 xl:col-span-2">
+              <div className="mb-4 grid grid-cols-1 gap-x-6 gap-y-6 md:grid-cols-2">
+                {/* Assigned Designer — full-width row so the dropdown has room */}
+                <div className="w-full min-w-0 md:col-span-2">
                   <div className="text-md mb-2 flex flex-col gap-2 font-medium whitespace-nowrap">
                     Assigned Designer
                   </div>
-                  {!isDisabled ? (
+                  {isInfoEditing ? (
                     <PermissionCodeGate
                       permissionCodes={
                         [
@@ -378,7 +486,7 @@ export function JobDetailsTab({
                     >
                       <Dropdown
                         fullWidth
-                        disabled={isDisabled}
+                        disabled={infoDisabled}
                         options={buildJobPrimaryDesignerOptions(
                           allTeam,
                           designerIds
@@ -404,8 +512,8 @@ export function JobDetailsTab({
                             designerIds.includes(designerId) &&
                             !isCurrentDesigner;
 
+                          // Buffer the change locally; persisted on Save.
                           if (isCurrentDesigner) {
-                            // Remove current designer
                             const remainingDesigners = designerIds.filter(
                               (id: number) => id !== designerId
                             );
@@ -413,12 +521,7 @@ export function JobDetailsTab({
                               ...prev,
                               designers: remainingDesigners,
                             }));
-                            handleCustomerPatch(
-                              "designers",
-                              remainingDesigners
-                            );
                           } else if (isOtherAssignedDesigner) {
-                            // Remove other assigned designer (from multiple)
                             const updatedDesigners = designerIds.filter(
                               (id: number) => id !== designerId
                             );
@@ -426,21 +529,16 @@ export function JobDetailsTab({
                               ...prev,
                               designers: updatedDesigners,
                             }));
-                            handleCustomerPatch("designers", updatedDesigners);
                           } else if (!hasExistingDesigner) {
-                            // Add new designer (only if none exists)
                             setEntityDataState((prev: EntityDataState) => ({
                               ...prev,
                               designers: [designerId],
                             }));
-                            handleCustomerPatch("designers", [designerId]);
                           } else {
-                            // Replace existing designer with new one
                             setEntityDataState((prev: EntityDataState) => ({
                               ...prev,
                               designers: [designerId],
                             }));
-                            handleCustomerPatch("designers", [designerId]);
                           }
                         }}
                       />
@@ -488,24 +586,12 @@ export function JobDetailsTab({
                   config.jobType === JobType.TILING && (
                     <div className="w-full min-w-0">
                       <Input
-                        disabled={isDisabled}
+                        disabled={infoDisabled}
                         label="Job acre"
                         min={0}
                         placeholder="Optional"
                         type="number"
                         value={entityDataState.job_lead_acre ?? ""}
-                        onBlur={() => {
-                          const clamped = clampJobLeadAcreForPatch(
-                            entityDataState.job_lead_acre ?? null
-                          );
-                          if (clamped !== entityDataState.job_lead_acre) {
-                            setEntityDataState((prev: EntityDataState) => ({
-                              ...prev,
-                              job_lead_acre: clamped,
-                            }));
-                          }
-                          handleCustomerPatch("job_lead_acre", clamped);
-                        }}
                         onChange={(e) => {
                           const next = jobLeadAcreFromRawInput(e.target.value);
                           if (next === undefined) return;
@@ -524,18 +610,12 @@ export function JobDetailsTab({
                   canViewInstalledFootage && (
                     <div className="w-full min-w-0">
                       <Input
-                        disabled={isDisabled || !canUpdateInstalledFootage}
+                        disabled={infoDisabled || !canUpdateInstalledFootage}
                         label="Job footage"
                         placeholder="Enter footage"
                         step="0.01"
                         type="number"
                         value={entityDataState.job_footage ?? ""}
-                        onBlur={() => {
-                          handleCustomerPatch(
-                            "job_footage",
-                            entityDataState.job_footage ?? null
-                          );
-                        }}
                         onChange={(e) => {
                           const value =
                             e.target.value === ""
@@ -556,18 +636,12 @@ export function JobDetailsTab({
                   canViewInstalledRisers && (
                     <div className="w-full min-w-0">
                       <Input
-                        disabled={isDisabled || !canUpdateInstalledRisers}
+                        disabled={infoDisabled || !canUpdateInstalledRisers}
                         label="Raisers installed"
                         placeholder="Enter count"
                         step="1"
                         type="number"
                         value={entityDataState.raisers_installed ?? ""}
-                        onBlur={() => {
-                          handleCustomerPatch(
-                            "raisers_installed",
-                            entityDataState.raisers_installed ?? null
-                          );
-                        }}
                         onChange={(e) => {
                           const value =
                             e.target.value === ""
@@ -592,17 +666,11 @@ export function JobDetailsTab({
                     ? "h-[150px] w-full resize-none"
                     : "min-h-[100px] w-full resize-none"
               }
-              disabled={isDisabled}
+              disabled={infoDisabled}
               label="Description"
               placeholder="Description"
               rows={config.features.designerAssignment ? 6 : undefined}
               value={entityDataState.description || ""}
-              onBlur={() =>
-                handleCustomerPatch(
-                  "description",
-                  entityDataState.description ?? ""
-                )
-              }
               onChange={(e) =>
                 setEntityDataState((prev: EntityDataState) => ({
                   ...prev,
@@ -646,9 +714,12 @@ export function JobDetailsTab({
                   ) : null}
                 </>
               ) : null}
+              {/* My location moves onto the map overlay in the read-only view;
+                  keep it in the toolbar only while editing (no overlay there). */}
               <CenterOnLocation
                 boundaryMapRef={boundaryMapRef}
                 organizationLocationAvailable={!!organizationLocation}
+                showUserLocationButton={editingMap}
                 userLocationAvailable={!!userLocation}
               />
             </div>
@@ -718,17 +789,7 @@ export function JobDetailsTab({
                     }}
                   />
                 ))}
-                {config.features.corePoints &&
-                !isTrashed &&
-                canEditCorePoints &&
-                entityDataState.farm_info ? (
-                  <CorePointLocationActions
-                    boundaryMapRef={boundaryMapRef}
-                    disabled={isDisabled}
-                    isCorePointMode={isCorePointMode}
-                    userLocation={userLocation}
-                  />
-                ) : null}
+                {/* Add Core moved onto the map overlay (JobDetailMapControls). */}
               </div>
             ) : (
               <div className="flex flex-wrap gap-2 sm:ml-auto">
@@ -756,6 +817,7 @@ export function JobDetailsTab({
             <MapPinsPanel
               defaultMapCenter={organizationLocation}
               disabled={!canMutateMapPins}
+              hideHeaderActions={!editingMap}
               mapLayerContext={addPinMapLayerContext}
               pins={mapPins}
               userLocation={userLocation}
@@ -815,6 +877,7 @@ export function JobDetailsTab({
               <DeckBoundaryMap
                 ref={boundaryMapRef}
                 hideActionMenu
+                hideFloatingControls
                 hideSearch
                 readOnly
                 canEditCorePoints={canEditCorePoints}
@@ -848,8 +911,24 @@ export function JobDetailsTab({
                 onChangeVertices={() => {}}
                 onCoreDelete={handleCorePointDelete}
                 onCoreSubmit={handleCorePointSubmit}
-                onPinAdd={canMutateMapPins ? handlePinAdd : undefined}
+                onPinAdd={canMutateMapPins ? handlePlacePinOnMap : undefined}
                 onPinDelete={canMutateMapPins ? handlePinDelete : undefined}
+              />
+              <JobDetailMapControls
+                boundaryMapRef={boundaryMapRef}
+                canMutatePins={canMutateMapPins}
+                coreDisabled={isDisabled}
+                isCorePointMode={isCorePointMode}
+                showAddCore={
+                  Boolean(config.features.corePoints) &&
+                  canEditCorePoints &&
+                  Boolean(entityDataState.farm_info)
+                }
+                showPins={Boolean(config.features.mapPins)}
+                userLocation={userLocation}
+                onCreatePin={handlePinCreate}
+                onManageCategories={handleOpenManageCategories}
+                onPlacePinOnMap={handleArmPlacePinOnMap}
               />
             </>
           )}

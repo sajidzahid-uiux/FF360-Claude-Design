@@ -8,7 +8,6 @@ import {
   ComponentSizeEnum,
   Dropdown,
 } from "@fieldflow360/org-ui";
-import { Edit2 } from "lucide-react";
 import { toast } from "sonner";
 
 import type { JobFinancialUpdatePayload, MachineV2 } from "@/api/types";
@@ -24,6 +23,7 @@ import {
   useFinancialMachineAssignments,
   useJobFinancial,
 } from "@/hooks/queries";
+import { DetailViewEditActions } from "@/shared/ui/common";
 import {
   Card,
   CardContent,
@@ -86,10 +86,13 @@ export default function FinancialTab({
   const updateFinancialMachineAssignment =
     useUpdateFinancialMachineAssignment();
 
+  // Explicit edit mode: fields are read-only until the user clicks Edit, then
+  // Save/Cancel persist or revert — consistent with every other detail tab.
+  const [isEditing, setIsEditing] = useState(false);
+  const editDisabled = disabled || !isEditing;
+
   // Local state for form fields
   const [salesPrice, setSalesPrice] = useState<string>("");
-  const [isEditingSalesPrice, setIsEditingSalesPrice] =
-    useState<boolean>(false);
   const [laborRate, setLaborRate] = useState<string>("");
   const [budgetHours, setBudgetHours] = useState<string>("");
   const [actualHours, setActualHours] = useState<string>("");
@@ -369,6 +372,7 @@ export default function FinancialTab({
         overheadPerFoot: overheadPerFoot || "",
       });
       setOriginalPaymentStatusId(paymentStatusId);
+      setIsEditing(false);
     } catch (error) {
       console.error("Error saving financial data:", error);
     }
@@ -376,6 +380,7 @@ export default function FinancialTab({
 
   // Handle cancel - revert changes to original values
   const handleCancel = () => {
+    setIsEditing(false);
     setSalesPrice(originalFinancialValues.salesPrice);
     setLaborRate(originalFinancialValues.laborRate);
     setBudgetHours(originalFinancialValues.budgetHours);
@@ -493,29 +498,29 @@ export default function FinancialTab({
 
   return (
     <div className="mt-8 flex flex-col gap-4 p-2 sm:p-4">
-      {/* Save and Cancel Buttons - Top (only show if there are changes and not disabled) */}
-      {hasFinancialChanges && !disabled && (
-        <div className="flex justify-end gap-2">
-          <Button
-            aria-label="Cancel"
-            disabled={updateJobFinancial.isPending}
-            title="Cancel"
-            variant={ButtonVariantEnum.SURFACE}
-            onClick={handleCancel}
-          />
-          <Button
-            aria-label="Save"
-            disabled={updateJobFinancial.isPending}
-            loading={updateJobFinancial.isPending}
-            title="Save"
-            onClick={handleSave}
+      {/* Section header: Edit → Save/Cancel, matching every other detail tab. */}
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-text-primary text-base font-semibold">Financial</h2>
+        <div className="flex items-center gap-2">
+          <DetailViewEditActions
+            canEdit={!disabled}
+            canSave={hasFinancialChanges}
+            editAriaLabel="Edit financial details"
+            editLabel="Edit"
+            isEditing={isEditing}
+            isSaving={updateJobFinancial.isPending}
+            saveLabel="Save"
+            size={ComponentSizeEnum.SM}
+            onCancel={handleCancel}
+            onEdit={() => setIsEditing(true)}
+            onSave={handleSave}
           />
         </div>
-      )}
+      </div>
 
       {/* Payment Status */}
       <PaymentStatusCard
-        disabled={disabled}
+        disabled={editDisabled}
         paymentStatuses={paymentStatuses}
         paymentStatusId={paymentStatusId}
         onChange={setPaymentStatusId}
@@ -523,68 +528,22 @@ export default function FinancialTab({
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Sales Price Card - Editable */}
+        {/* Sales Price Card - editable in edit mode, read-only otherwise */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-semibold">
-                Sales Price
-              </CardTitle>
-              {!isEditingSalesPrice && !disabled && (
-                <Button
-                  iconOnly
-                  aria-label="Edit sales price"
-                  disabled={disabled}
-                  leftIcon={<Edit2 className="h-4 w-4" />}
-                  size={ComponentSizeEnum.SM}
-                  variant={ButtonVariantEnum.GHOST}
-                  onClick={() => setIsEditingSalesPrice(true)}
-                />
-              )}
-            </div>
+            <CardTitle className="text-xl font-semibold">Sales Price</CardTitle>
           </CardHeader>
           <CardContent>
-            {isEditingSalesPrice ? (
-              <div className="space-y-2">
-                <SanitizedInput
-                  className="text-2xl font-bold"
-                  disabled={disabled}
-                  placeholder="0.00"
-                  step="0.01"
-                  type="number"
-                  value={salesPrice}
-                  onChange={(e) => setSalesPrice(e.target.value)}
-                />
-                <div className="flex gap-2">
-                  <Button
-                    aria-label="Save"
-                    disabled={disabled || updateJobFinancial.isPending}
-                    loading={updateJobFinancial.isPending}
-                    size={ComponentSizeEnum.SM}
-                    title="Save"
-                    onClick={async () => {
-                      try {
-                        await handleSave();
-                        setIsEditingSalesPrice(false);
-                      } catch (error) {
-                        // Keep edit mode open if save fails
-                        console.error("Error saving sales price:", error);
-                      }
-                    }}
-                  />
-                  <Button
-                    aria-label="Cancel"
-                    disabled={disabled}
-                    size={ComponentSizeEnum.SM}
-                    title="Cancel"
-                    variant={ButtonVariantEnum.SURFACE}
-                    onClick={() => {
-                      setIsEditingSalesPrice(false);
-                      setSalesPrice(originalFinancialValues.salesPrice);
-                    }}
-                  />
-                </div>
-              </div>
+            {isEditing ? (
+              <SanitizedInput
+                className="text-2xl font-bold"
+                disabled={editDisabled}
+                placeholder="0.00"
+                step="0.01"
+                type="number"
+                value={salesPrice}
+                onChange={(e) => setSalesPrice(e.target.value)}
+              />
             ) : (
               <div className="text-2xl font-bold">
                 ${salesPrice ? parseFloat(salesPrice).toFixed(2) : "0.00"}
@@ -675,7 +634,7 @@ export default function FinancialTab({
                 Labor Rate
               </Label>
               <SanitizedInput
-                disabled={disabled}
+                disabled={editDisabled}
                 id="labor-rate"
                 placeholder="0.00"
                 step="0.01"
@@ -692,7 +651,7 @@ export default function FinancialTab({
                   Budget Hours
                 </Label>
                 <SanitizedInput
-                  disabled={disabled}
+                  disabled={editDisabled}
                   id="budget-hours"
                   placeholder="0.00"
                   step="0.01"
@@ -765,7 +724,7 @@ export default function FinancialTab({
                 Budget Material
               </Label>
               <SanitizedInput
-                disabled={disabled}
+                disabled={editDisabled}
                 id="budget-material"
                 placeholder="0.00"
                 step="0.01"
@@ -779,7 +738,7 @@ export default function FinancialTab({
                 Actual Material
               </Label>
               <SanitizedInput
-                disabled={disabled}
+                disabled={editDisabled}
                 id="actual-material"
                 placeholder="0.00"
                 step="0.01"
@@ -802,7 +761,7 @@ export default function FinancialTab({
                 Overhead Per Foot
               </Label>
               <SanitizedInput
-                disabled={disabled}
+                disabled={editDisabled}
                 id="overhead-per-foot"
                 placeholder="0.00"
                 step="0.01"
@@ -833,8 +792,8 @@ export default function FinancialTab({
           <CardTitle className="text-3xl font-semibold">
             Machine Assignment
           </CardTitle>
-          {/* Cancel and Save Buttons - Top Right (only show if not disabled) */}
-          {!disabled && (
+          {/* Cancel and Save Buttons - Top Right (only while editing) */}
+          {isEditing && (
             <div className="flex gap-2">
               <Button
                 aria-label="Cancel"
@@ -864,7 +823,7 @@ export default function FinancialTab({
               </Label>
               <Dropdown
                 fullWidth
-                disabled={disabled}
+                disabled={editDisabled}
                 options={
                   assignedMachines.length === 0
                     ? [
@@ -891,7 +850,7 @@ export default function FinancialTab({
                   Budget Hours
                 </Label>
                 <SanitizedInput
-                  disabled={disabled}
+                  disabled={editDisabled}
                   id="machine-budget-hours"
                   placeholder="0.00"
                   step="0.01"
@@ -920,7 +879,7 @@ export default function FinancialTab({
                   Machine Rate
                 </Label>
                 <SanitizedInput
-                  disabled={disabled}
+                  disabled={editDisabled}
                   id="machine-rate"
                   placeholder="0.00"
                   step="0.01"
@@ -934,7 +893,7 @@ export default function FinancialTab({
                   Machine & Labor Cost Per Hour
                 </Label>
                 <SanitizedInput
-                  disabled={disabled}
+                  disabled={editDisabled}
                   id="machine-labor-cost"
                   placeholder="0.00"
                   step="0.01"

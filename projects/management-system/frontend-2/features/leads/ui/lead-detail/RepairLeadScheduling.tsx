@@ -2,16 +2,13 @@
 
 import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 
-import {
-  Button,
-  ButtonVariantEnum,
-  ComponentSizeEnum,
-} from "@fieldflow360/org-ui";
+import { ComponentSizeEnum } from "@fieldflow360/org-ui";
 import { toast } from "sonner";
 
 import { type Lead, LeadType, type LeadUpdatePayload } from "@/api/types";
 import { SchedulingField } from "@/features/leads/ui/SchedulingField";
 import { usePatchLead } from "@/hooks/mutations";
+import { DetailViewEditActions } from "@/shared/ui/common";
 import {
   Card,
   CardContent,
@@ -139,37 +136,18 @@ export default function RepairLeadScheduling({
           <CardTitle className="text-2xl font-semibold">Scheduling</CardTitle>
 
           <div className="flex gap-2">
-            {isEditing ? (
-              <>
-                <Button
-                  aria-label="Discard"
-                  disabled={isDisabled}
-                  size={ComponentSizeEnum.SM}
-                  title="Discard"
-                  variant={ButtonVariantEnum.SURFACE}
-                  onClick={handleDiscard}
-                />
-                <Button
-                  aria-label="Save"
-                  disabled={isDisabled}
-                  loading={patchLead.isPending}
-                  size={ComponentSizeEnum.SM}
-                  title="Save"
-                  onClick={handleSave}
-                />
-              </>
-            ) : (
-              !disabled && (
-                <Button
-                  aria-label="Edit"
-                  disabled={patchLead.isPending}
-                  size={ComponentSizeEnum.SM}
-                  title="Edit"
-                  variant={ButtonVariantEnum.SURFACE}
-                  onClick={() => setIsEditing(true)}
-                />
-              )
-            )}
+            <DetailViewEditActions
+              canEdit={!disabled}
+              editAriaLabel="Edit scheduling"
+              editLabel="Edit"
+              isEditing={isEditing}
+              isSaving={patchLead.isPending}
+              saveLabel="Save"
+              size={ComponentSizeEnum.SM}
+              onCancel={handleDiscard}
+              onEdit={() => setIsEditing(true)}
+              onSave={handleSave}
+            />
           </div>
         </div>
       </CardHeader>

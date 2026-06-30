@@ -75,12 +75,19 @@ export interface UseTableRefinementMemoryOptions {
   onSortRulesChange: (rules: TableSortRule[]) => void;
   /** Live column layout to remember. Pass null when the caller owns column persistence. */
   columnTarget?: TableColumnMemoryTarget | null;
+  /**
+   * When false, the hook is fully inert — it neither restores saved refinements
+   * nor exposes the "Remember … for this list" toggles. Lead/job listings pass
+   * `false` to drop the toggles entirely. Defaults to `true`.
+   */
+  enabled?: boolean;
 }
 
 export interface UseTableRefinementMemoryResult {
-  filterPersistence: TableRefinementPersistence;
-  sortPersistence: TableRefinementPersistence;
-  /** Present only when a `columnTarget` was supplied. */
+  /** Undefined when the hook is disabled (no toggle rendered). */
+  filterPersistence?: TableRefinementPersistence;
+  sortPersistence?: TableRefinementPersistence;
+  /** Present only when a `columnTarget` was supplied and the hook is enabled. */
   settingsPersistence?: TableRefinementPersistence;
 }
 
@@ -99,6 +106,7 @@ export function useTableRefinementMemory({
   sortRules,
   onSortRulesChange,
   columnTarget,
+  enabled = true,
 }: UseTableRefinementMemoryOptions): UseTableRefinementMemoryResult {
   const base = `refine_${sanitizeKeyPart(storageKeyPrefix)}_org${sanitizeKeyPart(
     organizationId
@@ -129,16 +137,18 @@ export function useTableRefinementMemory({
 
   // Restore filters/sort whenever the list identity changes.
   useEffect(() => {
+    if (!enabled) return;
     const storedFilters = readArray<TableFilterValue>(filtersKey);
     const storedSort = readArray<TableSortRule>(sortKey);
     setRememberFilters(storedFilters !== null);
     setRememberSort(storedSort !== null);
     if (storedFilters) onFilterValuesChangeRef.current(storedFilters);
     if (storedSort) onSortRulesChangeRef.current(storedSort);
-  }, [filtersKey, sortKey]);
+  }, [enabled, filtersKey, sortKey]);
 
   // Restore the column layout whenever the list identity changes.
   useEffect(() => {
+    if (!enabled) return;
     if (!columnTargetRef.current) {
       setRememberColumns(false);
       return;
@@ -153,7 +163,7 @@ export function useTableRefinementMemory({
     }
     // hasColumnTarget gates whether a target exists for this identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [columnsKey, hasColumnTarget]);
+  }, [enabled, columnsKey, hasColumnTarget]);
 
   // Keep snapshots in sync while their toggle stays on.
   useEffect(() => {
@@ -223,23 +233,27 @@ export function useTableRefinementMemory({
   );
 
   return useMemo(
-    () => ({
-      filterPersistence: {
-        remembered: rememberFilters,
-        onRememberedChange: handleRememberFilters,
-      },
-      sortPersistence: {
-        remembered: rememberSort,
-        onRememberedChange: handleRememberSort,
-      },
-      settingsPersistence: hasColumnTarget
+    () =>
+      enabled
         ? {
-            remembered: rememberColumns,
-            onRememberedChange: handleRememberColumns,
+            filterPersistence: {
+              remembered: rememberFilters,
+              onRememberedChange: handleRememberFilters,
+            },
+            sortPersistence: {
+              remembered: rememberSort,
+              onRememberedChange: handleRememberSort,
+            },
+            settingsPersistence: hasColumnTarget
+              ? {
+                  remembered: rememberColumns,
+                  onRememberedChange: handleRememberColumns,
+                }
+              : undefined,
           }
-        : undefined,
-    }),
+        : {},
     [
+      enabled,
       handleRememberColumns,
       handleRememberFilters,
       handleRememberSort,

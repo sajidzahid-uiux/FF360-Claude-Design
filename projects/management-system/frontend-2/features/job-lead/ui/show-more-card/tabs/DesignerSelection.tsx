@@ -24,6 +24,11 @@ interface DesignerSelectionProps {
     field: string,
     value: HandleCustomerPatchValue
   ) => Promise<void>;
+  /**
+   * When true, changes are only buffered into local state and NOT patched
+   * immediately — the parent section persists them on Save.
+   */
+  deferPatch?: boolean;
 }
 
 function memberFromTeam(team: TeamMember[] | undefined, id: number) {
@@ -37,6 +42,7 @@ export const DesignerSelection = ({
   entityDataState,
   setEntityDataState,
   handleCustomerPatch,
+  deferPatch = false,
 }: DesignerSelectionProps) => {
   const selectedIds = useMemo(
     () => entityDataState.designers ?? [],
@@ -95,7 +101,9 @@ export const DesignerSelection = ({
               ...prev,
               designers: updatedDesigners,
             }));
-            handleCustomerPatch("designers", updatedDesigners);
+            if (!deferPatch) {
+              handleCustomerPatch("designers", updatedDesigners);
+            }
           }}
         />
       </PermissionCodeGate>

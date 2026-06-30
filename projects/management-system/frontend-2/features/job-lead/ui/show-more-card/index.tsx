@@ -25,7 +25,7 @@ import {
   JobDetailOverflowMenu,
   JobLeadDetailLayout,
   JobLeadNotesDialog,
-  JobLeadNotesSection,
+  JobLeadNotesFloatingWidget,
   getJobLeadRecordBreadcrumbLabel,
 } from "@/features/job-lead";
 import { useCmsJobLeadDetailBreadcrumb } from "@/features/job-lead/hooks/useCmsJobLeadDetailBreadcrumb";
@@ -248,9 +248,10 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
   } = dialogs;
   const { router, queryClient, transformVertices, currentUser, orgId } = utils;
 
-  // Notes live as a collapsible right-side section in the body. The expand icon
-  // in its header opens a focused full-screen modal.
-  const [notesOpen, setNotesOpen] = useState(true);
+  // Notes live as a floating, non-modal popover anchored bottom-right. It starts
+  // minimized as a floating button; the page behind it stays fully interactive.
+  // The expand icon in its header opens a focused full-screen modal.
+  const [notesOpen, setNotesOpen] = useState(false);
   const { stack: modalStack, openModal, closeModalKey } = useModalStack();
   const notesModalOpen = modalStack.some(
     (f) => f.key === "view-job-lead-notes"
@@ -647,25 +648,6 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
         backLabel={
           entityType === ResourceType.JOB ? "Back to jobs" : "Back to leads"
         }
-        notesPanel={
-          canViewStakeholders ? (
-            <JobLeadNotesSection
-              canEdit={canEdit}
-              canEditLeadPage={canEditLeadPage}
-              comments={comments ?? []}
-              commentsHook={commentsHook}
-              commentsReadOnly={commentsReadOnly}
-              entityDataState={entityDataState}
-              entityType={entityType}
-              isDisabled={isDisabled}
-              isTrashed={props.isTrashed}
-              open={notesOpen}
-              toggleArchive={toggleArchive}
-              onExpand={() => openModal("view-job-lead-notes")}
-              onToggle={() => setNotesOpen((prev) => !prev)}
-            />
-          ) : undefined
-        }
         footer={
           orgId && entityDataState.id != null ? (
             <DesignRequestJobLeadIntegration
@@ -788,6 +770,26 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
           />
         )}
       </JobLeadDetailLayout>
+
+      {/* Notes & comments: floating, non-modal popover anchored bottom-right.
+          The page behind it stays fully interactive; closes only on minimize. */}
+      {canViewStakeholders ? (
+        <JobLeadNotesFloatingWidget
+          canEdit={canEdit}
+          canEditLeadPage={canEditLeadPage}
+          comments={comments ?? []}
+          commentsHook={commentsHook}
+          commentsReadOnly={commentsReadOnly}
+          entityDataState={entityDataState}
+          entityType={entityType}
+          isDisabled={isDisabled}
+          isTrashed={props.isTrashed}
+          open={notesOpen}
+          toggleArchive={toggleArchive}
+          onExpand={() => openModal("view-job-lead-notes")}
+          onToggle={() => setNotesOpen((prev) => !prev)}
+        />
+      ) : null}
 
       {/* URL-driven dialogs (Pattern B: mounted here, state in the URL) */}
       {isReshareDialogOpen ? (

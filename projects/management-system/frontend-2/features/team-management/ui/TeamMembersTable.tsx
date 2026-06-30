@@ -202,6 +202,7 @@ export function TeamMembersTable({
 
   return (
     <JobLeadTable
+      enableRefinementMemory
       bulkActions={[]}
       columns={columns}
       data={members}

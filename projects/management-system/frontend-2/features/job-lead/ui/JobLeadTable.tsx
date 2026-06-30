@@ -34,6 +34,13 @@ export interface JobLeadTableProps<T extends { id: string | number }> {
    */
   columnPreferences?: UseTablePreferencesResult<T>;
   data: T[];
+  /**
+   * Adds the "Remember filters/sort/columns for this list" toggles to the
+   * toolbar panels and restores saved refinements on mount. Off by default —
+   * lead/job listings intentionally omit these; other lists (e.g. team members)
+   * opt in.
+   */
+  enableRefinementMemory?: boolean;
   emptyState: {
     title: string;
     description: string;
@@ -93,6 +100,7 @@ export function JobLeadTable<T extends { id: string | number }>({
   columns: allColumns,
   columnPreferences,
   data,
+  enableRefinementMemory = false,
   emptyState,
   filterDefinitions,
   filterValues,
@@ -116,16 +124,17 @@ export function JobLeadTable<T extends { id: string | number }>({
   view,
   onRowActivate,
 }: JobLeadTableProps<T>) {
-  // Ephemeral by default — useTableRefinementMemory owns opt-in localStorage
-  // persistence via the "Remember columns for this list" toggle.
   const internalPreferences = useTablePreferences(allColumns, {
     defaultVariant: TableVariantEnum.PLAIN,
   });
   const tablePreferences = columnPreferences ?? internalPreferences;
   const columns = tablePreferences.applyColumns(allColumns);
 
+  // The "Remember … for this list" toggles are opt-in (off for lead/job
+  // listings). When disabled the hook is inert — no toggles, no restore.
   const { filterPersistence, sortPersistence, settingsPersistence } =
     useTableRefinementMemory({
+      enabled: enableRefinementMemory,
       storageKeyPrefix,
       organizationId,
       filterValues,

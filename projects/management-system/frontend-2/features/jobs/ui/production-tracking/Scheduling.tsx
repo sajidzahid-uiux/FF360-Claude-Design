@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { Button, ButtonVariantEnum, Dropdown } from "@fieldflow360/org-ui";
+import { ComponentSizeEnum, Dropdown } from "@fieldflow360/org-ui";
 import { toast } from "sonner";
 
 import type { JobUpdatePayload } from "@/api/types";
@@ -16,7 +16,7 @@ import { useTeamData } from "@/hooks";
 import { usePatchJob } from "@/hooks/mutations";
 import { useJobById } from "@/hooks/queries";
 import { parseEntityId } from "@/shared/lib/parseEntityId";
-import { DetailFormSection } from "@/shared/ui/common";
+import { DetailFormSection, DetailViewEditActions } from "@/shared/ui/common";
 import { Label, SanitizedInput } from "@/shared/ui/primitives";
 
 interface SchedulingProps {
@@ -180,32 +180,20 @@ export default function Scheduling({
   const showOperator =
     jobType === JobType.EXCAVATION || jobType === JobType.REPAIR;
 
-  const sectionActions = isEditing ? (
-    <>
-      <Button
-        aria-label="Discard"
-        disabled={disabled || patchJob.isPending}
-        title="Discard"
-        variant={ButtonVariantEnum.SURFACE}
-        onClick={handleDiscardAll}
-      />
-      <Button
-        aria-label="Save"
-        disabled={disabled || patchJob.isPending}
-        loading={patchJob.isPending}
-        title="Save"
-        onClick={handleSaveAll}
-      />
-    </>
-  ) : !disabled ? (
-    <Button
-      aria-label="Edit"
-      disabled={patchJob.isPending}
-      title="Edit"
-      variant={ButtonVariantEnum.SURFACE}
-      onClick={handleEdit}
+  const sectionActions = (
+    <DetailViewEditActions
+      canEdit={!disabled}
+      editAriaLabel="Edit scheduling"
+      editLabel="Edit"
+      isEditing={isEditing}
+      isSaving={patchJob.isPending}
+      saveLabel="Save"
+      size={ComponentSizeEnum.SM}
+      onCancel={handleDiscardAll}
+      onEdit={handleEdit}
+      onSave={handleSaveAll}
     />
-  ) : null;
+  );
 
   return (
     <DetailFormSection

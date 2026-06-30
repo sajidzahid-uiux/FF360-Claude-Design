@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { Button, ButtonVariantEnum, Toggle } from "@fieldflow360/org-ui";
+import { ComponentSizeEnum, Toggle } from "@fieldflow360/org-ui";
 import { toast } from "sonner";
 
 import type { JobUpdatePayload } from "@/api/types";
@@ -11,7 +11,7 @@ import { getApiFieldErrorMessages, getErrorMessage } from "@/features/forms";
 import { usePatchJob } from "@/hooks/mutations";
 import { useJobById } from "@/hooks/queries";
 import { parseEntityId } from "@/shared/lib/parseEntityId";
-import { DetailFormSection } from "@/shared/ui/common";
+import { DetailFormSection, DetailViewEditActions } from "@/shared/ui/common";
 import { Label, SanitizedInput } from "@/shared/ui/primitives";
 
 interface SchedulingTilingProps {
@@ -276,34 +276,18 @@ export default function SchedulingTiling({
           <div className="mb-2 flex items-center justify-between">
             <Label variant="section">Timeline</Label>
             <div className="flex gap-2">
-              {isEditing ? (
-                <>
-                  <Button
-                    aria-label="Discard"
-                    disabled={timelineDisabled || patchJob.isPending}
-                    title="Discard"
-                    variant={ButtonVariantEnum.SURFACE}
-                    onClick={handleDiscardAll}
-                  />
-                  <Button
-                    aria-label="Save"
-                    disabled={timelineDisabled || patchJob.isPending}
-                    loading={patchJob.isPending}
-                    title="Save"
-                    onClick={handleSaveAll}
-                  />
-                </>
-              ) : (
-                !timelineDisabled && (
-                  <Button
-                    aria-label="Edit"
-                    disabled={patchJob.isPending}
-                    title="Edit"
-                    variant={ButtonVariantEnum.SURFACE}
-                    onClick={handleEdit}
-                  />
-                )
-              )}
+              <DetailViewEditActions
+                canEdit={!timelineDisabled}
+                editAriaLabel="Edit timeline"
+                editLabel="Edit"
+                isEditing={isEditing}
+                isSaving={patchJob.isPending}
+                saveLabel="Save"
+                size={ComponentSizeEnum.SM}
+                onCancel={handleDiscardAll}
+                onEdit={handleEdit}
+                onSave={handleSaveAll}
+              />
             </div>
           </div>
           <div className="flex flex-col gap-4">
@@ -411,34 +395,18 @@ export default function SchedulingTiling({
           <div className="mb-4 flex items-center justify-between">
             <Label variant="section">Project Status</Label>
             <div className="flex gap-2">
-              {isEditingProjectStatus ? (
-                <>
-                  <Button
-                    aria-label="Discard"
-                    disabled={disabled || patchJob.isPending}
-                    title="Discard"
-                    variant={ButtonVariantEnum.SURFACE}
-                    onClick={handleDiscardProjectStatus}
-                  />
-                  <Button
-                    aria-label="Save"
-                    disabled={disabled || patchJob.isPending}
-                    loading={patchJob.isPending}
-                    title="Save"
-                    onClick={handleSaveProjectStatus}
-                  />
-                </>
-              ) : (
-                !disabled && (
-                  <Button
-                    aria-label="Edit"
-                    disabled={patchJob.isPending}
-                    title="Edit"
-                    variant={ButtonVariantEnum.SURFACE}
-                    onClick={handleEditProjectStatus}
-                  />
-                )
-              )}
+              <DetailViewEditActions
+                canEdit={!disabled}
+                editAriaLabel="Edit project status"
+                editLabel="Edit"
+                isEditing={isEditingProjectStatus}
+                isSaving={patchJob.isPending}
+                saveLabel="Save"
+                size={ComponentSizeEnum.SM}
+                onCancel={handleDiscardProjectStatus}
+                onEdit={handleEditProjectStatus}
+                onSave={handleSaveProjectStatus}
+              />
             </div>
           </div>
           <div className="space-y-4">

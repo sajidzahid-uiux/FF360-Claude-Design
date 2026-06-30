@@ -17,6 +17,8 @@
  */
 import type { AxiosAdapter, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 
+import type { MapPin } from "@/api/types/mapPin";
+import type { MapPinCategory } from "@/api/types/mapPinCategory";
 import {
   PERMISSION_ACTIONS,
   PERMISSION_RESOURCES,
@@ -129,6 +131,26 @@ const DEMO_PAYMENT_CARDS = [
   { id: "pm_demo_visa", brand: "visa", last4: "4242", exp_month: 8, exp_year: 2028, is_default: true },
   { id: "pm_demo_mc", brand: "mastercard", last4: "5454", exp_month: 4, exp_year: 2027, is_default: false },
 ];
+
+/**
+ * Map pin categories (org 1). Powers the on-map Add Pin menu's category list
+ * and the Manage Categories screen. Colors come from the pin category palette.
+ */
+const DEMO_PIN_CATEGORIES: MapPinCategory[] = [
+  { id: 1, name: "Water Source", color: "#3B82F6", pin_count: 0 },
+  { id: 2, name: "Main Valve", color: "#EF4444", pin_count: 0 },
+  { id: 3, name: "Riser", color: "#22C55E", pin_count: 0 },
+  { id: 4, name: "Obstruction", color: "#F97316", pin_count: 0 },
+  { id: 5, name: "Access Point", color: "#A855F7", pin_count: 0 },
+  { id: 6, name: "Utility Marker", color: "#EAB308", pin_count: 0 },
+];
+
+/**
+ * In-memory map pins per job/lead, keyed by "job:<id>" / "lead:<id>". Created
+ * pins persist for the browser session so the Add Pin flow and the Pins list
+ * stay coherent without a backend (reset on reload).
+ */
+const demoPinsByKey: Record<string, MapPin[]> = {};
 
 /**
  * Notifications (ms/organizations/<id>/new-notifications/). Built at request time
@@ -418,6 +440,29 @@ const DEMO_PAYMENT_STATUSES = [
 ];
 
 /**
+ * Project types per category (T/E/R), consumed by the lead/job detail header
+ * dropdown (ProjectTypeDropdown), the New Job form ("Project type *"), and the
+ * settings page. ProjectTypesService unwraps either a raw array or a DRF page,
+ * so the handler below returns a `listResponse` hybrid filtered by the
+ * `?category=` query param when present. Categories use the one-letter
+ * JobOrLeadType codes: T = Tiling, E = Excavation, R = Repair.
+ */
+const DEMO_PROJECT_TYPES = [
+  // Tiling (T)
+  { id: 1, name: "Pattern Tile", color: "#22c55e", category: "T", category_display: "Tile", is_default: true, organization: 1 },
+  { id: 2, name: "Mainline", color: "#0ea5e9", category: "T", category_display: "Tile", is_default: false, organization: 1 },
+  { id: 3, name: "Random Tile", color: "#8b5cf6", category: "T", category_display: "Tile", is_default: false, organization: 1 },
+  // Excavation (E)
+  { id: 4, name: "Basin Dig", color: "#f59e0b", category: "E", category_display: "Excavation", is_default: true, organization: 1 },
+  { id: 5, name: "Waterway", color: "#06b6d4", category: "E", category_display: "Excavation", is_default: false, organization: 1 },
+  { id: 6, name: "Pond", color: "#3b82f6", category: "E", category_display: "Excavation", is_default: false, organization: 1 },
+  // Repair (R)
+  { id: 7, name: "Pipe Repair", color: "#ef4444", category: "R", category_display: "Repair", is_default: true, organization: 1 },
+  { id: 8, name: "Surface Inlet Repair", color: "#ec4899", category: "R", category_display: "Repair", is_default: false, organization: 1 },
+  { id: 9, name: "Main Repair", color: "#f97316", category: "R", category_display: "Repair", is_default: false, organization: 1 },
+];
+
+/**
  * Django content_types served by `ms/dropdowns/content_types/` (via useMapping).
  * Comment/file features resolve a contentTypeId by matching `model` against
  * COMMENT_CONTENT_TYPE_MODEL ({ lead: "leaditem", job: "job", equipment: "equipment" }),
@@ -428,6 +473,43 @@ const DEMO_CONTENT_TYPES = [
   { id: 2, model: "job" },
   { id: 3, model: "equipment" },
 ];
+
+/**
+ * Dummy notes/comments for the floating Notes widget. Only a few records are
+ * "seeded" so the tab's red "new" indicator appears conditionally (others stay
+ * empty). Returned as a raw array per requested note section.
+ */
+const DEMO_NOTE_COMMENTS: Record<string, { author: string; text: string; at: string }[]> = {
+  general: [
+    { author: "Omar Zahid", text: "Customer confirmed access through the north gate — crew can start Monday.", at: "2026-06-29T14:20:00Z" },
+    { author: "Sajid Zahid", text: "Soil is wetter than expected on the east side; flagged for the design team.", at: "2026-06-30T09:05:00Z" },
+  ],
+  office: [
+    { author: "Bilal Zahid", text: "Estimate sent to the client, awaiting signature before we schedule.", at: "2026-06-28T16:45:00Z" },
+  ],
+  onsite: [
+    { author: "Tyler Brooks", text: "Located the collapsed main ~60ft in from the road. Photos uploaded.", at: "2026-06-30T18:10:00Z" },
+  ],
+};
+
+/** Records that have notes (so the red dot shows on some, not all). */
+const SEEDED_NOTE_OBJECT_IDS = new Set(["101", "201", "301"]);
+const NOTE_SECTION_ORDER = ["general", "office", "onsite"];
+
+function demoCommentsFor(objectId: string | null, noteSection: string | null) {
+  if (!objectId || !SEEDED_NOTE_OBJECT_IDS.has(String(objectId))) return [];
+  const section = noteSection ?? "general";
+  const entries = DEMO_NOTE_COMMENTS[section] ?? [];
+  const sectionIndex = Math.max(0, NOTE_SECTION_ORDER.indexOf(section));
+  return entries.map((entry, i) => ({
+    id: Number(objectId) * 1000 + sectionIndex * 10 + i,
+    text: entry.text,
+    note_section: section,
+    member_name: entry.author,
+    created_at: entry.at,
+    object_id: objectId,
+  }));
+}
 
 /**
  * List response for any collection GET.
@@ -551,6 +633,86 @@ export const mockAdapter: AxiosAdapter = async (config) => {
     }
   }
 
+  // --- Map pin categories + pins (org 1, stateful for the session) ----------
+  if (orgIdOf(url) === "1") {
+    // Pin category catalog — shared by the Add Pin menu and Manage Categories.
+    if (/\/pin-categories\/?$/.test(url)) {
+      if (method === "get") {
+        return makeResponse(listResponse(DEMO_PIN_CATEGORIES), config);
+      }
+      if (method === "post") {
+        const body = parseBody(config.data);
+        const created: MapPinCategory = {
+          id: ++mockIdCounter,
+          name: String(body.name ?? "New category"),
+          color: String(body.color ?? "#6B7280"),
+          pin_count: 0,
+        };
+        DEMO_PIN_CATEGORIES.push(created);
+        return makeResponse(created, config, 201);
+      }
+    }
+
+    // Job/lead pin collection — created pins persist in demoPinsByKey.
+    const pinsCollection = url.match(
+      /\/(jobs|leads)\/[^/]+\/(\d+)\/pins\/?$/
+    );
+    if (pinsCollection) {
+      const [, kind, entityId] = pinsCollection;
+      const key = `${kind}:${entityId}`;
+      const list = (demoPinsByKey[key] ??= []);
+      if (method === "get") {
+        return makeResponse(listResponse(list), config);
+      }
+      if (method === "post") {
+        const body = parseBody(config.data) as {
+          category_id?: number;
+          latitude?: number;
+          longitude?: number;
+          label?: string;
+        };
+        const category = DEMO_PIN_CATEGORIES.find(
+          (item) => item.id === Number(body.category_id)
+        );
+        const nowIso = new Date().toISOString();
+        const created: MapPin = {
+          id: ++mockIdCounter,
+          organization: 1,
+          job: kind === "jobs" ? Number(entityId) : null,
+          lead: kind === "leads" ? Number(entityId) : null,
+          name: body.label || category?.name || "Pin",
+          label: body.label,
+          category_id: body.category_id,
+          category: category
+            ? { id: category.id, name: category.name, color: category.color }
+            : undefined,
+          latitude: Number(body.latitude),
+          longitude: Number(body.longitude),
+          created_by: 1,
+          created_at: nowIso,
+          updated_at: nowIso,
+        };
+        list.push(created);
+        return makeResponse(created, config, 201);
+      }
+    }
+
+    // Single pin delete: .../pins/<pinId>/
+    const pinDetail = url.match(
+      /\/(jobs|leads)\/[^/]+\/(\d+)\/pins\/(\d+)\/?$/
+    );
+    if (pinDetail && method === "delete") {
+      const [, kind, entityId, pinId] = pinDetail;
+      const key = `${kind}:${entityId}`;
+      if (demoPinsByKey[key]) {
+        demoPinsByKey[key] = demoPinsByKey[key].filter(
+          (pin) => pin.id !== Number(pinId)
+        );
+      }
+      return makeResponse({}, config, 204);
+    }
+  }
+
   // Record farms picker (lead/job form): return the selected contact's farms
   // ("contact > farms management"). contact_id rides in the query string.
   if (
@@ -668,6 +830,40 @@ export const mockAdapter: AxiosAdapter = async (config) => {
     // Payment statuses:  …/settings/payment-statuses/
     if (/ms\/organizations\/\d+\/settings\/payment-statuses\/?$/.test(url)) {
       return makeResponse(DEMO_PAYMENT_STATUSES, config);
+    }
+    // Project types:  …/project-types/  and  …/settings/project-types/
+    // Optional ?category=T|E|R filters to that lead/job module. Returned as a
+    // listResponse hybrid so both raw-array and paginated consumers work.
+    if (/ms\/organizations\/\d+\/(settings\/)?project-types\/?$/.test(url)) {
+      const category = new URLSearchParams(
+        (config.url || "").split("?")[1] ?? ""
+      ).get("category");
+      const filtered = category
+        ? DEMO_PROJECT_TYPES.filter((pt) => pt.category === category)
+        : DEMO_PROJECT_TYPES;
+      return makeResponse(listResponse(filtered), config);
+    }
+
+    // Notes & comments (generic): …/comments/?content_type&object_id&note_section
+    // Returned as a RAW array (the hook fetches one batch per note section).
+    // Seed a few records so the floating Notes tab shows its "new" red dot;
+    // others stay empty to demonstrate the conditional indicator. Params arrive
+    // either as config.params (axios) or serialized in the raw url.
+    if (/ms\/organizations\/\d+\/comments\/?$/.test(url)) {
+      const params = (config.params ?? {}) as Record<string, unknown>;
+      const rawUrl = config.url || "";
+      const sp = new URLSearchParams(
+        rawUrl.includes("?") ? rawUrl.slice(rawUrl.indexOf("?") + 1) : ""
+      );
+      const objectId =
+        params.object_id != null
+          ? String(params.object_id)
+          : sp.get("object_id");
+      const noteSection =
+        params.note_section != null
+          ? String(params.note_section)
+          : sp.get("note_section");
+      return makeResponse(demoCommentsFor(objectId, noteSection), config);
     }
 
     // Dropdown mappings (useMapping → ms/dropdowns/<type>/): each is consumed as

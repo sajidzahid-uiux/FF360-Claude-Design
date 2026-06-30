@@ -21,6 +21,8 @@ export interface CorePointLocationActionsProps {
   isCorePointMode?: boolean;
   userLocation?: LatLng | null;
   boundaryMapRef: RefObject<BoundaryMapRef | null>;
+  /** Overrides the default trigger button styling (e.g. for on-map overlays). */
+  buttonClassName?: string;
 }
 
 export function CorePointLocationActions({
@@ -28,6 +30,7 @@ export function CorePointLocationActions({
   isCorePointMode = false,
   userLocation = null,
   boundaryMapRef,
+  buttonClassName = "w-full lg:w-auto",
 }: CorePointLocationActionsProps) {
   const [isAddMethodDialogOpen, setIsAddMethodDialogOpen] = useState(false);
   const [isManualEntryDialogOpen, setIsManualEntryDialogOpen] = useState(false);
@@ -74,14 +77,14 @@ export function CorePointLocationActions({
         {isCorePointMode ? (
           <Button
             aria-label="Cancel"
-            className="w-full lg:w-auto"
+            className={buttonClassName}
             title="Cancel"
             variant={ButtonVariantEnum.SURFACE}
             onClick={handleCancelCorePointMode}
           />
         ) : (
           <Button
-            className="w-full lg:w-auto"
+            className={buttonClassName}
             disabled={disabled}
             leftIcon={<Plus aria-hidden className="h-3 w-3" />}
             title="Add Core"

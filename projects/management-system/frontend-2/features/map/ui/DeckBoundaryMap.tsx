@@ -72,6 +72,9 @@ export interface DeckBoundaryMapProps {
   mapHeight?: string | number;
   hideSearch?: boolean;
   hideActionMenu?: boolean;
+  /** Suppresses the built-in top-right floating controls (undo / open-in-maps)
+   * so a consumer can own that corner with its own overlay. */
+  hideFloatingControls?: boolean;
   readOnly?: boolean;
   triggerCenterOnUserLocation?: boolean;
   userLocation?: LatLng | null;
@@ -118,6 +121,7 @@ export const DeckBoundaryMap = forwardRef<BoundaryMapRef, DeckBoundaryMapProps>(
       mapHeight = "500px",
       hideSearch = false,
       hideActionMenu = false,
+      hideFloatingControls = false,
       readOnly = false,
       triggerCenterOnUserLocation = false,
       userLocation: propUserLocation,
@@ -623,12 +627,14 @@ export const DeckBoundaryMap = forwardRef<BoundaryMapRef, DeckBoundaryMapProps>(
             </div>
           )}
 
-          <DeckMapFloatingControls
-            openInMapsLocation={location}
-            readOnly={readOnly}
-            verticesCount={normalizedVertices.length}
-            onUndo={polygonEdit.handleUndo}
-          />
+          {hideFloatingControls ? null : (
+            <DeckMapFloatingControls
+              openInMapsLocation={location}
+              readOnly={readOnly}
+              verticesCount={normalizedVertices.length}
+              onUndo={polygonEdit.handleUndo}
+            />
+          )}
 
           <GoogleMap
             center={initialCenterRef.current}

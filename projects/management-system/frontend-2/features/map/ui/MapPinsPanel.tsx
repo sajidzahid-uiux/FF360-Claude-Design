@@ -37,6 +37,9 @@ export interface MapPinsPanelProps {
   onPinCreate?: MapPinCreateSubmitHandler;
   onPinFocus?: (pin: MapPinItem) => void;
   onManageCategories?: () => void;
+  /** Hides the Add Pin / Manage Categories header buttons when those actions
+   * are surfaced elsewhere (e.g. as on-map overlay controls). */
+  hideHeaderActions?: boolean;
 }
 
 export function MapPinsPanel({
@@ -48,6 +51,7 @@ export function MapPinsPanel({
   onPinCreate,
   onPinFocus,
   onManageCategories,
+  hideHeaderActions = false,
 }: MapPinsPanelProps) {
   const { stack, openModal, closeModalKey } = useModalStack();
   const [search, setSearch] = useState("");
@@ -87,22 +91,24 @@ export function MapPinsPanel({
               Pins
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              disabled={disabled}
-              leftIcon={<Plus aria-hidden className="h-3 w-3" />}
-              title="Add Pin"
-              variant={ButtonVariantEnum.SURFACE}
-              onClick={handleOpenAddPin}
-            />
-            <Button
-              aria-label="Manage Categories →"
-              disabled={disabled}
-              title="Manage Categories →"
-              variant={ButtonVariantEnum.GHOST}
-              onClick={handleManageCategories}
-            />
-          </div>
+          {hideHeaderActions ? null : (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                disabled={disabled}
+                leftIcon={<Plus aria-hidden className="h-3 w-3" />}
+                title="Add Pin"
+                variant={ButtonVariantEnum.SURFACE}
+                onClick={handleOpenAddPin}
+              />
+              <Button
+                aria-label="Manage Categories →"
+                disabled={disabled}
+                title="Manage Categories →"
+                variant={ButtonVariantEnum.GHOST}
+                onClick={handleManageCategories}
+              />
+            </div>
+          )}
         </div>
 
         <div className="border-border-subtle border-b px-4 py-2">
