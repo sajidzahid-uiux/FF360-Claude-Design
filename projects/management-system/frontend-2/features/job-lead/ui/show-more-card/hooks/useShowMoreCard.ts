@@ -2607,7 +2607,7 @@ export function useShowMoreCard({
       entityData,
       allTeam: allTeam || [],
       allEquipment,
-      convertHook: convertHook as ShowMoreCardConvertHookResult,
+      convertHook,
       canWriteExcavationEquipment,
       onSuccess: props.onClose,
       leadData: props.leadData,

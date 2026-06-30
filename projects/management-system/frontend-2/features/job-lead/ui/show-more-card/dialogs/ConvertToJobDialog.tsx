@@ -29,7 +29,8 @@ export interface ConvertToJobDialogProps {
   entityData: EntityDataState | Lead | undefined;
   allTeam: TeamMember[];
   allEquipment: RecordEquipment[];
-  convertHook: ShowMoreCardConvertHookResult;
+  /** Lead→job conversion mutation. Absent for jobs (this dialog is lead-only). */
+  convertHook?: ShowMoreCardConvertHookResult;
   canWriteExcavationEquipment: boolean;
   onSuccess: () => void;
   leadData?: Lead | EntityDataState;
@@ -79,6 +80,11 @@ export function ConvertToJobDialog({
   onSuccess,
   leadData,
 }: ConvertToJobDialogProps) {
+  // Lead-only dialog: a job has no conversion hook. Bail out before any hooks
+  // run so a job detail never crashes on `convertHook.isPending`. Safe re:
+  // rules-of-hooks because a given card instance is always a lead or a job.
+  if (!convertHook) return null;
+
   const router = useRouter();
   const { orgId } = useRouteIds();
   const [selectedDesignerIds, setSelectedDesignerIds] = useState<number[]>([]);

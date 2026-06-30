@@ -794,13 +794,15 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
         <ReshareDialog {...reshareDialogProps} onClose={closeReshareDialog} />
       ) : null}
 
-      <ConvertToJobDialog
-        {...convertDialogProps}
-        open={isConvertDialogOpen}
-        onOpenChange={(open) => {
-          if (!open) closeConvertDialog();
-        }}
-      />
+      {convertHook ? (
+        <ConvertToJobDialog
+          {...convertDialogProps}
+          open={isConvertDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) closeConvertDialog();
+          }}
+        />
+      ) : null}
 
       <ContactAssignmentDialog
         {...contactAssignmentDialogProps}
