@@ -116,24 +116,26 @@ export function JobLeadTable<T extends { id: string | number }>({
   view,
   onRowActivate,
 }: JobLeadTableProps<T>) {
+  // Ephemeral by default — useTableRefinementMemory owns opt-in localStorage
+  // persistence via the "Remember columns for this list" toggle.
   const internalPreferences = useTablePreferences(allColumns, {
-    storageKey:
-      columnPreferences || !organizationId
-        ? undefined
-        : `${storageKeyPrefix}-table-columns:${organizationId}`,
     defaultVariant: TableVariantEnum.PLAIN,
   });
   const tablePreferences = columnPreferences ?? internalPreferences;
   const columns = tablePreferences.applyColumns(allColumns);
 
-  const { filterPersistence, sortPersistence } = useTableRefinementMemory({
-    storageKeyPrefix,
-    organizationId,
-    filterValues,
-    onFilterValuesChange,
-    sortRules,
-    onSortRulesChange,
-  });
+  const { filterPersistence, sortPersistence, settingsPersistence } =
+    useTableRefinementMemory({
+      storageKeyPrefix,
+      organizationId,
+      filterValues,
+      onFilterValuesChange,
+      sortRules,
+      onSortRulesChange,
+      // Only manage column persistence when we own the preferences (not an
+      // externally-supplied columnPreferences, which handles its own saving).
+      columnTarget: columnPreferences ? null : internalPreferences,
+    });
 
   const handleViewChange = useCallback(
     (nextView: TableViewMode) => onViewChange(nextView),
@@ -163,6 +165,7 @@ export function JobLeadTable<T extends { id: string | number }>({
           filters={filterDefinitions}
           filterValues={filterValues}
           search={search}
+          settingsPersistence={settingsPersistence}
           showKanbanView={showKanbanView}
           sortableColumns={sortableColumns}
           sortPersistence={sortPersistence}

@@ -1,6 +1,6 @@
 {
   "name": "@fieldflow360/org-ui",
-  "version": "0.1.60",
+  "version": "0.1.61",
   "description": "Shared UI component library for FieldFlow360 Organization",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
