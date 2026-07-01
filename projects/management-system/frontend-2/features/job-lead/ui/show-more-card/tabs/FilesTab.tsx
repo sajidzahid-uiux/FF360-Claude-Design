@@ -1,6 +1,8 @@
 "use client";
 
-import { type ReactNode, useCallback, useMemo } from "react";
+import { type ReactNode, Fragment, useCallback, useMemo, useState } from "react";
+
+import { cn } from "@fieldflow360/org-ui";
 
 import { JobType, PermissionCode } from "@/constants";
 import { Ff360DesignsFilesPanel } from "@/features/design-request";
@@ -83,6 +85,41 @@ function FileCategoryPanel({
   );
 }
 
+/** Titled card for the map file types (XML / Shape / other), holding a small
+ * grid of MapFileCards. Mirrors FileCategoryPanel's header/empty style. */
+function MapCategoryPanel({
+  title,
+  count,
+  children,
+}: {
+  title: string;
+  count: number;
+  children: ReactNode;
+}) {
+  return (
+    <div className="border-border-subtle bg-bg-surface flex min-w-0 flex-col gap-3 rounded-xl border p-4 sm:p-5">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-text-primary text-sm font-semibold">{title}</h3>
+        <span className="text-text-muted bg-bg-app rounded-full px-2.5 py-0.5 text-xs font-medium tabular-nums">
+          {count}
+        </span>
+      </div>
+      {count === 0 ? (
+        <p className="text-text-muted text-sm">No files yet.</p>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">{children}</div>
+      )}
+    </div>
+  );
+}
+
+interface FilePanel {
+  key: string;
+  label: string;
+  count?: number;
+  node: ReactNode;
+}
+
 export function FilesTab(props: TabRendererProps) {
   const {
     config,
@@ -114,6 +151,9 @@ export function FilesTab(props: TabRendererProps) {
     ) ??
     entityDataState.title ??
     "—";
+
+  // Selected file category. "all" shows every panel; otherwise only that one.
+  const [activeFilter, setActiveFilter] = useState<string>("all");
 
   const ff360Entity = useMemo(
     () => ({
@@ -232,16 +272,226 @@ export function FilesTab(props: TabRendererProps) {
     }
   );
 
-  const showMapFilesSection =
-    config.fileTypes.special &&
-    (collectXmlMaps(entityDataState).length > 0 ||
-      collectShpMaps(entityDataState).length > 0 ||
-      collectKmlMaps(entityDataState).length > 0 ||
-      specialMapFiles.length > 0);
-
   const xmlMaps = collectXmlMaps(entityDataState);
   const shpMaps = collectShpMaps(entityDataState);
   const kmlMaps = collectKmlMaps(entityDataState);
+
+  // Whether this record supports map file uploads (so we surface the XML /
+  // Shape / Other categories even when they're currently empty).
+  const mapsSupported =
+    Boolean(config.fileTypes.special) &&
+    (hasMapSpecialFiles ||
+      xmlMaps.length > 0 ||
+      shpMaps.length > 0 ||
+      kmlMaps.length > 0 ||
+      specialMapFiles.length > 0);
+
+  // Ordered list of file panels for this record. The filter chips are derived
+  // from this same list so the tabs always match what can be shown.
+  const panels: FilePanel[] = [];
+
+  if (isTiling && orgId && entityDataState.id != null) {
+    panels.push({
+      key: "ff360",
+      label: "FF360 Designs",
+      node: (
+        <Ff360DesignsFilesPanel
+          enabled
+          entity={ff360Entity}
+          entityId={entityDataState.id}
+          entityType={entityType}
+          organizationId={orgId}
+        />
+      ),
+    });
+  }
+
+  if (farmerEntity) {
+    panels.push({
+      key: "farmer",
+      label: "Farmer files",
+      count: filesByCategory.farmer.length,
+      node: (
+        <FileCategoryPanel
+          checkedFiles={checkedFiles}
+          disabled={isDisabled}
+          files={filesByCategory.farmer}
+          formatDisplayTitle={(title) => title.replace(/^farmer_/, "")}
+          jobTitle={entityDataState.title}
+          title="Farmer files"
+          onCheck={handleCheck}
+          onDelete={handleFileDelete}
+        />
+      ),
+    });
+  }
+
+  panels.push({
+    key: "contractor",
+    label: "Contractor files",
+    count: filesByCategory.contractor.length,
+    node: (
+      <FileCategoryPanel
+        checkedFiles={checkedFiles}
+        disabled={isDisabled}
+        files={filesByCategory.contractor}
+        formatDisplayTitle={(title) =>
+          title.replace(/^other_file_/, "").replace(/^_contractor_qa_/, "")
+        }
+        jobTitle={entityDataState.title}
+        title="Contractor files"
+        onCheck={handleCheck}
+        onDelete={handleFileDelete}
+      />
+    ),
+  });
+
+  panels.push({
+    key: "one_call",
+    label: "One call files",
+    count: filesByCategory.one_call.length,
+    node: (
+      <FileCategoryPanel
+        checkedFiles={checkedFiles}
+        disabled={isDisabled}
+        files={filesByCategory.one_call}
+        formatDisplayTitle={(title) => title.replace(/^one_call_file_/, "")}
+        jobTitle={entityDataState.title}
+        title="One call files"
+        onCheck={handleCheck}
+        onDelete={handleFileDelete}
+      />
+    ),
+  });
+
+  if (filesByCategory.designer.length > 0) {
+    panels.push({
+      key: "designer",
+      label: "Designer files",
+      count: filesByCategory.designer.length,
+      node: (
+        <FileCategoryPanel
+          checkedFiles={checkedFiles}
+          disabled={isDisabled}
+          files={filesByCategory.designer}
+          formatDisplayTitle={(title) =>
+            title.replace(/^(design|pro_map)_file_/, "")
+          }
+          jobTitle={entityDataState.title}
+          title="Designer files"
+          onCheck={handleCheck}
+          onDelete={handleFileDelete}
+        />
+      ),
+    });
+  }
+
+  if (mapsSupported) {
+    panels.push({
+      key: "xml",
+      label: "XML files",
+      count: xmlMaps.length,
+      node: (
+        <MapCategoryPanel count={xmlMaps.length} title="XML files">
+          {xmlMaps.map((mapFile, index) => (
+            <MapFileCard
+              key={`xml-${mapFile.id}`}
+              disabled={isDisabled}
+              fileId={mapFile.id}
+              fileName={getMapFileDisplayName(
+                mapFile.file,
+                xmlMaps.length > 1 ? `XML File ${index + 1}` : "XML File"
+              )}
+              fileType="xml_file"
+              fileUrl={mapFile.file}
+              onDelete={handleMapFileDelete}
+            />
+          ))}
+        </MapCategoryPanel>
+      ),
+    });
+
+    panels.push({
+      key: "shape",
+      label: "Shape files",
+      count: shpMaps.length,
+      node: (
+        <MapCategoryPanel count={shpMaps.length} title="Shape files">
+          {shpMaps.map((mapFile, index) => (
+            <MapFileCard
+              key={`shp-${mapFile.id}`}
+              disabled={isDisabled}
+              fileId={mapFile.id}
+              fileName={getMapFileDisplayName(
+                mapFile.file,
+                shpMaps.length > 1 ? `Shape File ${index + 1}` : "Shape File"
+              )}
+              fileType="shape_file"
+              fileUrl={mapFile.file}
+              onDelete={handleMapFileDelete}
+            />
+          ))}
+        </MapCategoryPanel>
+      ),
+    });
+
+    const otherMapCount = kmlMaps.length + specialMapFiles.length;
+    panels.push({
+      key: "other",
+      label: "Other files",
+      count: otherMapCount,
+      node: (
+        <MapCategoryPanel count={otherMapCount} title="Other files">
+          {kmlMaps.map((mapFile, index) => (
+            <MapFileCard
+              key={`kml-${mapFile.id}`}
+              disabled={isDisabled}
+              fileId={mapFile.id}
+              fileName={getMapFileDisplayName(
+                mapFile.file,
+                kmlMaps.length > 1 ? `KML File ${index + 1}` : "KML File"
+              )}
+              fileType="kml_file"
+              fileUrl={mapFile.file}
+              onDelete={handleMapFileDelete}
+            />
+          ))}
+          {specialMapFiles.map((file: FilesTabFile) => (
+            <MapFileCard
+              key={file.id}
+              canView={
+                (file.file && /\.(pdf|jpg|jpeg|png|gif)$/i.test(file.file)) ||
+                false
+              }
+              disabled={isDisabled}
+              fileId={file.id}
+              fileName={
+                file.title.includes("design_file")
+                  ? "Design File"
+                  : file.title.includes("delivered_file")
+                    ? "Delivered File"
+                    : "Special File"
+              }
+              fileType={file.title}
+              fileUrl={file.file}
+              onDelete={handleMapFileDelete}
+            />
+          ))}
+        </MapCategoryPanel>
+      ),
+    });
+  }
+
+  // If the active filter no longer exists (e.g. designer files removed), fall
+  // back to "all" so nothing looks broken.
+  const activeExists =
+    activeFilter === "all" || panels.some((p) => p.key === activeFilter);
+  const effectiveFilter = activeExists ? activeFilter : "all";
+
+  const visiblePanels =
+    effectiveFilter === "all"
+      ? panels
+      : panels.filter((p) => p.key === effectiveFilter);
 
   return (
     <div className="mx-auto flex w-full flex-col gap-5">
@@ -257,137 +507,50 @@ export function FilesTab(props: TabRendererProps) {
             onFileSelect={(file) => handleInlineFileSelect?.(file)}
           />
         ) : null}
-        {showMapFilesSection ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {xmlMaps.map((mapFile, index) => (
-              <MapFileCard
-                key={`xml-${mapFile.id}`}
-                disabled={isDisabled}
-                fileId={mapFile.id}
-                fileName={getMapFileDisplayName(
-                  mapFile.file,
-                  xmlMaps.length > 1 ? `XML File ${index + 1}` : "XML File"
-                )}
-                fileType="xml_file"
-                fileUrl={mapFile.file}
-                onDelete={handleMapFileDelete}
-              />
-            ))}
-            {shpMaps.map((mapFile, index) => (
-              <MapFileCard
-                key={`shp-${mapFile.id}`}
-                disabled={isDisabled}
-                fileId={mapFile.id}
-                fileName={getMapFileDisplayName(
-                  mapFile.file,
-                  shpMaps.length > 1 ? `Shape File ${index + 1}` : "Shape File"
-                )}
-                fileType="shape_file"
-                fileUrl={mapFile.file}
-                onDelete={handleMapFileDelete}
-              />
-            ))}
-            {kmlMaps.map((mapFile, index) => (
-              <MapFileCard
-                key={`kml-${mapFile.id}`}
-                disabled={isDisabled}
-                fileId={mapFile.id}
-                fileName={getMapFileDisplayName(
-                  mapFile.file,
-                  kmlMaps.length > 1 ? `KML File ${index + 1}` : "KML File"
-                )}
-                fileType="kml_file"
-                fileUrl={mapFile.file}
-                onDelete={handleMapFileDelete}
-              />
-            ))}
-            {specialMapFiles.map((file: FilesTabFile) => (
-              <MapFileCard
-                key={file.id}
-                canView={
-                  (file.file && /\.(pdf|jpg|jpeg|png|gif)$/i.test(file.file)) ||
-                  false
-                }
-                disabled={isDisabled}
-                fileId={file.id}
-                fileName={
-                  file.title.includes("design_file")
-                    ? "Design File"
-                    : file.title.includes("delivered_file")
-                      ? "Delivered File"
-                      : "Special File"
-                }
-                fileType={file.title}
-                fileUrl={file.file}
-                onDelete={handleMapFileDelete}
-              />
-            ))}
-          </div>
-        ) : null}
       </DetailFormSection>
 
-      <div
-        className={`grid grid-cols-1 items-start gap-5 sm:grid-cols-2 ${
-          isTiling ? "xl:grid-cols-3 2xl:grid-cols-4" : "xl:grid-cols-3"
-        }`}
-      >
-        {isTiling && orgId && entityDataState.id != null ? (
-          <Ff360DesignsFilesPanel
-            enabled
-            entity={ff360Entity}
-            entityId={entityDataState.id}
-            entityType={entityType}
-            organizationId={orgId}
-          />
-        ) : null}
-        {farmerEntity ? (
-          <FileCategoryPanel
-            checkedFiles={checkedFiles}
-            disabled={isDisabled}
-            files={filesByCategory.farmer}
-            formatDisplayTitle={(title) => title.replace(/^farmer_/, "")}
-            jobTitle={entityDataState.title}
-            title="Farmer files"
-            onCheck={handleCheck}
-            onDelete={handleFileDelete}
-          />
-        ) : null}
-        <FileCategoryPanel
-          checkedFiles={checkedFiles}
-          disabled={isDisabled}
-          files={filesByCategory.contractor}
-          formatDisplayTitle={(title) =>
-            title.replace(/^other_file_/, "").replace(/^_contractor_qa_/, "")
+      {/* Category filter — All + one chip per available file category. */}
+      <div className="flex flex-wrap items-center gap-2">
+        {[{ key: "all", label: "All", count: undefined }, ...panels].map(
+          (opt) => {
+            const active = effectiveFilter === opt.key;
+            return (
+              <button
+                key={opt.key}
+                aria-pressed={active}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                  active
+                    ? "border-accent bg-accent/15 text-text-primary"
+                    : "border-border-subtle bg-bg-surface text-text-muted hover:text-text-primary"
+                )}
+                type="button"
+                onClick={() => setActiveFilter(opt.key)}
+              >
+                {opt.label}
+                {opt.count != null ? (
+                  <span className="bg-bg-app rounded-full px-1.5 py-0.5 text-xs tabular-nums">
+                    {opt.count}
+                  </span>
+                ) : null}
+              </button>
+            );
           }
-          jobTitle={entityDataState.title}
-          title="Contractor files"
-          onCheck={handleCheck}
-          onDelete={handleFileDelete}
-        />
-        <FileCategoryPanel
-          checkedFiles={checkedFiles}
-          disabled={isDisabled}
-          files={filesByCategory.one_call}
-          formatDisplayTitle={(title) => title.replace(/^one_call_file_/, "")}
-          jobTitle={entityDataState.title}
-          title="One call files"
-          onCheck={handleCheck}
-          onDelete={handleFileDelete}
-        />
-        {filesByCategory.designer.length > 0 ? (
-          <FileCategoryPanel
-            checkedFiles={checkedFiles}
-            disabled={isDisabled}
-            files={filesByCategory.designer}
-            formatDisplayTitle={(title) =>
-              title.replace(/^(design|pro_map)_file_/, "")
-            }
-            jobTitle={entityDataState.title}
-            title="Designer files"
-            onCheck={handleCheck}
-            onDelete={handleFileDelete}
-          />
-        ) : null}
+        )}
+      </div>
+
+      <div
+        className={
+          effectiveFilter === "all"
+            ? // auto-fill packs as many ~19rem columns as fit (3-4+ on desktop);
+              // avoids the org-ui responsive grid-cols override that capped it at 2.
+              "grid grid-cols-[repeat(auto-fill,minmax(19rem,1fr))] items-start gap-5"
+            : "grid grid-cols-1 gap-5"
+        }
+      >
+        {visiblePanels.map((panel) => (
+          <Fragment key={panel.key}>{panel.node}</Fragment>
+        ))}
       </div>
     </div>
   );
