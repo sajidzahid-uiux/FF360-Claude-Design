@@ -202,44 +202,35 @@ export default function Scheduling({
       title="Scheduling"
     >
       <div className="overflow-visible">
-        <div className="flex flex-col gap-6 overflow-visible xl:flex-row">
+        <div className="flex flex-wrap gap-x-8 gap-y-6 overflow-visible">
           {/* Operator Name Section */}
           {showOperator && (
-            <>
-              <div className="flex-1">
-                <Label variant="sectionCompact">Operator Information</Label>
-                <Label
-                  className="mb-2 block text-sm font-medium"
-                  htmlFor="operator"
-                >
-                  Operator Name
-                </Label>
-                <Dropdown
-                  fullWidth
-                  disabled={
-                    disabled || patchJob.isPending || !isEditing || teamLoading
-                  }
-                  label="Operator name"
-                  options={operatorOptions}
-                  placeholder="Select operator…"
-                  value={resolveOperatorDropdownValue(operatorId)}
-                  onChange={(value) => setOperatorId(value)}
-                />
-              </div>
-              {/* Vertical Divider */}
-              <div className="bg-border hidden w-px self-stretch xl:block" />
-            </>
+            <div className="min-w-[13rem] flex-1">
+              <Label variant="sectionCompact">Operator Information</Label>
+              <Label
+                className="mt-2 mb-2 block text-sm font-medium"
+                htmlFor="operator"
+              >
+                Operator Name
+              </Label>
+              <Dropdown
+                fullWidth
+                disabled={
+                  disabled || patchJob.isPending || !isEditing || teamLoading
+                }
+                options={operatorOptions}
+                placeholder="Select operator…"
+                value={resolveOperatorDropdownValue(operatorId)}
+                onChange={(value) => setOperatorId(value)}
+              />
+            </div>
           )}
 
           {/* Timeline Section */}
-          <div
-            className={`flex-1 ${
-              showOperator ? "" : "w-full"
-            } overflow-visible`}
-          >
+          <div className="min-w-[18rem] flex-[2] overflow-visible">
             <Label variant="sectionCompact">Timeline</Label>
-            <div className="relative grid grid-cols-1 gap-4 overflow-visible sm:grid-cols-2 xl:grid-cols-4">
-              <div className="relative z-10 space-y-2 overflow-visible">
+            <div className="relative mt-2 flex flex-wrap gap-4 overflow-visible">
+              <div className="relative z-10 min-w-[10rem] flex-1 space-y-2 overflow-visible">
                 <Label htmlFor="start-date" variant="field">
                   Start Date
                 </Label>
@@ -256,7 +247,7 @@ export default function Scheduling({
                   }}
                 >
                   <SanitizedInput
-                    className="relative z-10 w-full max-w-full min-w-[12rem]"
+                    className="relative z-10 w-full max-w-full min-w-0"
                     disabled={disabled || patchJob.isPending || !isEditing}
                     id="start-date"
                     type="date"
@@ -265,7 +256,7 @@ export default function Scheduling({
                   />
                 </div>
               </div>
-              <div className="relative z-10 space-y-2 overflow-visible">
+              <div className="relative z-10 min-w-[10rem] flex-1 space-y-2 overflow-visible">
                 <Label htmlFor="end-date" variant="field">
                   End Date
                 </Label>
@@ -282,7 +273,7 @@ export default function Scheduling({
                   }}
                 >
                   <SanitizedInput
-                    className="relative z-10 w-full max-w-full min-w-[12rem]"
+                    className="relative z-10 w-full max-w-full min-w-0"
                     disabled={disabled || patchJob.isPending || !isEditing}
                     id="end-date"
                     type="date"
@@ -291,7 +282,7 @@ export default function Scheduling({
                   />
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="min-w-[8rem] flex-1 space-y-2">
                 <Label htmlFor="extra-days" variant="field">
                   Extra Days
                 </Label>
@@ -306,7 +297,7 @@ export default function Scheduling({
                   onChange={(e) => setExtraDays(e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
+              <div className="min-w-[8rem] flex-1 space-y-2">
                 <Label htmlFor="total-days" variant="field">
                   Completed Days
                 </Label>

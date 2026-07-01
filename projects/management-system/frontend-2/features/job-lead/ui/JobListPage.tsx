@@ -235,8 +235,10 @@ export function JobListPage({ config }: JobListPageProps) {
     createRepairJob.isPending;
 
   const openJobForm = useCallback(() => {
-    openModal("add-job");
-  }, [openModal]);
+    // Adding from a type-specific jobs page — preselect that type so the
+    // contractor doesn't re-pick the category they're already looking at.
+    openModal("add-job", { type: config.segment });
+  }, [config.segment, openModal]);
 
   useEffect(() => {
     const action = searchParams.get("action");

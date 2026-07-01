@@ -751,6 +751,46 @@ const REPAIR_LEAD_DETAIL = {
   notesTabAccess: { general: true, office: true, onsite: true },
 };
 
+// Status objects keyed by id (mirror DEMO_LEAD_STATUSES in mockApi), so a detail
+// record's object-shaped lead_status can be refreshed on an inline change.
+const LEAD_STATUS_BY_ID = new Map<
+  number,
+  { id: number; title: string; color: string }
+>([
+  [1, { id: 1, title: "New", color: "#3b82f6" }],
+  [2, { id: 2, title: "Contacted", color: "#06b6d4" }],
+  [3, { id: 3, title: "Qualified", color: "#8b5cf6" }],
+  [4, { id: 4, title: "Proposal Sent", color: "#f59e0b" }],
+  [5, { id: 5, title: "Won", color: "#22c55e" }],
+  [6, { id: 6, title: "Lost", color: "#ef4444" }],
+]);
+
+/**
+ * Persist an inline lead-status change from the listing/grid dropdown. The list
+ * stores lead_status as a numeric id, the detail records as a Status object —
+ * update whichever matches so the change survives the query refetch. Returns
+ * true when a lead matched.
+ */
+export function updateMockLeadStatus(id: number, statusId: number): boolean {
+  let matched = false;
+  const listRow = LEADS.find((lead) => lead.id === id);
+  if (listRow) {
+    listRow.lead_status = statusId;
+    matched = true;
+  }
+  const detail = [
+    TILING_LEAD_DETAIL,
+    EXCAVATION_LEAD_DETAIL,
+    REPAIR_LEAD_DETAIL,
+  ].find((record) => record.id === id);
+  if (detail) {
+    detail.lead_status =
+      LEAD_STATUS_BY_ID.get(statusId) ?? detail.lead_status;
+    matched = true;
+  }
+  return matched;
+}
+
 export const routes: MockRoute[] = [
   // LIST — single endpoint serving all three lead types (type/archived are query
   // params, dropped on normalization). Matches ms/organizations/<org>/leads/all/.

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 
 import { Modal } from "@fieldflow360/org-ui";
 
+import { NotesCountBadge } from "@/shared/ui/common/NotesCountBadge";
 import { NotesExportControl } from "@/shared/ui/common/NotesExportControl";
 
 import {
@@ -22,12 +23,15 @@ export function JobLeadNotesDialog({
   onOpenChange,
   entityType,
   entityDataState,
+  comments,
   ...panelProps
 }: JobLeadNotesDialogProps) {
   const { exportContext, availableSections } = useMemo(
     () => getJobLeadNotesExportProps({ entityType, entityDataState }),
     [entityDataState, entityType]
   );
+
+  const commentCount = comments?.length ?? 0;
 
   return (
     <Modal
@@ -38,17 +42,21 @@ export function JobLeadNotesDialog({
       onClose={() => onOpenChange(false)}
     >
       <div className="flex flex-col gap-4">
-        <JobLeadNotesPanel
-          {...panelProps}
-          entityDataState={entityDataState}
-          entityType={entityType}
-        />
-        <div className="border-border-subtle flex justify-end border-t pt-4">
+        {/* Header row mirrors the docked/floating notes: count badge on the
+            left, export action on the right — kept out of the footer. */}
+        <div className="flex items-center justify-end gap-2">
+          <NotesCountBadge className="mr-auto" count={commentCount} />
           <NotesExportControl
             availableSections={availableSections}
             exportContext={exportContext}
           />
         </div>
+        <JobLeadNotesPanel
+          {...panelProps}
+          comments={comments}
+          entityDataState={entityDataState}
+          entityType={entityType}
+        />
       </div>
     </Modal>
   );

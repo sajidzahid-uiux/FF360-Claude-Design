@@ -6,6 +6,7 @@ import { cn } from "@fieldflow360/org-ui";
 import { Maximize2, Minus, StickyNote } from "lucide-react";
 
 import { ResourceType } from "@/constants";
+import { NotesCountBadge } from "@/shared/ui/common/NotesCountBadge";
 import { NotesExportControl } from "@/shared/ui/common/NotesExportControl";
 
 import {
@@ -67,19 +68,8 @@ export function JobLeadNotesFloatingWidget({
         type="button"
         onClick={onToggle}
       >
-        {/* "New notes received" indicators: a red dot pinned to the tab corner
-            plus a red unread count inside the tab. */}
-        {commentCount > 0 ? (
-          <span
-            aria-hidden
-            className="bg-feedback-error absolute top-1.5 right-1.5 inline-flex h-2.5 w-2.5 rounded-full"
-          />
-        ) : null}
-        {commentCount > 0 ? (
-          <span className="bg-feedback-error text-text-inverse inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold">
-            {commentCount > 99 ? "99+" : commentCount}
-          </span>
-        ) : null}
+        {/* Notes count: a circular badge with the count text inside. */}
+        <NotesCountBadge count={commentCount} emphasis="attention" />
         <StickyNote aria-hidden className="h-5 w-5" strokeWidth={2} />
         <span
           className="text-sm font-semibold tracking-wide"
@@ -106,10 +96,15 @@ export function JobLeadNotesFloatingWidget({
           <span className="text-text-primary inline-flex items-center gap-2 text-sm font-semibold">
             <StickyNote aria-hidden className="h-4 w-4" strokeWidth={2} />
             Notes &amp; comments
+            <NotesCountBadge count={commentCount} />
           </span>
           <span className="text-text-muted truncate text-xs">{scopeLine}</span>
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          <NotesExportControl
+            availableSections={availableSections}
+            exportContext={exportContext}
+          />
           {onExpand ? (
             <button
               aria-label="Open notes in full screen"
@@ -137,12 +132,6 @@ export function JobLeadNotesFloatingWidget({
           entityDataState={entityDataState}
           entityType={entityType}
         />
-        <div className="border-border-subtle flex justify-end border-t pt-4">
-          <NotesExportControl
-            availableSections={availableSections}
-            exportContext={exportContext}
-          />
-        </div>
       </div>
     </section>
   );

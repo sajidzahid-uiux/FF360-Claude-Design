@@ -290,9 +290,9 @@ export default function FinancialAndScheduling({
           </div>
         </CardHeader>
         <CardContent className="overflow-visible">
-          <div className="flex flex-col gap-6 overflow-visible xl:flex-row">
+          <div className="flex flex-wrap gap-6 overflow-visible">
             {/* Operator Information Section */}
-            <div className="flex-1">
+            <div className="min-w-[14rem] flex-1">
               <Label variant="sectionBlock">Operator Information</Label>
               <div className="space-y-2">
                 <Label htmlFor="operator" variant="inputBlock">
@@ -303,7 +303,6 @@ export default function FinancialAndScheduling({
                   disabled={
                     disabled || patchLead.isPending || !isEditing || teamLoading
                   }
-                  label="Operator name"
                   options={operatorOptions}
                   placeholder="Select operator…"
                   value={resolveOperatorDropdownValue(operatorId)}
@@ -312,11 +311,8 @@ export default function FinancialAndScheduling({
               </div>
             </div>
 
-            {/* Vertical Divider */}
-            <div className="bg-border hidden w-px self-stretch xl:block" />
-
             {/* Financial Details Section */}
-            <div className="w-full flex-1 xl:max-w-sm">
+            <div className="min-w-[13rem] flex-1">
               <Label variant="sectionBlock">Financial Details</Label>
               <div className="space-y-2">
                 <Label htmlFor="sales-price" variant="inputBlock">
@@ -335,11 +331,8 @@ export default function FinancialAndScheduling({
               </div>
             </div>
 
-            {/* Vertical Divider */}
-            <div className="bg-border hidden w-px self-stretch xl:block" />
-
             {/* Timeline Section */}
-            <div className="flex-1 overflow-visible">
+            <div className="min-w-[20rem] flex-1 overflow-visible">
               <Label variant="sectionBlock">Timeline</Label>
               <div className="space-y-4">
                 {/* Start Date and End Date on same row */}
@@ -434,12 +427,11 @@ export default function FinancialAndScheduling({
         </div>
       </CardHeader>
       <CardContent className="overflow-visible">
-        <div className="flex flex-col gap-6 overflow-visible xl:flex-row">
+        <div className="flex flex-wrap gap-6 overflow-visible">
           {/* Scheduling & Timeline Section */}
-          <div className="flex-1 overflow-visible">
+          <div className="min-w-[18rem] flex-1 overflow-visible">
             <Label variant="sectionBlock">Scheduling & Timeline</Label>
-            <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="relative z-10 space-y-2 overflow-visible">
                   <Label htmlFor="start-date" variant="field">
                     Start Date
@@ -492,7 +484,6 @@ export default function FinancialAndScheduling({
                     />
                   </div>
                 </div>
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="extra-days" variant="field">
                   Extra Days
@@ -530,8 +521,7 @@ export default function FinancialAndScheduling({
           {/* Project Status Section (Tiling only) */}
           {leadType === LeadType.TILING && (
             <>
-              <div className="bg-border hidden w-px self-stretch xl:block" />
-              <div className="w-full flex-1 xl:max-w-xs">
+              <div className="min-w-[15rem] flex-1">
                 <Label variant="sectionBlock">Project Status</Label>
                 <div className="space-y-4">
                   {/* Comp Cam Project Toggle */}
@@ -593,8 +583,7 @@ export default function FinancialAndScheduling({
           )}
 
           {/* Sales Info Section */}
-          <div className="bg-border hidden w-px self-stretch xl:block" />
-          <div className="w-full flex-1 xl:max-w-sm">
+          <div className="min-w-[13rem] flex-1">
             <Label variant="sectionBlock">Sales Info</Label>
             <div className="space-y-4">
               <div className="space-y-2">

@@ -242,8 +242,10 @@ export function LeadListPage({ config }: LeadListPageProps) {
     createRepairLead.isPending;
 
   const openLeadForm = useCallback(() => {
-    openModal("add-lead");
-  }, [openModal]);
+    // Adding from a type-specific leads page — preselect that type so the
+    // contractor doesn't re-pick the category they're already looking at.
+    openModal("add-lead", { type: config.segment });
+  }, [config.segment, openModal]);
 
   useEffect(() => {
     const action = searchParams.get("action");

@@ -587,14 +587,14 @@ export default function FinancialTab({
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-3xl font-semibold">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="gap-2 py-4">
+          <CardHeader className="px-4">
+            <CardTitle className="text-text-muted text-sm font-medium">
               Sales Price
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4">
             <SanitizedInput
               disabled={editDisabled}
               placeholder="0.00"
@@ -605,10 +605,10 @@ export default function FinancialTab({
             />
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-3xl font-semibold">
+        <Card className="gap-2 py-4">
+          <CardHeader className="px-4">
+            <div className="flex items-center gap-1.5">
+              <CardTitle className="text-text-muted text-sm font-medium">
                 Total Cost
               </CardTitle>
               <Tooltip
@@ -616,14 +616,14 @@ export default function FinancialTab({
               />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalCost}</div>
+          <CardContent className="px-4">
+            <div className="text-xl font-bold">${totalCost}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-3xl font-semibold">
+        <Card className="gap-2 py-4">
+          <CardHeader className="px-4">
+            <div className="flex items-center gap-1.5">
+              <CardTitle className="text-text-muted text-sm font-medium">
                 Budget Total Profit
               </CardTitle>
               <Tooltip
@@ -631,21 +631,21 @@ export default function FinancialTab({
               />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${budgetProfit}</div>
+          <CardContent className="px-4">
+            <div className="text-xl font-bold">${budgetProfit}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-3xl font-semibold">
+        <Card className="gap-2 py-4">
+          <CardHeader className="px-4">
+            <div className="flex items-center gap-1.5">
+              <CardTitle className="text-text-muted text-sm font-medium">
                 Actual Total Profit
               </CardTitle>
               <Tooltip content="Actual Total Profit = Sales Price – Total Cost" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${actualProfit}</div>
+          <CardContent className="px-4">
+            <div className="text-xl font-bold">${actualProfit}</div>
           </CardContent>
         </Card>
       </div>
@@ -655,7 +655,7 @@ export default function FinancialTab({
         {/* Labor Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-3xl font-semibold">Labor</CardTitle>
+            <CardTitle className="text-base font-semibold">Labor</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <div>
@@ -696,7 +696,7 @@ export default function FinancialTab({
         {/* Operator Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-3xl font-semibold">Operator</CardTitle>
+            <CardTitle className="text-base font-semibold">Operator</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <div>
@@ -733,7 +733,7 @@ export default function FinancialTab({
         {/* Miles/Kilometers Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-3xl font-semibold">{distUnit}</CardTitle>
+            <CardTitle className="text-base font-semibold">{distUnit}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="grid grid-cols-2 gap-2">
@@ -786,7 +786,7 @@ export default function FinancialTab({
         {/* Travel Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-3xl font-semibold">Travel</CardTitle>
+            <CardTitle className="text-base font-semibold">Travel</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="grid grid-cols-2 gap-2">
@@ -838,7 +838,7 @@ export default function FinancialTab({
       {/* Job Materials Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-3xl font-semibold">
+          <CardTitle className="text-base font-semibold">
             Job Materials
           </CardTitle>
         </CardHeader>
@@ -878,7 +878,7 @@ export default function FinancialTab({
       {/* Machine Assignment Section */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-3xl font-semibold">
+          <CardTitle className="text-base font-semibold">
             Machine Assignment
           </CardTitle>
           {/* Cancel and Save Buttons - Top Right (only while editing) */}
@@ -998,7 +998,7 @@ export default function FinancialTab({
               <CardContent className="flex flex-col gap-4 p-4 md:flex-row">
                 {/* Costs Section */}
                 <div className="flex-1 space-y-2">
-                  <CardTitle className="mb-2 text-3xl font-semibold">
+                  <CardTitle className="mb-2 text-base font-semibold">
                     Costs
                   </CardTitle>
                   <div>
@@ -1026,7 +1026,7 @@ export default function FinancialTab({
 
                 {/* Total Costs Section */}
                 <div className="flex-1 space-y-2">
-                  <CardTitle className="mb-2 text-3xl font-semibold">
+                  <CardTitle className="mb-2 text-base font-semibold">
                     Total Costs
                   </CardTitle>
                   <div>
@@ -1054,7 +1054,7 @@ export default function FinancialTab({
 
                 {/* Machine Profits Section */}
                 <div className="flex-1 space-y-2">
-                  <CardTitle className="mb-2 text-3xl font-semibold">
+                  <CardTitle className="mb-2 text-base font-semibold">
                     Machine Profits
                   </CardTitle>
                   <div>
@@ -1179,7 +1179,7 @@ export default function FinancialTab({
                 <div className="flex flex-col gap-4 rounded-lg border p-4 md:flex-row">
                   {/* Costs Section */}
                   <div className="flex-1 space-y-2">
-                    <CardTitle className="mb-4 text-3xl font-semibold">
+                    <CardTitle className="mb-4 text-base font-semibold">
                       Costs
                     </CardTitle>
                     <div>
@@ -1207,7 +1207,7 @@ export default function FinancialTab({
 
                   {/* Total Costs Section */}
                   <div className="flex-1 space-y-2">
-                    <CardTitle className="mb-4 text-3xl font-semibold">
+                    <CardTitle className="mb-4 text-base font-semibold">
                       Total Costs
                     </CardTitle>
                     <div>
@@ -1235,7 +1235,7 @@ export default function FinancialTab({
 
                   {/* Machine Profits Section */}
                   <div className="flex-1 space-y-2">
-                    <CardTitle className="mb-4 text-3xl font-semibold">
+                    <CardTitle className="mb-4 text-base font-semibold">
                       Machine Profits
                     </CardTitle>
                     <div>

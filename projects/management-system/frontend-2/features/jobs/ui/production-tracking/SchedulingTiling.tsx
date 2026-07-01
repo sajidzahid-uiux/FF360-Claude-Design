@@ -270,9 +270,9 @@ export default function SchedulingTiling({
       description="Timeline, project status, and production metrics."
       title="Scheduling"
     >
-      <div className="flex flex-col gap-6 overflow-visible xl:flex-row">
+      <div className="flex flex-wrap gap-6 overflow-visible">
         {/* Timeline Section */}
-        <div className="flex-1 overflow-visible">
+        <div className="min-w-[18rem] flex-1 overflow-visible">
           <div className="mb-2 flex items-center justify-between">
             <Label variant="section">Timeline</Label>
             <div className="flex gap-2">
@@ -290,12 +290,11 @@ export default function SchedulingTiling({
               />
             </div>
           </div>
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="relative z-10 space-y-2 overflow-visible">
-                <Label htmlFor="start-date" variant="field">
-                  Start Date
-                </Label>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="relative z-10 space-y-2 overflow-visible">
+              <Label htmlFor="start-date" variant="field">
+                Start Date
+              </Label>
                 <div
                   className={
                     !isEditing && !timelineDisabled && !patchJob.isPending
@@ -356,7 +355,6 @@ export default function SchedulingTiling({
                   />
                 </div>
               </div>
-            </div>
             <div className="space-y-2">
               <Label htmlFor="extra-days" variant="field">
                 Extra Days
@@ -390,8 +388,7 @@ export default function SchedulingTiling({
         </div>
 
         {/* Project Status Section */}
-        <div className="bg-border hidden w-px self-stretch xl:block" />
-        <div className="w-full flex-1 xl:max-w-xs">
+        <div className="min-w-[15rem] flex-1">
           <div className="mb-4 flex items-center justify-between">
             <Label variant="section">Project Status</Label>
             <div className="flex gap-2">
@@ -492,8 +489,7 @@ export default function SchedulingTiling({
         </div>
 
         {/* Production Metrics Section */}
-        <div className="bg-border hidden w-px self-stretch xl:block" />
-        <div className="w-full flex-1 xl:max-w-md">
+        <div className="min-w-[18rem] flex-1">
           <Label variant="sectionBlock">Production Metrics</Label>
           <div className="space-y-4">
             {/* First Row: Main Footage Ran and Lateral Footage Ran */}

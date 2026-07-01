@@ -42,12 +42,32 @@ export function useAutoHideChrome(enabled: boolean): AutoHideChrome {
   const headerEl = useRef<HTMLDivElement | null>(null);
   const footerEl = useRef<HTMLDivElement | null>(null);
   const lastY = useRef(0);
+  // Snapshot of the scroll geometry at the last handled event. Collapsing the
+  // chrome grows the flex body, which shrinks the max scrollTop; near the
+  // bottom the browser clamps scrollTop and fires a spurious "scroll up" event.
+  // We detect those by the changed geometry and resync instead of flipping.
+  const lastScrollH = useRef(0);
+  const lastClientH = useRef(0);
 
   // --- scroll body: track direction and toggle hidden ---
   const handleScroll = useCallback(() => {
     const el = scrollEl.current;
     if (!el) return;
     const y = el.scrollTop;
+
+    // A scroll fired because our own collapse/expand animation resized the
+    // body (scrollHeight/clientHeight changed), not because the user moved.
+    // Rebase the direction anchor and bail so we don't oscillate.
+    if (
+      el.scrollHeight !== lastScrollH.current ||
+      el.clientHeight !== lastClientH.current
+    ) {
+      lastScrollH.current = el.scrollHeight;
+      lastClientH.current = el.clientHeight;
+      lastY.current = y;
+      return;
+    }
+
     const delta = y - lastY.current;
 
     if (y <= TOP_REVEAL_ZONE) {
@@ -70,6 +90,8 @@ export function useAutoHideChrome(enabled: boolean): AutoHideChrome {
       }
       scrollEl.current = node;
       lastY.current = node?.scrollTop ?? 0;
+      lastScrollH.current = node?.scrollHeight ?? 0;
+      lastClientH.current = node?.clientHeight ?? 0;
       if (node && enabled) {
         node.addEventListener("scroll", handleScroll, { passive: true });
       }

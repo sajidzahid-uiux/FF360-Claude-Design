@@ -32,8 +32,8 @@ import {
 } from "./data/contacts";
 import { routes as crewRoutes } from "./data/crews";
 import { routes as equipmentRoutes } from "./data/equipment";
-import { routes as jobRoutes } from "./data/jobs";
-import { routes as leadRoutes } from "./data/leads";
+import { routes as jobRoutes, updateMockJobStatus } from "./data/jobs";
+import { routes as leadRoutes, updateMockLeadStatus } from "./data/leads";
 import { routes as memberRoutes } from "./data/members";
 import {
   createMockVendorForm,
@@ -447,19 +447,23 @@ const DEMO_PAYMENT_STATUSES = [
  * `?category=` query param when present. Categories use the one-letter
  * JobOrLeadType codes: T = Tiling, E = Excavation, R = Repair.
  */
+// Project-type dot colors deliberately use a DIFFERENT family than the status
+// palette above (blue/violet/amber/gray/green/red/cyan/pink) so the two colored
+// circles in the detail header read as separate scales: teal, indigo, purple,
+// orange, gold, lime, rose, fuchsia, brown.
 const DEMO_PROJECT_TYPES = [
   // Tiling (T)
-  { id: 1, name: "Pattern Tile", color: "#22c55e", category: "T", category_display: "Tile", is_default: true, organization: 1 },
-  { id: 2, name: "Mainline", color: "#0ea5e9", category: "T", category_display: "Tile", is_default: false, organization: 1 },
-  { id: 3, name: "Random Tile", color: "#8b5cf6", category: "T", category_display: "Tile", is_default: false, organization: 1 },
+  { id: 1, name: "Pattern Tile", color: "#0d9488", category: "T", category_display: "Tile", is_default: true, organization: 1 },
+  { id: 2, name: "Mainline", color: "#4f46e5", category: "T", category_display: "Tile", is_default: false, organization: 1 },
+  { id: 3, name: "Random Tile", color: "#7e22ce", category: "T", category_display: "Tile", is_default: false, organization: 1 },
   // Excavation (E)
-  { id: 4, name: "Basin Dig", color: "#f59e0b", category: "E", category_display: "Excavation", is_default: true, organization: 1 },
-  { id: 5, name: "Waterway", color: "#06b6d4", category: "E", category_display: "Excavation", is_default: false, organization: 1 },
-  { id: 6, name: "Pond", color: "#3b82f6", category: "E", category_display: "Excavation", is_default: false, organization: 1 },
+  { id: 4, name: "Basin Dig", color: "#ea580c", category: "E", category_display: "Excavation", is_default: true, organization: 1 },
+  { id: 5, name: "Waterway", color: "#ca8a04", category: "E", category_display: "Excavation", is_default: false, organization: 1 },
+  { id: 6, name: "Pond", color: "#65a30d", category: "E", category_display: "Excavation", is_default: false, organization: 1 },
   // Repair (R)
-  { id: 7, name: "Pipe Repair", color: "#ef4444", category: "R", category_display: "Repair", is_default: true, organization: 1 },
-  { id: 8, name: "Surface Inlet Repair", color: "#ec4899", category: "R", category_display: "Repair", is_default: false, organization: 1 },
-  { id: 9, name: "Main Repair", color: "#f97316", category: "R", category_display: "Repair", is_default: false, organization: 1 },
+  { id: 7, name: "Pipe Repair", color: "#be123c", category: "R", category_display: "Repair", is_default: true, organization: 1 },
+  { id: 8, name: "Surface Inlet Repair", color: "#c026d3", category: "R", category_display: "Repair", is_default: false, organization: 1 },
+  { id: 9, name: "Main Repair", color: "#92400e", category: "R", category_display: "Repair", is_default: false, organization: 1 },
 ];
 
 /**
@@ -904,6 +908,30 @@ export const mockAdapter: AxiosAdapter = async (config) => {
   // --- Writes: echo back the payload with a generated id ---
   if (["post", "put", "patch"].includes(method)) {
     const body = parseBody(config.data);
+
+    // Inline status change from the job/lead listing/grid dropdown. PATCH to the
+    // detail endpoint (…/jobs|leads/<type>/<id>/) with { job_status|lead_status:
+    // <id> } — persist it into the mock dataset so the change survives the query
+    // refetch instead of reverting to the seed value. Echo the mutated record.
+    if (method === "patch") {
+      const jobStatusPatch = url.match(
+        /ms\/organizations\/\d+\/jobs\/[^/]+\/(\d+)\/?$/
+      );
+      if (jobStatusPatch && body && typeof body.job_status === "number") {
+        const jobId = Number(jobStatusPatch[1]);
+        updateMockJobStatus(jobId, body.job_status as number);
+        return makeResponse({ id: jobId, ...body }, config, 200);
+      }
+      const leadStatusPatch = url.match(
+        /ms\/organizations\/\d+\/leads\/[^/]+\/(\d+)\/?$/
+      );
+      if (leadStatusPatch && body && typeof body.lead_status === "number") {
+        const leadId = Number(leadStatusPatch[1]);
+        updateMockLeadStatus(leadId, body.lead_status as number);
+        return makeResponse({ id: leadId, ...body }, config, 200);
+      }
+    }
+
     return makeResponse(
       { id: ++mockIdCounter, ...body },
       config,

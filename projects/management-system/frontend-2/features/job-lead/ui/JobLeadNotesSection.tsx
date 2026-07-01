@@ -4,6 +4,7 @@ import { useMemo } from "react";
 
 import { ChevronDown, ChevronUp, Maximize2, StickyNote } from "lucide-react";
 
+import { NotesCountBadge } from "@/shared/ui/common/NotesCountBadge";
 import { NotesExportControl } from "@/shared/ui/common/NotesExportControl";
 
 import {
@@ -30,12 +31,15 @@ export function JobLeadNotesSection({
   onExpand,
   entityType,
   entityDataState,
+  comments,
   ...panelProps
 }: JobLeadNotesSectionProps) {
   const { exportContext, availableSections } = useMemo(
     () => getJobLeadNotesExportProps({ entityType, entityDataState }),
     [entityDataState, entityType]
   );
+
+  const commentCount = comments?.length ?? 0;
 
   return (
     <section className="border-border-subtle bg-bg-surface-elevated flex flex-col overflow-hidden rounded-xl border">
@@ -48,8 +52,13 @@ export function JobLeadNotesSection({
         >
           <StickyNote aria-hidden className="h-4 w-4" strokeWidth={2} />
           Notes &amp; comments
+          <NotesCountBadge count={commentCount} />
         </button>
         <div className="flex shrink-0 items-center gap-1">
+          <NotesExportControl
+            availableSections={availableSections}
+            exportContext={exportContext}
+          />
           {onExpand ? (
             <button
               aria-label="Open notes in full screen"
@@ -78,15 +87,10 @@ export function JobLeadNotesSection({
         <div className="border-border-subtle flex flex-col gap-4 border-t px-4 pt-4 pb-4">
           <JobLeadNotesPanel
             {...panelProps}
+            comments={comments}
             entityDataState={entityDataState}
             entityType={entityType}
           />
-          <div className="border-border-subtle flex justify-end border-t pt-4">
-            <NotesExportControl
-              availableSections={availableSections}
-              exportContext={exportContext}
-            />
-          </div>
         </div>
       ) : null}
     </section>

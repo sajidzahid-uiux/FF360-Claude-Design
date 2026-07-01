@@ -767,6 +767,36 @@ export function getMockJobById(id: number): Record<string, unknown> | undefined 
   ) as Record<string, unknown> | undefined;
 }
 
+// Status objects keyed by id, so an inline PATCH ({ job_status: <id> }) can be
+// resolved back to the full {id,title,color} the status badge/column expects.
+const JOB_STATUS_BY_ID = new Map(
+  [
+    ST_NEW,
+    ST_SCHEDULED,
+    ST_IN_PROGRESS,
+    ST_ON_HOLD,
+    ST_COMPLETED,
+    ST_CANCELLED,
+  ].map((status) => [status.id, status])
+);
+
+/**
+ * Persist an inline job-status change from the listing/grid dropdown. The list
+ * arrays share object references with allActiveJobs, so mutating the record in
+ * place is reflected across every list/detail view the next time it re-reads.
+ * Keeps on_hold / cancelled flags consistent with the chosen status so filter
+ * chips stay accurate. Returns true when a job matched.
+ */
+export function updateMockJobStatus(id: number, statusId: number): boolean {
+  const job = getMockJobById(id);
+  if (!job) return false;
+  const status = JOB_STATUS_BY_ID.get(statusId);
+  job.job_status = status ?? { id: statusId, title: "Unknown", color: "#9ca3af" };
+  job.on_hold = statusId === ST_ON_HOLD.id;
+  job.cancelled = statusId === ST_CANCELLED.id;
+  return true;
+}
+
 export const routes: MockRoute[] = [
   // -------- LIST routes (must precede detail routes) --------
   {
