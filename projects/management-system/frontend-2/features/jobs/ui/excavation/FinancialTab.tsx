@@ -565,7 +565,7 @@ export default function FinancialTab({
   }
 
   return (
-    <div className="mt-8 flex flex-col gap-4 p-2 sm:p-4">
+    <div className="flex flex-col gap-4 p-2 sm:p-4">
       {/* Section header: Edit → Save/Cancel, matching every other detail tab. */}
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-text-primary text-base font-semibold">Financial</h2>
@@ -586,9 +586,10 @@ export default function FinancialTab({
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="gap-2 py-4">
+      {/* Summary Cards — flex+min-w so 4 fit per row on desktop. org-ui's
+          bundled Tailwind overrides `lg:grid-cols-4`, so grid is avoided here. */}
+      <div className="flex flex-wrap gap-4">
+        <Card className="min-w-52 flex-1 gap-2 py-4">
           <CardHeader className="px-4">
             <CardTitle className="text-text-muted text-sm font-medium">
               Sales Price
@@ -605,7 +606,7 @@ export default function FinancialTab({
             />
           </CardContent>
         </Card>
-        <Card className="gap-2 py-4">
+        <Card className="min-w-52 flex-1 gap-2 py-4">
           <CardHeader className="px-4">
             <div className="flex items-center gap-1.5">
               <CardTitle className="text-text-muted text-sm font-medium">
@@ -620,7 +621,7 @@ export default function FinancialTab({
             <div className="text-xl font-bold">${totalCost}</div>
           </CardContent>
         </Card>
-        <Card className="gap-2 py-4">
+        <Card className="min-w-52 flex-1 gap-2 py-4">
           <CardHeader className="px-4">
             <div className="flex items-center gap-1.5">
               <CardTitle className="text-text-muted text-sm font-medium">
@@ -635,7 +636,7 @@ export default function FinancialTab({
             <div className="text-xl font-bold">${budgetProfit}</div>
           </CardContent>
         </Card>
-        <Card className="gap-2 py-4">
+        <Card className="min-w-52 flex-1 gap-2 py-4">
           <CardHeader className="px-4">
             <div className="flex items-center gap-1.5">
               <CardTitle className="text-text-muted text-sm font-medium">
@@ -650,10 +651,11 @@ export default function FinancialTab({
         </Card>
       </div>
 
-      {/* Labor, Operator, Miles/Kilometers, Travel Cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Labor, Operator, Miles/Kilometers, Travel Cards — flex+min-w for 4-up
+          on desktop (org-ui's Tailwind overrides `lg:grid-cols-4`). */}
+      <div className="flex flex-wrap gap-4">
         {/* Labor Card */}
-        <Card>
+        <Card className="min-w-64 flex-1">
           <CardHeader>
             <CardTitle className="text-base font-semibold">Labor</CardTitle>
           </CardHeader>
@@ -694,7 +696,7 @@ export default function FinancialTab({
         </Card>
 
         {/* Operator Card */}
-        <Card>
+        <Card className="min-w-64 flex-1">
           <CardHeader>
             <CardTitle className="text-base font-semibold">Operator</CardTitle>
           </CardHeader>
@@ -731,7 +733,7 @@ export default function FinancialTab({
         </Card>
 
         {/* Miles/Kilometers Card */}
-        <Card>
+        <Card className="min-w-64 flex-1">
           <CardHeader>
             <CardTitle className="text-base font-semibold">{distUnit}</CardTitle>
           </CardHeader>
@@ -784,7 +786,7 @@ export default function FinancialTab({
         </Card>
 
         {/* Travel Card */}
-        <Card>
+        <Card className="min-w-64 flex-1">
           <CardHeader>
             <CardTitle className="text-base font-semibold">Travel</CardTitle>
           </CardHeader>

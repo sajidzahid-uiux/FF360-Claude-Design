@@ -6,12 +6,6 @@ import { Dropdown } from "@fieldflow360/org-ui";
 
 import { buildPaymentStatusDropdownOptions } from "@/features/jobs";
 import type { PaymentStatus } from "@/hooks/usePaymentStatuses";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/primitives";
 
 interface PaymentStatusCardProps {
   disabled?: boolean;
@@ -31,22 +25,19 @@ export default function PaymentStatusCard({
     [paymentStatuses]
   );
 
+  // Rendered as a normal-width field (not a full-width card) so it reads like
+  // the other inline inputs on the tab.
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl font-semibold">Payment Status</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Dropdown
-          fullWidth
-          disabled={disabled}
-          label="Payment status"
-          options={options}
-          placeholder="Select payment status…"
-          value={paymentStatusId || "none"}
-          onChange={onChange}
-        />
-      </CardContent>
-    </Card>
+    <div className="w-full max-w-xs">
+      <Dropdown
+        fullWidth
+        disabled={disabled}
+        label="Payment Status"
+        options={options}
+        placeholder="Select payment status…"
+        value={paymentStatusId || "none"}
+        onChange={onChange}
+      />
+    </div>
   );
 }

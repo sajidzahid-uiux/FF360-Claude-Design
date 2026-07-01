@@ -497,7 +497,7 @@ export default function FinancialTab({
   }
 
   return (
-    <div className="mt-8 flex flex-col gap-4 p-2 sm:p-4">
+    <div className="flex flex-col gap-4 p-2 sm:p-4">
       {/* Section header: Edit → Save/Cancel, matching every other detail tab. */}
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-text-primary text-base font-semibold">Financial</h2>
@@ -526,10 +526,11 @@ export default function FinancialTab({
         onChange={setPaymentStatusId}
       />
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Summary Cards — flex+min-w so 4 fit per row on desktop. org-ui's
+          bundled Tailwind overrides `lg:grid-cols-4`, so grid is avoided here. */}
+      <div className="flex flex-wrap gap-4">
         {/* Sales Price Card - editable in edit mode, read-only otherwise */}
-        <Card className="gap-2 py-4">
+        <Card className="min-w-52 flex-1 gap-2 py-4">
           <CardHeader className="px-4">
             <CardTitle className="text-text-muted text-sm font-medium">
               Sales Price
@@ -555,7 +556,7 @@ export default function FinancialTab({
         </Card>
 
         {/* Budget Profit Card */}
-        <Card className="gap-2 py-4">
+        <Card className="min-w-52 flex-1 gap-2 py-4">
           <CardHeader className="px-4">
             <div className="flex items-center gap-1.5">
               <CardTitle className="text-text-muted text-sm font-medium">
@@ -570,7 +571,7 @@ export default function FinancialTab({
         </Card>
 
         {/* Actual Profit Card */}
-        <Card className="gap-2 py-4">
+        <Card className="min-w-52 flex-1 gap-2 py-4">
           <CardHeader className="px-4">
             <div className="flex items-center gap-1.5">
               <CardTitle className="text-text-muted text-sm font-medium">
@@ -585,7 +586,7 @@ export default function FinancialTab({
         </Card>
 
         {/* Machine Profit Card - Budget & Actual stacked */}
-        <Card className="gap-2 py-4">
+        <Card className="min-w-52 flex-1 gap-2 py-4">
           <CardContent className="space-y-3 px-4">
             <div className="flex w-full items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
@@ -630,11 +631,13 @@ export default function FinancialTab({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {/* Section 1: Labor Rate */}
+            {/* Every field is its own equal cell with an identical label row
+                (label + optional tooltip), so inputs stay the same size and
+                line up across the grid regardless of which fields have tooltips. */}
             <div>
-              <Label htmlFor="labor-rate" variant="inputBlock">
-                Labor Rate
-              </Label>
+              <div className="mb-2 flex h-5 items-center gap-2">
+                <Label htmlFor="labor-rate">Labor Rate</Label>
+              </div>
               <SanitizedInput
                 disabled={editDisabled}
                 id="labor-rate"
@@ -646,77 +649,72 @@ export default function FinancialTab({
               />
             </div>
 
-            {/* Section 2: Budget Hours and Actual Hours */}
-            <div className="space-y-2">
-              <div>
-                <Label htmlFor="budget-hours" variant="inputBlock">
-                  Budget Hours
-                </Label>
-                <SanitizedInput
-                  disabled={editDisabled}
-                  id="budget-hours"
-                  placeholder="0.00"
-                  step="0.01"
-                  type="number"
-                  value={budgetHours}
-                  onChange={(e) => setBudgetHours(e.target.value)}
-                />
+            <div>
+              <div className="mb-2 flex h-5 items-center gap-2">
+                <Label htmlFor="budget-hours">Budget Hours</Label>
               </div>
-              <div>
-                <div className="mb-2 flex items-center gap-2">
-                  <Label htmlFor="actual-hours" variant="inputBlock">
-                    Actual Hours
-                  </Label>
-                  <Tooltip content="Actual Hours = Sum Of Total Hours From Time Tracking Page" />
-                </div>
-                <SanitizedInput
-                  disabled
-                  readOnly
-                  className="bg-bg-surface"
-                  id="actual-hours"
-                  placeholder="0.00"
-                  step="0.01"
-                  type="number"
-                  value={actualHours}
-                />
-              </div>
+              <SanitizedInput
+                disabled={editDisabled}
+                id="budget-hours"
+                placeholder="0.00"
+                step="0.01"
+                type="number"
+                value={budgetHours}
+                onChange={(e) => setBudgetHours(e.target.value)}
+              />
             </div>
 
-            {/* Section 3: Labor Budget and Actual Budget */}
-            <div className="space-y-2">
-              <div>
-                <div className="mb-2 flex items-center gap-2">
-                  <Label>Labor Budget</Label>
-                  <Tooltip content="Labor Budget = Budget Hours × Labor Rate" />
-                </div>
-                <SanitizedInput
-                  disabled
-                  className="bg-bg-surface"
-                  type="text"
-                  value={`$${laborBudget}`}
-                />
+            <div>
+              <div className="mb-2 flex h-5 items-center gap-2">
+                <Label htmlFor="actual-hours">Actual Hours</Label>
+                <Tooltip content="Actual Hours = Sum Of Total Hours From Time Tracking Page" />
               </div>
-              <div>
-                <div className="mb-2 flex items-center gap-2">
-                  <Label>Actual Cost</Label>
-                  <Tooltip content="Actual Cost = Labor Rate × Actual Hours" />
-                </div>
-                <SanitizedInput
-                  disabled
-                  className="bg-bg-surface"
-                  type="text"
-                  value={`$${actualCost}`}
-                />
+              <SanitizedInput
+                disabled
+                readOnly
+                className="bg-bg-surface"
+                id="actual-hours"
+                placeholder="0.00"
+                step="0.01"
+                type="number"
+                value={actualHours}
+              />
+            </div>
+
+            <div>
+              <div className="mb-2 flex h-5 items-center gap-2">
+                <Label>Labor Budget</Label>
+                <Tooltip content="Labor Budget = Budget Hours × Labor Rate" />
               </div>
+              <SanitizedInput
+                disabled
+                className="bg-bg-surface"
+                type="text"
+                value={`$${laborBudget}`}
+              />
+            </div>
+
+            <div>
+              <div className="mb-2 flex h-5 items-center gap-2">
+                <Label>Actual Cost</Label>
+                <Tooltip content="Actual Cost = Labor Rate × Actual Hours" />
+              </div>
+              <SanitizedInput
+                disabled
+                className="bg-bg-surface"
+                type="text"
+                value={`$${actualCost}`}
+              />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Material and Overhead Cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      {/* Material, Overhead & Machine Assignment — one row on desktop, wrap on
+          smaller screens. Machine gets extra width via flex-[2]. */}
+      <div className="flex flex-wrap items-start gap-4">
         {/* Material Card */}
-        <Card>
+        <Card className="min-w-[15rem] flex-1">
           <CardHeader>
             <CardTitle className="text-base font-semibold">Material</CardTitle>
           </CardHeader>
@@ -753,7 +751,7 @@ export default function FinancialTab({
         </Card>
 
         {/* Overhead Card */}
-        <Card>
+        <Card className="min-w-[15rem] flex-1">
           <CardHeader>
             <CardTitle className="text-base font-semibold">Overhead</CardTitle>
           </CardHeader>
@@ -786,11 +784,10 @@ export default function FinancialTab({
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Machine Assignment Section */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        {/* Machine Assignment Section */}
+        <Card className="min-w-[22rem] flex-[2]">
+          <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base font-semibold">
             Machine Assignment
           </CardTitle>
@@ -1176,6 +1173,7 @@ export default function FinancialTab({
           })}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

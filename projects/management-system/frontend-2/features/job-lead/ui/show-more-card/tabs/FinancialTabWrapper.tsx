@@ -44,7 +44,7 @@ export function FinancialTabWrapper(props: TabRendererProps) {
   if (requiresPermissionGate) {
     return (
       <PermissionCodeGate fallback={null} permissionCode={permissionCode}>
-        <div className="mt-8 flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           <FinancialTab {...tabProps} />
         </div>
       </PermissionCodeGate>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   Button,
@@ -11,7 +11,7 @@ import {
   Textarea,
 } from "@fieldflow360/org-ui";
 import { formatDate } from "date-fns";
-import { MapPin } from "lucide-react";
+import { Maximize2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
 import type { TeamMember } from "@/api/types/team";
@@ -220,6 +220,21 @@ export function JobDetailsTab({
   const canMutateMapPins =
     Boolean(config.features.mapPins) && !isDisabled && !isTrashed;
 
+  // Pins list overlay starts collapsed; the map's "Pins" control toggles it.
+  const [isPinsPanelOpen, setIsPinsPanelOpen] = useState(false);
+  // "Full view" enlarges the on-site map to fill the screen.
+  const [isMapExpanded, setIsMapExpanded] = useState(false);
+
+  // Escape exits full view.
+  useEffect(() => {
+    if (!isMapExpanded) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsMapExpanded(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isMapExpanded]);
+
   const handleOpenManageCategories = useCallback(() => {
     if (!orgId) return;
     router.push(getSystemSettingsPinCategoriesPath(orgId));
@@ -356,7 +371,7 @@ export function JobDetailsTab({
   const mapViewportClass =
     "relative min-h-[min(440px,50vh)] w-full overflow-hidden rounded-xl border border-border-subtle bg-bg-surface";
 
-  const jobMapHeight = "min(440px, 50vh)";
+  const jobMapHeight = isMapExpanded ? "100dvh" : "min(440px, 50vh)";
   const jobMapEditHeight = "min(520px, 65vh)";
 
   return (
@@ -720,6 +735,15 @@ export function JobDetailsTab({
                 showUserLocationButton={editingMap}
                 userLocationAvailable={!!userLocation}
               />
+              {!editingMap ? (
+                <Button
+                  aria-label="Full view"
+                  leftIcon={<Maximize2 aria-hidden className="h-3.5 w-3.5" />}
+                  title="Full view"
+                  variant={ButtonVariantEnum.SURFACE}
+                  onClick={() => setIsMapExpanded(true)}
+                />
+              ) : null}
             </div>
 
             {!editingMap ? (
@@ -830,14 +854,18 @@ export function JobDetailsTab({
 
         <div
           className={
-            editingMap && !isTrashed
-              ? "border-border-subtle bg-bg-surface relative min-h-[min(520px,65vh)] w-full overflow-hidden rounded-xl border"
-              : mapViewportClass
+            isMapExpanded
+              ? "bg-bg-app fixed inset-0 z-50 w-full overflow-hidden border-0"
+              : editingMap && !isTrashed
+                ? "border-border-subtle bg-bg-surface relative min-h-[min(520px,65vh)] w-full overflow-hidden rounded-xl border"
+                : mapViewportClass
           }
           style={
-            editingMap && !isTrashed
-              ? { minHeight: "min(520px, 65vh)" }
-              : { minHeight: jobMapHeight }
+            isMapExpanded
+              ? { minHeight: "100dvh" }
+              : editingMap && !isTrashed
+                ? { minHeight: "min(520px, 65vh)" }
+                : { minHeight: jobMapHeight }
           }
         >
           {editingMap && !isTrashed ? (
@@ -919,6 +947,8 @@ export function JobDetailsTab({
                 canMutatePins={canMutateMapPins}
                 coreDisabled={isDisabled}
                 isCorePointMode={isCorePointMode}
+                isMapExpanded={isMapExpanded}
+                isPinsListOpen={isPinsPanelOpen}
                 showAddCore={
                   Boolean(config.features.corePoints) &&
                   canEditCorePoints &&
@@ -929,8 +959,14 @@ export function JobDetailsTab({
                 onCreatePin={handlePinCreate}
                 onManageCategories={handleOpenManageCategories}
                 onPlacePinOnMap={handleArmPlacePinOnMap}
+                onToggleMapExpand={() => setIsMapExpanded((open) => !open)}
+                onTogglePinsList={
+                  config.features.mapPins
+                    ? () => setIsPinsPanelOpen((open) => !open)
+                    : undefined
+                }
               />
-              {config.features.mapPins ? (
+              {config.features.mapPins && isPinsPanelOpen ? (
                 <div className="absolute top-16 left-3 z-20 w-[min(280px,calc(100%-1.5rem))]">
                   <MapPinsPanel
                     hideHeaderActions

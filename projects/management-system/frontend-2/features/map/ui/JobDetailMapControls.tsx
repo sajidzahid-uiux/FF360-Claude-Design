@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import type { RefObject } from "react";
 
 import { Button, ButtonVariantEnum, ComponentSizeEnum } from "@fieldflow360/org-ui";
-import { Navigation, Plus, Tag } from "lucide-react";
+import { List, Maximize2, Minimize2, Navigation, Plus, Tag } from "lucide-react";
 
 import type { BoundaryMapRef } from "@/shared/ui/common/map";
 
@@ -28,6 +28,12 @@ export interface JobDetailMapControlsProps {
   showAddCore: boolean;
   isCorePointMode: boolean;
   coreDisabled: boolean;
+  // Pins list panel (search/list) — toggled open on click, closed by default.
+  isPinsListOpen?: boolean;
+  onTogglePinsList?: () => void;
+  // Full view / expand — enlarges the map to fill the screen.
+  isMapExpanded?: boolean;
+  onToggleMapExpand?: () => void;
 }
 
 /**
@@ -47,6 +53,10 @@ export function JobDetailMapControls({
   showAddCore,
   isCorePointMode,
   coreDisabled,
+  isPinsListOpen = false,
+  onTogglePinsList,
+  isMapExpanded = false,
+  onToggleMapExpand,
 }: JobDetailMapControlsProps) {
   const [isPinPopoverOpen, setIsPinPopoverOpen] = useState(false);
   const addPinAnchorRef = useRef<HTMLDivElement>(null);
@@ -57,6 +67,24 @@ export function JobDetailMapControls({
 
   return (
     <div className="absolute top-3 right-3 z-20 flex flex-wrap items-start justify-end gap-2">
+      {onToggleMapExpand ? (
+        <Button
+          iconOnly
+          aria-label={isMapExpanded ? "Exit full view" : "Full view"}
+          className={OVERLAY_BUTTON_CLASS}
+          leftIcon={
+            isMapExpanded ? (
+              <Minimize2 className="h-5 w-5" />
+            ) : (
+              <Maximize2 className="h-5 w-5" />
+            )
+          }
+          size={ComponentSizeEnum.MD}
+          variant={ButtonVariantEnum.SURFACE}
+          onClick={onToggleMapExpand}
+        />
+      ) : null}
+
       <Button
         iconOnly
         aria-label={userLocation ? "My location" : "Location not available"}
@@ -70,6 +98,21 @@ export function JobDetailMapControls({
 
       {showPins ? (
         <>
+          {onTogglePinsList ? (
+            <Button
+              iconOnly
+              aria-label={isPinsListOpen ? "Hide pins list" : "Show pins list"}
+              className={OVERLAY_BUTTON_CLASS}
+              leftIcon={<List className="h-5 w-5" />}
+              size={ComponentSizeEnum.MD}
+              variant={
+                isPinsListOpen
+                  ? ButtonVariantEnum.ACCENT
+                  : ButtonVariantEnum.SURFACE
+              }
+              onClick={onTogglePinsList}
+            />
+          ) : null}
           <div ref={addPinAnchorRef} className="inline-flex">
             <Button
               className={OVERLAY_BUTTON_CLASS}

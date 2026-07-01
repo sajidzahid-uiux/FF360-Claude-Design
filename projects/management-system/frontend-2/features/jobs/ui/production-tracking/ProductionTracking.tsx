@@ -290,10 +290,12 @@ export default function ProductionTracking({
         title="Project team"
       >
         <div className="space-y-4">
-          {/* Groups Section */}
-          {groupAssignments.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-lg font-medium">Assigned Groups</h3>
+          {/* Groups and Individuals sit side by side on desktop to save space. */}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* Groups Section */}
+            {groupAssignments.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-lg font-medium">Assigned Groups</h3>
               <div className="space-y-2">
                 {groupAssignments.map((assignment) => (
                   <CrewAssignmentCard
@@ -327,6 +329,7 @@ export default function ProductionTracking({
               </div>
             </div>
           )}
+          </div>
 
           {/* Empty State */}
           {allAssignments.length === 0 && (
