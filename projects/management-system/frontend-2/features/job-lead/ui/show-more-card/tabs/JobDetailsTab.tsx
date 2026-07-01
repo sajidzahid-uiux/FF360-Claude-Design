@@ -406,48 +406,46 @@ export function JobDetailsTab({
               }
             />
 
-            {/* Farm acres and Lead Acre; Designers side by side */}
-            <div className="mt-4 flex flex-col gap-6 sm:flex-row sm:gap-8">
+            {/* Farm acres, Lead acre and Designers packed into a single row. */}
+            <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-3">
               {config.features.acreage && (
-                <div className="flex w-full min-w-0 flex-col gap-3 sm:w-1/2">
-                  <div>
-                    <Input
-                      className="bg-bg-surface"
-                      disabled={true}
-                      label="Acres"
-                      placeholder="Acres"
-                      type="text"
-                      value={
-                        entityDataState.farm_info?.acreage ||
-                        entityDataState.acers ||
-                        "N/A"
-                      }
-                    />
-                  </div>
-                  {config.jobType === JobType.TILING && (
-                    <div>
-                      <Input
-                        disabled={infoDisabled}
-                        label="Lead acre"
-                        min={0}
-                        placeholder="Optional"
-                        type="number"
-                        value={entityDataState.job_lead_acre ?? ""}
-                        onChange={(e) => {
-                          const next = jobLeadAcreFromRawInput(e.target.value);
-                          if (next === undefined) return;
-                          setEntityDataState((prev: EntityDataState) => ({
-                            ...prev,
-                            job_lead_acre: next,
-                          }));
-                        }}
-                      />
-                    </div>
-                  )}
+                <div className="w-full min-w-0">
+                  <Input
+                    className="bg-bg-surface"
+                    disabled={true}
+                    label="Acres"
+                    placeholder="Acres"
+                    type="text"
+                    value={
+                      entityDataState.farm_info?.acreage ||
+                      entityDataState.acers ||
+                      "N/A"
+                    }
+                  />
+                </div>
+              )}
+              {config.features.acreage && config.jobType === JobType.TILING && (
+                <div className="w-full min-w-0">
+                  <Input
+                    disabled={infoDisabled}
+                    label="Lead acre"
+                    min={0}
+                    placeholder="Optional"
+                    type="number"
+                    value={entityDataState.job_lead_acre ?? ""}
+                    onChange={(e) => {
+                      const next = jobLeadAcreFromRawInput(e.target.value);
+                      if (next === undefined) return;
+                      setEntityDataState((prev: EntityDataState) => ({
+                        ...prev,
+                        job_lead_acre: next,
+                      }));
+                    }}
+                  />
                 </div>
               )}
 
-              <div className="w-full min-w-0 sm:w-1/2">
+              <div className="w-full min-w-0">
                 <DesignerSelection
                   allTeam={allTeam}
                   deferPatch={isInfoEditing}
@@ -469,10 +467,10 @@ export function JobDetailsTab({
           <>
             {/* For jobs: Grid layout */}
             {config.features.designerAssignment && (
-              <div className="mb-4 grid grid-cols-1 gap-x-6 gap-y-6 md:grid-cols-2">
-                {/* Assigned Designer — full-width row so the dropdown has room */}
-                <div className="w-full min-w-0 md:col-span-2">
-                  <div className="text-md mb-2 flex flex-col gap-2 font-medium whitespace-nowrap">
+              <div className="mb-4 grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-3">
+                {/* Assigned Designer shares the first row with Acres / Job acre. */}
+                <div className="w-full min-w-0">
+                  <div className="mb-2 text-sm font-medium whitespace-nowrap">
                     Assigned Designer
                   </div>
                   {isInfoEditing ? (
@@ -813,11 +811,13 @@ export function JobDetailsTab({
               {locationError}
             </p>
           ) : null}
-          {config.features.mapPins && !isTrashed ? (
+          {/* While editing the boundary the pin list stays inline (the map is in
+              edit mode, so it has no overlay); in the read-only view the pin list
+              floats on the map instead — see JobDetailMapControls area below. */}
+          {config.features.mapPins && !isTrashed && editingMap ? (
             <MapPinsPanel
               defaultMapCenter={organizationLocation}
               disabled={!canMutateMapPins}
-              hideHeaderActions={!editingMap}
               mapLayerContext={addPinMapLayerContext}
               pins={mapPins}
               userLocation={userLocation}
@@ -930,6 +930,22 @@ export function JobDetailsTab({
                 onManageCategories={handleOpenManageCategories}
                 onPlacePinOnMap={handleArmPlacePinOnMap}
               />
+              {config.features.mapPins ? (
+                <div className="absolute top-16 left-3 z-20 w-[min(280px,calc(100%-1.5rem))]">
+                  <MapPinsPanel
+                    hideHeaderActions
+                    overlay
+                    defaultMapCenter={organizationLocation}
+                    disabled={!canMutateMapPins}
+                    mapLayerContext={addPinMapLayerContext}
+                    pins={mapPins}
+                    userLocation={userLocation}
+                    onManageCategories={handleOpenManageCategories}
+                    onPinCreate={canMutateMapPins ? handlePinCreate : undefined}
+                    onPinFocus={handlePinFocus}
+                  />
+                </div>
+              ) : null}
             </>
           )}
         </div>

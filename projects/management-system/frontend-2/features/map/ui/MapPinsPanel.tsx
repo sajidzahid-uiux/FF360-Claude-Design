@@ -40,6 +40,9 @@ export interface MapPinsPanelProps {
   /** Hides the Add Pin / Manage Categories header buttons when those actions
    * are surfaced elsewhere (e.g. as on-map overlay controls). */
   hideHeaderActions?: boolean;
+  /** Renders as an elevated floating panel (for overlaying the map) rather
+   * than an inline card. */
+  overlay?: boolean;
 }
 
 export function MapPinsPanel({
@@ -52,6 +55,7 @@ export function MapPinsPanel({
   onPinFocus,
   onManageCategories,
   hideHeaderActions = false,
+  overlay = false,
 }: MapPinsPanelProps) {
   const { stack, openModal, closeModalKey } = useModalStack();
   const [search, setSearch] = useState("");
@@ -83,7 +87,14 @@ export function MapPinsPanel({
 
   return (
     <>
-      <div className="border-border-subtle bg-bg-surface mb-3 overflow-hidden rounded-lg border">
+      <div
+        className={cn(
+          "overflow-hidden rounded-lg border",
+          overlay
+            ? "border-border-subtle/80 bg-bg-surface-elevated/95 shadow-md backdrop-blur-sm"
+            : "border-border-subtle bg-bg-surface mb-3"
+        )}
+      >
         <div className="border-border-subtle flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
           <div className="flex items-center gap-2">
             <MapPin aria-hidden className="text-text-muted h-4 w-4" />
@@ -122,7 +133,12 @@ export function MapPinsPanel({
           />
         </div>
 
-        <ul className="divide-border-subtle max-h-60 divide-y overflow-y-auto">
+        <ul
+          className={cn(
+            "divide-border-subtle divide-y overflow-y-auto",
+            overlay ? "max-h-44" : "max-h-60"
+          )}
+        >
           {filteredPins.length === 0 ? (
             <li className="text-text-muted px-4 py-6 text-center text-sm">
               {pins.length === 0
