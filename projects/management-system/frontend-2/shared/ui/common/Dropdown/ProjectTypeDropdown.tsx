@@ -81,7 +81,9 @@ export function ProjectTypeDropdown({
         coloredDropdownTrigger({
           prefix: showLabel ? "Project type:" : undefined,
           label: selectedType?.name ?? "None",
-          dotColor: selectedType?.color,
+          // Fall back to a neutral dot for the "None" state so the trigger
+          // always shows a color circle, matching the Status dropdown.
+          dotColor: selectedType?.color ?? "var(--color-text-muted, #9ca3af)",
           placeholder,
           disabled: triggerDisabled,
           isOpen,
