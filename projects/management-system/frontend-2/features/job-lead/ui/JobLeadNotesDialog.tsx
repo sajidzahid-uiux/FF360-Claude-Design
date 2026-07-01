@@ -41,10 +41,10 @@ export function JobLeadNotesDialog({
       title="Notes & comments"
       onClose={() => onOpenChange(false)}
     >
-      <div className="flex flex-col gap-4">
+      <div className="flex h-full min-h-0 flex-col gap-4">
         {/* Header row mirrors the docked/floating notes: count badge on the
             left, export action on the right — kept out of the footer. */}
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex shrink-0 items-center justify-end gap-2">
           <NotesCountBadge className="mr-auto" count={commentCount} />
           <NotesExportControl
             availableSections={availableSections}
@@ -53,6 +53,7 @@ export function JobLeadNotesDialog({
         </div>
         <JobLeadNotesPanel
           {...panelProps}
+          fillHeight
           comments={comments}
           entityDataState={entityDataState}
           entityType={entityType}

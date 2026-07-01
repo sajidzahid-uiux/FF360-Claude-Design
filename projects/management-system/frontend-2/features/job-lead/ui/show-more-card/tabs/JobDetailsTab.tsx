@@ -374,12 +374,138 @@ export function JobDetailsTab({
   const jobMapHeight = isMapExpanded ? "100dvh" : "min(440px, 50vh)";
   const jobMapEditHeight = "min(520px, 65vh)";
 
+  // Map toolbar buttons live in the section header (right of the title) instead
+  // of a separate row above the map, to reclaim vertical space.
+  const farmActions = (
+    <>
+      {!editingMap ? (
+        <>
+          {!entityDataState.farm_info ? (
+            <Button
+              aria-label={`Add ${ON_SITE_OPERATION_LABEL}`}
+              disabled={isDisabled}
+              size={ComponentSizeEnum.SM}
+              title={`Add ${ON_SITE_OPERATION_LABEL}`}
+              variant={ButtonVariantEnum.SURFACE}
+              onClick={openFarmAssignmentDialog}
+            />
+          ) : null}
+          {entityDataState.farm_info && canEditFarm ? (
+            <Button
+              aria-label={`Edit ${ON_SITE_OPERATION_LABEL}`}
+              disabled={isDisabled}
+              size={ComponentSizeEnum.SM}
+              title={`Edit ${ON_SITE_OPERATION_LABEL}`}
+              variant={ButtonVariantEnum.SURFACE}
+              onClick={() => {
+                router.push(
+                  `${orgUrl(orgId, `/contact/${entityDataState.contact_info?.id}`, `farmId=${entityDataState.farm_info?.id}`)}`
+                );
+              }}
+            />
+          ) : null}
+        </>
+      ) : null}
+      <CenterOnLocation
+        boundaryMapRef={boundaryMapRef}
+        organizationLocationAvailable={!!organizationLocation}
+        showUserLocationButton={editingMap}
+        size={ComponentSizeEnum.SM}
+        userLocationAvailable={!!userLocation}
+      />
+      {!editingMap ? (
+        <Button
+          aria-label="Full view"
+          leftIcon={<Maximize2 aria-hidden className="h-3.5 w-3.5" />}
+          size={ComponentSizeEnum.SM}
+          title="Full view"
+          variant={ButtonVariantEnum.SURFACE}
+          onClick={() => setIsMapExpanded(true)}
+        />
+      ) : null}
+      {!editingMap ? (
+        <>
+          {xmlMaps.map((mapFile, index) => (
+            <Button
+              key={`xml-center-${mapFile.id}`}
+              leftIcon={<MapPin aria-hidden className="h-3.5 w-3.5" />}
+              size={ComponentSizeEnum.SM}
+              title={xmlMaps.length > 1 ? `Go to XML ${index + 1}` : "Go to XML"}
+              variant={ButtonVariantEnum.SURFACE}
+              onClick={() => {
+                boundaryMapRef.current?.centerOnXmlMap(
+                  mapFile as Parameters<
+                    NonNullable<typeof boundaryMapRef.current>["centerOnXmlMap"]
+                  >[0]
+                );
+              }}
+            />
+          ))}
+          {shpMaps.map((mapFile, index) => (
+            <Button
+              key={`shp-center-${mapFile.id}`}
+              leftIcon={<MapPin aria-hidden className="h-3.5 w-3.5" />}
+              size={ComponentSizeEnum.SM}
+              title={
+                shpMaps.length > 1
+                  ? `Go to shapefile ${index + 1}`
+                  : "Go to shapefile"
+              }
+              variant={ButtonVariantEnum.SURFACE}
+              onClick={() => {
+                boundaryMapRef.current?.centerOnShpMap(
+                  mapFile as Parameters<
+                    NonNullable<typeof boundaryMapRef.current>["centerOnShpMap"]
+                  >[0]
+                );
+              }}
+            />
+          ))}
+          {kmlMaps.map((mapFile, index) => (
+            <Button
+              key={`kml-center-${mapFile.id}`}
+              leftIcon={<MapPin aria-hidden className="h-3.5 w-3.5" />}
+              size={ComponentSizeEnum.SM}
+              title={kmlMaps.length > 1 ? `Go to KML ${index + 1}` : "Go to KML"}
+              variant={ButtonVariantEnum.SURFACE}
+              onClick={() => {
+                boundaryMapRef.current?.centerOnKmlMap(
+                  mapFile as Parameters<
+                    NonNullable<typeof boundaryMapRef.current>["centerOnKmlMap"]
+                  >[0]
+                );
+              }}
+            />
+          ))}
+        </>
+      ) : (
+        <>
+          <Button
+            aria-label="Save map"
+            size={ComponentSizeEnum.SM}
+            title="Save map"
+            onClick={handleMapEditSave}
+          />
+          <Button
+            aria-label="Cancel"
+            size={ComponentSizeEnum.SM}
+            title="Cancel"
+            variant={ButtonVariantEnum.SURFACE}
+            onClick={handleMapEditCancel}
+          />
+        </>
+      )}
+    </>
+  );
+
   return (
     // Notes moved to a floating widget, so the body spans full width. Split the
-    // information and the on-site/location map into two columns on large screens
-    // to use the freed space instead of leaving a wide, sparse single column.
-    <div className="grid w-full grid-cols-1 items-start gap-5 lg:grid-cols-2">
+    // information and the on-site/location map into a ~30/70 row on wide screens
+    // (the field map gets the bulk of the width); wraps to stacked on narrow
+    // screens. flex-wrap (not lg:grid) sidesteps the org-ui responsive override.
+    <div className="flex w-full flex-wrap items-start gap-5">
       <DetailFormSection
+        className="min-w-[18rem] flex-[3]"
         actions={
           <div className="flex items-center gap-2">
             {lastUpdatedLabel ? (
@@ -695,162 +821,31 @@ export function JobDetailsTab({
         )}
       </DetailFormSection>
       <DetailFormSection
+        actions={farmActions}
+        className="min-w-[20rem] flex-[7]"
         description={farmSectionDescription}
         title={farmSectionTitle}
       >
-        <div className="border-border-subtle bg-bg-surface/30 space-y-3 rounded-lg border p-3 sm:p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              {!editingMap ? (
-                <>
-                  {!entityDataState.farm_info ? (
-                    <Button
-                      aria-label={`Add ${ON_SITE_OPERATION_LABEL}`}
-                      disabled={isDisabled}
-                      title={`Add ${ON_SITE_OPERATION_LABEL}`}
-                      variant={ButtonVariantEnum.SURFACE}
-                      onClick={openFarmAssignmentDialog}
-                    />
-                  ) : null}
-                  {entityDataState.farm_info && canEditFarm ? (
-                    <Button
-                      aria-label={`Edit ${ON_SITE_OPERATION_LABEL}`}
-                      disabled={isDisabled}
-                      title={`Edit ${ON_SITE_OPERATION_LABEL}`}
-                      variant={ButtonVariantEnum.SURFACE}
-                      onClick={() => {
-                        router.push(
-                          `${orgUrl(orgId, `/contact/${entityDataState.contact_info?.id}`, `farmId=${entityDataState.farm_info?.id}`)}`
-                        );
-                      }}
-                    />
-                  ) : null}
-                </>
-              ) : null}
-              {/* My location moves onto the map overlay in the read-only view;
-                  keep it in the toolbar only while editing (no overlay there). */}
-              <CenterOnLocation
-                boundaryMapRef={boundaryMapRef}
-                organizationLocationAvailable={!!organizationLocation}
-                showUserLocationButton={editingMap}
-                userLocationAvailable={!!userLocation}
-              />
-              {!editingMap ? (
-                <Button
-                  aria-label="Full view"
-                  leftIcon={<Maximize2 aria-hidden className="h-3.5 w-3.5" />}
-                  title="Full view"
-                  variant={ButtonVariantEnum.SURFACE}
-                  onClick={() => setIsMapExpanded(true)}
-                />
-              ) : null}
-            </div>
-
-            {!editingMap ? (
-              <div className="flex min-w-0 flex-wrap items-center gap-2 sm:ml-auto">
-                {xmlMaps.map((mapFile, index) => (
-                  <Button
-                    key={`xml-center-${mapFile.id}`}
-                    leftIcon={<MapPin aria-hidden className="h-3.5 w-3.5" />}
-                    title={
-                      xmlMaps.length > 1
-                        ? `Go to XML ${index + 1}`
-                        : "Go to XML"
-                    }
-                    variant={ButtonVariantEnum.SURFACE}
-                    onClick={() => {
-                      boundaryMapRef.current?.centerOnXmlMap(
-                        mapFile as Parameters<
-                          NonNullable<
-                            typeof boundaryMapRef.current
-                          >["centerOnXmlMap"]
-                        >[0]
-                      );
-                    }}
-                  />
-                ))}
-                {shpMaps.map((mapFile, index) => (
-                  <Button
-                    key={`shp-center-${mapFile.id}`}
-                    leftIcon={<MapPin aria-hidden className="h-3.5 w-3.5" />}
-                    title={
-                      shpMaps.length > 1
-                        ? `Go to shapefile ${index + 1}`
-                        : "Go to shapefile"
-                    }
-                    variant={ButtonVariantEnum.SURFACE}
-                    onClick={() => {
-                      boundaryMapRef.current?.centerOnShpMap(
-                        mapFile as Parameters<
-                          NonNullable<
-                            typeof boundaryMapRef.current
-                          >["centerOnShpMap"]
-                        >[0]
-                      );
-                    }}
-                  />
-                ))}
-                {kmlMaps.map((mapFile, index) => (
-                  <Button
-                    key={`kml-center-${mapFile.id}`}
-                    leftIcon={<MapPin aria-hidden className="h-3.5 w-3.5" />}
-                    title={
-                      kmlMaps.length > 1
-                        ? `Go to KML ${index + 1}`
-                        : "Go to KML"
-                    }
-                    variant={ButtonVariantEnum.SURFACE}
-                    onClick={() => {
-                      boundaryMapRef.current?.centerOnKmlMap(
-                        mapFile as Parameters<
-                          NonNullable<
-                            typeof boundaryMapRef.current
-                          >["centerOnKmlMap"]
-                        >[0]
-                      );
-                    }}
-                  />
-                ))}
-                {/* Add Core moved onto the map overlay (JobDetailMapControls). */}
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2 sm:ml-auto">
-                <Button
-                  aria-label="Save map"
-                  title="Save map"
-                  onClick={handleMapEditSave}
-                />
-                <Button
-                  aria-label="Cancel"
-                  title="Cancel"
-                  variant={ButtonVariantEnum.SURFACE}
-                  onClick={handleMapEditCancel}
-                />
-              </div>
-            )}
-          </div>
-
-          {locationError ? (
-            <p className="text-feedback-error text-sm" role="alert">
-              {locationError}
-            </p>
-          ) : null}
-          {/* While editing the boundary the pin list stays inline (the map is in
-              edit mode, so it has no overlay); in the read-only view the pin list
-              floats on the map instead — see JobDetailMapControls area below. */}
-          {config.features.mapPins && !isTrashed && editingMap ? (
-            <MapPinsPanel
-              defaultMapCenter={organizationLocation}
-              disabled={!canMutateMapPins}
-              mapLayerContext={addPinMapLayerContext}
-              pins={mapPins}
-              userLocation={userLocation}
-              onManageCategories={handleOpenManageCategories}
-              onPinCreate={canMutateMapPins ? handlePinCreate : undefined}
-              onPinFocus={handlePinFocus}
-            />
-          ) : null}
-        </div>
+        {locationError ? (
+          <p className="text-feedback-error text-sm" role="alert">
+            {locationError}
+          </p>
+        ) : null}
+        {/* While editing the boundary the pin list stays inline (the map is in
+            edit mode, so it has no overlay); in the read-only view the pin list
+            floats on the map instead — see JobDetailMapControls area below. */}
+        {config.features.mapPins && !isTrashed && editingMap ? (
+          <MapPinsPanel
+            defaultMapCenter={organizationLocation}
+            disabled={!canMutateMapPins}
+            mapLayerContext={addPinMapLayerContext}
+            pins={mapPins}
+            userLocation={userLocation}
+            onManageCategories={handleOpenManageCategories}
+            onPinCreate={canMutateMapPins ? handlePinCreate : undefined}
+            onPinFocus={handlePinFocus}
+          />
+        ) : null}
 
         <div
           className={

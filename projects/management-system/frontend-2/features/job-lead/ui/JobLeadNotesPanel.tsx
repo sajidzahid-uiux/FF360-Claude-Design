@@ -23,6 +23,8 @@ export interface JobLeadNotesPanelProps {
   toggleArchive?: boolean;
   canEdit: boolean;
   canEditLeadPage: boolean;
+  /** Stretch to fill the parent height so the composer pins to the bottom. */
+  fillHeight?: boolean;
 }
 
 export function JobLeadNotesPanel({
@@ -36,6 +38,7 @@ export function JobLeadNotesPanel({
   toggleArchive,
   canEdit,
   canEditLeadPage,
+  fillHeight,
 }: JobLeadNotesPanelProps) {
   const notesTabAccessForJob = useMemo(
     () =>
@@ -60,6 +63,7 @@ export function JobLeadNotesPanel({
       deleteComment={(id) =>
         commentsHook.deleteComment.mutateAsync({ comment_id: id })
       }
+      fillHeight={fillHeight}
       exportContext={
         entityDataState.id
           ? {

@@ -9,6 +9,8 @@ import type {
   NotesExportContext,
   NotesTabAccess,
 } from "@/api/types";
+import { cn } from "@fieldflow360/org-ui";
+
 import { NoteSection } from "@/constants";
 import { NotesSection, type NotesSectionProps } from "@/shared/ui";
 import { canWriteNoteSection, pickInitialNoteSection } from "@/utils/notes";
@@ -24,6 +26,8 @@ export type NotesProps = Omit<NotesSectionProps, "readOnly"> & {
   notesTabAccess?: NotesTabAccess;
   readOnly?: boolean;
   showExportControl?: boolean;
+  /** Stretch to fill the parent's height so the composer pins to the bottom. */
+  fillHeight?: boolean;
 };
 
 export default function Notes({
@@ -44,6 +48,7 @@ export default function Notes({
   title,
   showExportControl = true,
   className,
+  fillHeight = false,
 }: NotesProps) {
   const noteWriteOptions = useMemo(
     () => ({
@@ -77,7 +82,9 @@ export default function Notes({
   );
 
   return (
-    <div className={className}>
+    <div
+      className={cn(fillHeight && "flex min-h-0 flex-1 flex-col", className)}
+    >
       {showExportControl ? (
         <div className="mb-3 flex justify-end">
           <NotesExportControl
@@ -89,6 +96,7 @@ export default function Notes({
       <NotesSection
         activeSection={activeSection}
         availableSections={availableSections}
+        className={cn(fillHeight && "min-h-0 flex-1")}
         comments={comments}
         deleteComment={deleteComment}
         embedded={embedded}

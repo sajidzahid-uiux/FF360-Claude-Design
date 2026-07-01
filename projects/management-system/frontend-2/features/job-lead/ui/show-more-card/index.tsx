@@ -9,7 +9,6 @@ import {
 } from "@fieldflow360/org-ui";
 import { ComponentSizeEnum, Loader } from "@fieldflow360/org-ui";
 import { CheckCircle, Share2, Trash2 } from "lucide-react";
-import { toast } from "sonner";
 
 import type { JobUpdatePayload } from "@/api/types";
 import {
@@ -476,6 +475,8 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
             onProjectTypeChange={handleProjectTypeChange}
           />
         ) : null}
+        {/* "Share to Designer" hidden for now (all lead/job types). Restore
+            this block to bring it back for Tiling leads.
         {config.jobType === JobType.TILING &&
         entityType === ResourceType.LEAD ? (
           <Button
@@ -486,7 +487,7 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
             variant={ButtonVariantEnum.SURFACE}
             onClick={() => toast.message("Feature Coming Soon!")}
           />
-        ) : null}
+        ) : null} */}
         {entityType === ResourceType.LEAD && convertHook ? (
           <Button
             aria-label="Convert to Job"

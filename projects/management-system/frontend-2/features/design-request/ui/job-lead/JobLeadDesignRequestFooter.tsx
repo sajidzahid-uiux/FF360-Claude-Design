@@ -53,7 +53,6 @@ export function JobLeadDesignRequestFooter({
   const showButton = shouldShowDesignRequestFooterButton(variant);
   const isRequestButton = variant === "request";
 
-  const designRequestButtonClassName = "min-w-[12rem] flex-1 sm:flex-none";
   const designRequestButtonIcon = (
     <Share2 aria-hidden className="h-4 w-4" strokeWidth={2} />
   );
@@ -93,14 +92,13 @@ export function JobLeadDesignRequestFooter({
           />
         ) : null}
         {showDesignRequest ? (
-          <>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
             {status ? <DesignRequestStatusBadge status={status} /> : null}
             {showButton && buttonTitle ? (
               isRequestButton ? (
                 <Button
                   aria-label={buttonTitle}
                   backgroundColor="var(--accent-design-request)"
-                  className={designRequestButtonClassName}
                   foregroundColor="var(--accent-design-request-foreground)"
                   leftIcon={designRequestButtonIcon}
                   title={buttonTitle}
@@ -110,7 +108,6 @@ export function JobLeadDesignRequestFooter({
               ) : (
                 <Button
                   aria-label={buttonTitle}
-                  className={designRequestButtonClassName}
                   leftIcon={designRequestButtonIcon}
                   title={buttonTitle}
                   variant={ButtonVariantEnum.ACCENT}
@@ -120,13 +117,12 @@ export function JobLeadDesignRequestFooter({
             ) : buttonTitle ? (
               <Button
                 aria-label={buttonTitle}
-                className="flex-1 sm:flex-none"
                 title={buttonTitle}
                 variant={ButtonVariantEnum.GHOST}
                 onClick={onOpenPanel}
               />
             ) : null}
-          </>
+          </div>
         ) : null}
         {onOpenNotes ? (
           <Button

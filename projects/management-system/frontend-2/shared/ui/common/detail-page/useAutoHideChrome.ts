@@ -48,40 +48,66 @@ export function useAutoHideChrome(enabled: boolean): AutoHideChrome {
   // We detect those by the changed geometry and resync instead of flipping.
   const lastScrollH = useRef(0);
   const lastClientH = useRef(0);
+  // Mirror hidden + chrome heights in refs so the dependency-free scroll
+  // handler reads current values without a stale closure.
+  const hiddenRef = useRef(false);
+  const headerHRef = useRef(0);
+  const footerHRef = useRef(0);
+
+  const applyHidden = useCallback((next: boolean) => {
+    hiddenRef.current = next;
+    setHidden(next);
+  }, []);
 
   // --- scroll body: track direction and toggle hidden ---
   const handleScroll = useCallback(() => {
     const el = scrollEl.current;
     if (!el) return;
     const y = el.scrollTop;
+    const maxScroll = el.scrollHeight - el.clientHeight;
+
+    const layoutChanged =
+      el.scrollHeight !== lastScrollH.current ||
+      el.clientHeight !== lastClientH.current;
+    lastScrollH.current = el.scrollHeight;
+    lastClientH.current = el.clientHeight;
+
+    // Always show the chrome near the top, or when there isn't enough content
+    // to scroll back up once it's hidden. Without this, a short page (e.g. a
+    // repair job with few fields) can hide the chrome and then have nothing
+    // left to scroll — leaving it gone for good.
+    if (y <= TOP_REVEAL_ZONE || maxScroll <= TOP_REVEAL_ZONE) {
+      applyHidden(false);
+      lastY.current = y;
+      return;
+    }
 
     // A scroll fired because our own collapse/expand animation resized the
-    // body (scrollHeight/clientHeight changed), not because the user moved.
-    // Rebase the direction anchor and bail so we don't oscillate.
-    if (
-      el.scrollHeight !== lastScrollH.current ||
-      el.clientHeight !== lastClientH.current
-    ) {
-      lastScrollH.current = el.scrollHeight;
-      lastClientH.current = el.clientHeight;
+    // body, not because the user moved. Rebase the anchor and bail so we
+    // don't oscillate near the bottom.
+    if (layoutChanged) {
       lastY.current = y;
       return;
     }
 
     const delta = y - lastY.current;
 
-    if (y <= TOP_REVEAL_ZONE) {
-      setHidden(false);
-    } else if (delta > DIRECTION_THRESHOLD) {
-      setHidden(true);
+    if (delta > DIRECTION_THRESHOLD) {
+      // Only hide if, once hidden, there's still room to scroll back up and
+      // reveal it again (hiding grows the body by the chrome height).
+      const chromeH = headerHRef.current + footerHRef.current;
+      const maxScrollWhenHidden = hiddenRef.current ? maxScroll : maxScroll - chromeH;
+      if (maxScrollWhenHidden > TOP_REVEAL_ZONE) {
+        applyHidden(true);
+      }
     } else if (delta < -DIRECTION_THRESHOLD) {
-      setHidden(false);
+      applyHidden(false);
     }
 
-    if (Math.abs(delta) > DIRECTION_THRESHOLD || y <= TOP_REVEAL_ZONE) {
+    if (Math.abs(delta) > DIRECTION_THRESHOLD) {
       lastY.current = y;
     }
-  }, []);
+  }, [applyHidden]);
 
   const scrollRef = useCallback(
     (node: HTMLDivElement | null) => {
@@ -102,12 +128,20 @@ export function useAutoHideChrome(enabled: boolean): AutoHideChrome {
   // --- measure header / footer so the slide distance matches reality ---
   const headerRef = useCallback((node: HTMLDivElement | null) => {
     headerEl.current = node;
-    if (node) setHeaderH(node.getBoundingClientRect().height);
+    if (node) {
+      const h = node.getBoundingClientRect().height;
+      headerHRef.current = h;
+      setHeaderH(h);
+    }
   }, []);
 
   const footerRef = useCallback((node: HTMLDivElement | null) => {
     footerEl.current = node;
-    if (node) setFooterH(node.getBoundingClientRect().height);
+    if (node) {
+      const h = node.getBoundingClientRect().height;
+      footerHRef.current = h;
+      setFooterH(h);
+    }
   }, []);
 
   useEffect(() => {
@@ -115,8 +149,13 @@ export function useAutoHideChrome(enabled: boolean): AutoHideChrome {
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const h = entry.contentRect.height;
-        if (entry.target === headerEl.current) setHeaderH(h);
-        else if (entry.target === footerEl.current) setFooterH(h);
+        if (entry.target === headerEl.current) {
+          headerHRef.current = h;
+          setHeaderH(h);
+        } else if (entry.target === footerEl.current) {
+          footerHRef.current = h;
+          setFooterH(h);
+        }
       }
     });
     if (headerEl.current) ro.observe(headerEl.current);
@@ -126,8 +165,8 @@ export function useAutoHideChrome(enabled: boolean): AutoHideChrome {
 
   // When disabled, reset so nothing stays collapsed if the prop flips off.
   useEffect(() => {
-    if (!enabled) setHidden(false);
-  }, [enabled]);
+    if (!enabled) applyHidden(false);
+  }, [enabled, applyHidden]);
 
   if (!enabled) {
     return {

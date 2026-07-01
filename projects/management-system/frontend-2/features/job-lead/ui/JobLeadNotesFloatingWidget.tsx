@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { cn } from "@fieldflow360/org-ui";
 import { Maximize2, Minus, StickyNote } from "lucide-react";
@@ -46,6 +46,64 @@ export function JobLeadNotesFloatingWidget({
 
   const commentCount = comments?.length ?? 0;
 
+  // --- Draggable popover -----------------------------------------------------
+  // Grab the header to move the popover anywhere on screen. Until it's first
+  // dragged we keep the default bottom-right anchor; once dragged we switch to
+  // absolute top/left (clamped to the viewport).
+  const sectionRef = useRef<HTMLElement>(null);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(
+    null
+  );
+  const dragRef = useRef<{
+    pointerX: number;
+    pointerY: number;
+    top: number;
+    left: number;
+  } | null>(null);
+
+  const startDrag = useCallback((event: React.PointerEvent<HTMLElement>) => {
+    // Header buttons (export/expand/minimize) must still be clickable.
+    if ((event.target as HTMLElement).closest("button")) return;
+    const el = sectionRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    dragRef.current = {
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      top: rect.top,
+      left: rect.left,
+    };
+    // Pin to the current rendered spot before switching to top/left dragging.
+    setPosition({ top: rect.top, left: rect.left });
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Pointer capture is a best-effort nicety; dragging works without it.
+    }
+    event.preventDefault();
+  }, []);
+
+  const onDrag = useCallback((event: React.PointerEvent<HTMLElement>) => {
+    const drag = dragRef.current;
+    const el = sectionRef.current;
+    if (!drag || !el) return;
+    const nextLeft = drag.left + (event.clientX - drag.pointerX);
+    const nextTop = drag.top + (event.clientY - drag.pointerY);
+    const maxLeft = Math.max(8, window.innerWidth - el.offsetWidth - 8);
+    const maxTop = Math.max(8, window.innerHeight - el.offsetHeight - 8);
+    setPosition({
+      left: Math.min(Math.max(8, nextLeft), maxLeft),
+      top: Math.min(Math.max(8, nextTop), maxTop),
+    });
+  }, []);
+
+  const endDrag = useCallback((event: React.PointerEvent<HTMLElement>) => {
+    dragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }, []);
+
   const recordKind = entityType === ResourceType.JOB ? "job" : "lead";
   const recordRef =
     (entityType === ResourceType.JOB
@@ -83,15 +141,31 @@ export function JobLeadNotesFloatingWidget({
 
   return (
     <section
+      ref={sectionRef}
       aria-label="Notes & comments"
-      className="border-border-subtle bg-bg-surface-elevated fixed right-5 z-40 flex flex-col overflow-hidden rounded-xl border shadow-2xl"
-      style={{
-        bottom: "8rem",
-        width: "24rem",
-        maxHeight: "calc(100vh - 11rem)",
-      }}
+      className="border-border-subtle bg-bg-surface-elevated fixed z-40 flex flex-col overflow-hidden rounded-xl border shadow-2xl"
+      style={
+        position
+          ? {
+              top: position.top,
+              left: position.left,
+              width: "24rem",
+              maxHeight: "calc(100vh - 2rem)",
+            }
+          : {
+              bottom: "8rem",
+              right: "1.25rem",
+              width: "24rem",
+              maxHeight: "calc(100vh - 11rem)",
+            }
+      }
     >
-      <header className="border-border-subtle flex items-start justify-between gap-2 border-b px-4 py-3">
+      <header
+        className="border-border-subtle flex cursor-move touch-none items-start justify-between gap-2 border-b px-4 py-3 select-none"
+        onPointerDown={startDrag}
+        onPointerMove={onDrag}
+        onPointerUp={endDrag}
+      >
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="text-text-primary inline-flex items-center gap-2 text-sm font-semibold">
             <StickyNote aria-hidden className="h-4 w-4" strokeWidth={2} />
