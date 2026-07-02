@@ -20,6 +20,7 @@ Unless a path says otherwise, file paths below are relative to `projects/managem
 - Adhere strictly to the TypeScript definitions and interfaces for `@fieldflow360/org-ui` props (e.g., `xKey`, `yKey`, `series` for Charts; `title`/`variant`/`iconOnly` for Button; `isOpen`/`onClose`/`title` for Modal).
 - For correct, copy-pasteable prop usage, reference the renderers in `projects/org-ui/dev-app/src/renderers/*` (or the already-ported copies in `app/design-system/renderers/`).
 - If a design needs a component that doesn't exist in org-ui, ASK whether to build it or reuse an existing one — don't invent one silently.
+- **Always build from design-system components.** Before hand-rolling markup (custom pill/tab buttons, toggles, badges, menus, etc.), check `@fieldflow360/org-ui` for an existing component and use it. Only fall back to bespoke elements when nothing fits — and in that case ASK first. E.g. filter/segmented tabs → `TabsSwitcher` (two views: `PILL` and `UNDERLINED`); don't reinvent them with `<button>` chips.
 
 ## Maps
 - **Every map must have the bottom drag-to-resize-height handle** (the "latest" map behavior, as in org-ui `LocationPickerMap`). Whenever you add or embed a map, include it — don't ship a fixed-height map.

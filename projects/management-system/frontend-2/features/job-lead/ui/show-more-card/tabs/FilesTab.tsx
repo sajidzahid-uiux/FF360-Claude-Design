@@ -2,7 +2,7 @@
 
 import { type ReactNode, Fragment, useCallback, useMemo, useState } from "react";
 
-import { cn } from "@fieldflow360/org-ui";
+import { TabsSwitcher, type TabsSwitcherItem } from "@fieldflow360/org-ui";
 
 import { JobType, PermissionCode } from "@/constants";
 import { Ff360DesignsFilesPanel } from "@/features/design-request";
@@ -509,35 +509,25 @@ export function FilesTab(props: TabRendererProps) {
         ) : null}
       </DetailFormSection>
 
-      {/* Category filter — All + one chip per available file category. */}
-      <div className="flex flex-wrap items-center gap-2">
-        {[{ key: "all", label: "All", count: undefined }, ...panels].map(
-          (opt) => {
-            const active = effectiveFilter === opt.key;
-            return (
-              <button
-                key={opt.key}
-                aria-pressed={active}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
-                  active
-                    ? "border-accent bg-accent/15 text-text-primary"
-                    : "border-border-subtle bg-bg-surface text-text-muted hover:text-text-primary"
-                )}
-                type="button"
-                onClick={() => setActiveFilter(opt.key)}
-              >
-                {opt.label}
-                {opt.count != null ? (
-                  <span className="bg-bg-app rounded-full px-1.5 py-0.5 text-xs tabular-nums">
-                    {opt.count}
-                  </span>
-                ) : null}
-              </button>
-            );
-          }
-        )}
-      </div>
+      {/* Category filter — All + one tab per available file category, using the
+          org-ui TabsSwitcher (counts folded into the label). */}
+      <TabsSwitcher
+        className="max-w-full"
+        items={[
+          { value: "all", label: "All" },
+          ...panels.map(
+            (panel): TabsSwitcherItem<string> => ({
+              value: panel.key,
+              label:
+                panel.count != null
+                  ? `${panel.label} (${panel.count})`
+                  : panel.label,
+            })
+          ),
+        ]}
+        value={effectiveFilter}
+        onChange={(next) => setActiveFilter(next)}
+      />
 
       <div
         className={
