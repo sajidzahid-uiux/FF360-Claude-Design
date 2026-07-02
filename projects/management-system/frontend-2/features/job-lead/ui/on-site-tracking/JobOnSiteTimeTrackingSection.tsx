@@ -156,8 +156,8 @@ export function JobOnSiteTimeTrackingSection({
     <>
       <DetailFormSection actions={exportAction} title="Time tracking">
         {canUpdateTimeTracking ? (
-          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
-            <div className="w-full min-w-[6rem] sm:w-28">
+          <div className="flex flex-row items-end gap-3">
+            <div className="w-1/5 min-w-[4.5rem] shrink-0">
               <Input
                 disabled={disabled}
                 label="Hours"
@@ -169,7 +169,7 @@ export function JobOnSiteTimeTrackingSection({
                 onChange={(e) => setTimeEntryHours(e.target.value)}
               />
             </div>
-            <div className="min-w-0 flex-1 sm:min-w-[12rem]">
+            <div className="min-w-0 flex-1">
               <Input
                 disabled={disabled}
                 label="Description"

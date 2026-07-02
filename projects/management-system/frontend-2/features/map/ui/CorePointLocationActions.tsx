@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { RefObject } from "react";
 
 import { Button, ButtonVariantEnum } from "@fieldflow360/org-ui";
@@ -8,13 +8,8 @@ import { Plus } from "lucide-react";
 
 import type { BoundaryMapRef } from "@/shared/ui/common/map";
 
-import type {
-  LatLng,
-  MapLatLngAsyncHandler,
-  MapLatLngHandler,
-} from "../model/types";
-import { MapLocationAddMethodDialog } from "./MapLocationAddMethodDialog";
-import { MapLocationManualEntryDialog } from "./MapLocationManualEntryDialog";
+import type { LatLng } from "../model/types";
+import { CorePointAddPopover } from "./CorePointAddPopover";
 
 export interface CorePointLocationActionsProps {
   disabled?: boolean;
@@ -32,44 +27,12 @@ export function CorePointLocationActions({
   boundaryMapRef,
   buttonClassName = "w-full lg:w-auto",
 }: CorePointLocationActionsProps) {
-  const [isAddMethodDialogOpen, setIsAddMethodDialogOpen] = useState(false);
-  const [isManualEntryDialogOpen, setIsManualEntryDialogOpen] = useState(false);
-
-  const handleOpenAddCore = useCallback(() => {
-    setIsAddMethodDialogOpen(true);
-  }, []);
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const addCoreAnchorRef = useRef<HTMLDivElement>(null);
 
   const handleCancelCorePointMode = useCallback(() => {
     boundaryMapRef.current?.cancelCorePointMode();
   }, [boundaryMapRef]);
-
-  const handleChooseMapSelection = useCallback(() => {
-    boundaryMapRef.current?.startCorePointMode();
-  }, [boundaryMapRef]);
-
-  const handleChooseManual = useCallback(() => {
-    setIsManualEntryDialogOpen(true);
-  }, []);
-
-  const applyCorePointLocation = useCallback<MapLatLngHandler>(
-    (lat, lng) => {
-      boundaryMapRef.current?.prepareCorePointAtLocation(lat, lng);
-      boundaryMapRef.current?.centerOnLocation(lat, lng);
-    },
-    [boundaryMapRef]
-  );
-
-  const handleChooseMyLocation = useCallback(() => {
-    if (!userLocation) return;
-    applyCorePointLocation(userLocation.lat, userLocation.lng);
-  }, [applyCorePointLocation, userLocation]);
-
-  const handleManualSubmit = useCallback<MapLatLngAsyncHandler>(
-    async (lat, lng) => {
-      applyCorePointLocation(lat, lng);
-    },
-    [applyCorePointLocation]
-  );
 
   return (
     <>
@@ -83,41 +46,26 @@ export function CorePointLocationActions({
             onClick={handleCancelCorePointMode}
           />
         ) : (
-          <Button
-            className={buttonClassName}
-            disabled={disabled}
-            leftIcon={<Plus aria-hidden className="h-3 w-3" />}
-            title="Add Core"
-            variant={ButtonVariantEnum.SURFACE}
-            onClick={handleOpenAddCore}
-          />
+          <div ref={addCoreAnchorRef} className="inline-flex">
+            <Button
+              className={buttonClassName}
+              disabled={disabled}
+              leftIcon={<Plus aria-hidden className="h-3 w-3" />}
+              title="Add Core"
+              variant={ButtonVariantEnum.SURFACE}
+              onClick={() => setIsPopoverOpen((open) => !open)}
+            />
+          </div>
         )}
       </div>
 
-      <MapLocationAddMethodDialog
-        description="Choose how you want to place the core point on the map."
+      <CorePointAddPopover
+        anchorRef={addCoreAnchorRef}
+        boundaryMapRef={boundaryMapRef}
         disabled={disabled}
-        manualEntryLabel="Enter coordinates manually"
-        mapSelectionLabel="Select on map"
-        myLocationLabel="Use current location"
-        myLocationVisibility="always"
-        open={isAddMethodDialogOpen}
-        title="Add core point"
-        userLocationAvailable={userLocation != null}
-        onChooseManual={handleChooseManual}
-        onChooseMapClick={handleChooseMapSelection}
-        onChooseMyLocation={handleChooseMyLocation}
-        onOpenChange={setIsAddMethodDialogOpen}
-      />
-
-      <MapLocationManualEntryDialog
-        description="Enter the latitude and longitude where the core point should be placed."
-        disabled={disabled}
-        open={isManualEntryDialogOpen}
-        submitLabel="Continue"
-        title="Add core point at coordinates"
-        onOpenChange={setIsManualEntryDialogOpen}
-        onSubmit={handleManualSubmit}
+        open={isPopoverOpen}
+        userLocation={userLocation}
+        onClose={() => setIsPopoverOpen(false)}
       />
     </>
   );

@@ -12,6 +12,10 @@ export type { FarmSelectorItem } from "./FarmSelectorButton";
 export { JobDetailMapControls } from "./JobDetailMapControls";
 export type { JobDetailMapControlsProps } from "./JobDetailMapControls";
 export { MapPinAddPopover } from "./MapPinAddPopover";
+export {
+  MapResizeHandle,
+  useResizableMapHeight,
+} from "./MapResizeHandle";
 export { MapPinsPanel } from "./MapPinsPanel";
 export { useMapFiltering } from "../lib/useMapFiltering";
 export { MapFilters } from "./MapFilters";

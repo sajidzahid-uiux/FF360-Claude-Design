@@ -699,6 +699,56 @@ type JobLike = Record<string, unknown> & {
   contact_info: { id: number; full_name: string; phone_number: string };
 };
 
+// Example uploaded map files for the drainage-tiling demo job (#101). These make
+// the on-map "Go to <file name>" quick buttons appear so the flow is demoable:
+// each uploaded XML / shapefile in the Files section surfaces a button that
+// recenters the boundary map on that file's geometry. `file` is the stored URL —
+// the button label is derived from its base name via getMapFileDisplayName.
+// Geometry sits around the mock field center (41.9779, -93.6155); XML design
+// points are [lng, lat], shapefile rings are [lng, lat].
+const EXAMPLE_JOB_MAP_FILES = {
+  xmlmap_v2: [
+    {
+      id: 90101,
+      file: "https://ff360.local/maps/Johnson_North_Tile_Plan.xml",
+      data: {
+        design_points: [
+          [-93.6162, 41.9784],
+          [-93.6148, 41.9784],
+          [-93.6148, 41.9774],
+          [-93.6162, 41.9774],
+        ],
+      },
+    },
+    {
+      id: 90102,
+      file: "https://ff360.local/maps/Johnson_North_Mains.xml",
+      data: {
+        design_points: [
+          [-93.6158, 41.9788],
+          [-93.6152, 41.9788],
+          [-93.6152, 41.977],
+          [-93.6158, 41.977],
+        ],
+      },
+    },
+  ],
+  shpmap_v2: [
+    {
+      id: 90201,
+      file: "https://ff360.local/maps/Johnson_North_Boundary.shp",
+      data: {
+        ring0: [
+          [-93.617, 41.9786],
+          [-93.6152, 41.9786],
+          [-93.6152, 41.9772],
+          [-93.617, 41.9772],
+        ],
+      },
+    },
+  ],
+};
+
 const detailById = new Map<number, Record<string, unknown>>(
   [...allActiveJobs, ...completedCancelledJobs].map((rawJob): [number, Record<string, unknown>] => {
     const job = rawJob as unknown as JobLike;
@@ -748,6 +798,18 @@ const detailById = new Map<number, Record<string, unknown>>(
         vertices: [],
         canAccessOnSiteTracking: true,
         notesTabAccess: { general: true, office: true, onsite: true },
+        // Demo-only: surface the "Go to <file name>" quick buttons on job #101.
+        ...(job.id === 101 ? EXAMPLE_JOB_MAP_FILES : {}),
+        // Demo-only: assigned equipment (ids align with records/equipment mock)
+        // so the On-Site Tracking "Equipment assignment" card shows data.
+        ...(job.id === 101
+          ? {
+              equipments: [
+                { id: 9001, equipment: 1, total_hours: 128 },
+                { id: 9002, equipment: 3, total_hours: 86 },
+              ],
+            }
+          : {}),
       },
     ];
   })

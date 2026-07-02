@@ -21,6 +21,11 @@ Unless a path says otherwise, file paths below are relative to `projects/managem
 - For correct, copy-pasteable prop usage, reference the renderers in `projects/org-ui/dev-app/src/renderers/*` (or the already-ported copies in `app/design-system/renderers/`).
 - If a design needs a component that doesn't exist in org-ui, ASK whether to build it or reuse an existing one — don't invent one silently.
 
+## Maps
+- **Every map must have the bottom drag-to-resize-height handle** (the "latest" map behavior, as in org-ui `LocationPickerMap`). Whenever you add or embed a map, include it — don't ship a fixed-height map.
+- Reusable helper lives at `features/map/ui/MapResizeHandle.tsx`: `useResizableMapHeight()` (returns `{ height, isResized, containerRef, onResizeStart }`) + `<MapResizeHandle onPointerDown={onResizeStart} />`. Put `containerRef` on the map container and render `<MapResizeHandle>` inside it (container must be `relative`). Reference usage: `features/job-lead/ui/on-site-tracking/JobOnSiteMapSection.tsx`.
+- Boundary/pins/core maps use `DeckBoundaryMap` (`@/features/map/ui`); the single-location picker is org-ui `LocationPickerMap` (already has the handle built in).
+
 ## Dummy Data (no backend)
 - Mock mode is on via `NEXT_PUBLIC_USE_MOCK_DATA=true` in `.env.local`.
 - `mocks/auth0-react.tsx` — always-authenticated demo user (aliased over `@auth0/auth0-react`).

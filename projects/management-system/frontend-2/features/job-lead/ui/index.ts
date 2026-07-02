@@ -14,12 +14,17 @@ export type { JobLeadRecordSubpageLayoutProps } from "./JobLeadRecordSubpageLayo
 export { JobOnSiteTrackingPageLayout } from "./JobOnSiteTrackingPageLayout";
 export type { JobOnSiteTrackingPageLayoutProps } from "./JobOnSiteTrackingPageLayout";
 export {
+  JobMaintenanceStatusSection,
   JobOnSiteEquipmentSection,
+  JobOnSiteMapSection,
+  JobOnSiteNotesFloating,
   JobOnSiteNotesSection,
   JobOnSiteTimeTrackingSection,
 } from "./on-site-tracking";
 export type {
   JobOnSiteEquipmentSectionProps,
+  JobOnSiteMapSectionProps,
+  JobOnSiteNotesFloatingProps,
   JobOnSiteNotesSectionProps,
   JobOnSiteTimeTrackingSectionProps,
 } from "./on-site-tracking";

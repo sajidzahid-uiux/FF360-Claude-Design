@@ -25,11 +25,15 @@ import {
 } from "@/constants";
 import { InstalledFootageLogsSection } from "@/features/installed-footage-logs";
 import {
+  JobMaintenanceStatusSection,
   JobOnSiteEquipmentSection,
-  JobOnSiteNotesSection,
+  JobOnSiteMapSection,
+  JobOnSiteNotesFloating,
   JobOnSiteTimeTrackingSection,
   JobOnSiteTrackingPageLayout,
 } from "@/features/job-lead";
+import type { JobOnSiteMapJob } from "@/features/job-lead/ui/on-site-tracking/JobOnSiteMapSection";
+import type { EntityDataState } from "@/features/job-lead/ui/show-more-card/entityDataState";
 import { JobEquipmentAssignment } from "@/features/jobs";
 import DailyProgressPopUp from "@/features/jobs/ui/tiling/DailyProgressPopUp";
 import {
@@ -760,17 +764,44 @@ export default function OnSiteTrackingPage() {
           orgId={orgId}
           permissionCode={PermissionCode.JOBS_TILING_PAGE_READ}
           poNumber={jobData?.po_number}
-          primaryColumn={
+          content={
             jobData?.id != null ? (
-              <>
-                <JobOnSiteTimeTrackingSection
+              <div className="flex flex-col gap-5 lg:gap-6 xl:gap-8">
+                {/* Row 1 — field map (left) + time tracking & installed hours (right) */}
+                <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2 lg:gap-6 xl:gap-8">
+                  <div className="flex min-w-0 flex-col gap-5">
+                    <JobOnSiteMapSection
+                  canEditCorePoints={!sectionDisabled}
+                  canMutatePins={!sectionDisabled}
                   disabled={sectionDisabled}
-                  jobId={jobData.id}
+                  job={jobData as unknown as JobOnSiteMapJob}
                   jobType={JobType.TILING}
-                  onExportExcel={handleExportTimeTrackingExcel}
-                />
-                <DetailFormSection
-                  actions={
+                  orgId={orgId}
+                  organizationLocation={
+                    organizationData?.latitude != null &&
+                    organizationData?.longitude != null
+                      ? {
+                          lat: Number(organizationData.latitude),
+                          lng: Number(organizationData.longitude),
+                        }
+                      : null
+                  }
+                    />
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-5">
+                    <JobOnSiteTimeTrackingSection
+                      disabled={sectionDisabled}
+                      jobId={jobData.id}
+                      jobType={JobType.TILING}
+                      onExportExcel={handleExportTimeTrackingExcel}
+                    />
+                  </div>
+                </div>
+                {/* Row 2: footage installed (left) + installed footage logs (right) */}
+                <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2 lg:gap-6 xl:gap-8">
+                  <div className="flex min-w-0 flex-col gap-5">
+                    <DetailFormSection
+                      actions={
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="bg-bg-surface text-text-muted rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap">
                         {footageData?.["Total Installed Footage"] || 0} ft total
@@ -879,51 +910,63 @@ export default function OnSiteTrackingPage() {
                       ) : null}
                     </div>
                   </div>
-                </DetailFormSection>
-                {canViewInstalledFootage ? (
-                  <InstalledFootageLogsSection
-                    canUpdateInstalledFootage={canUpdateInstalledFootage}
-                    canUpdateInstalledRaisers={canUpdateInstalledRisers}
-                    disabled={sectionDisabled}
-                    jobId={jobData.id}
-                    onLogsChanged={refreshInstalledFootageTotals}
-                  />
-                ) : null}
-              </>
+                    </DetailFormSection>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-5">
+                    {canViewInstalledFootage ? (
+                      <InstalledFootageLogsSection
+                        canUpdateInstalledFootage={canUpdateInstalledFootage}
+                        canUpdateInstalledRaisers={canUpdateInstalledRisers}
+                        disabled={sectionDisabled}
+                        jobId={jobData.id}
+                        onLogsChanged={refreshInstalledFootageTotals}
+                      />
+                    ) : null}
+                  </div>
+                </div>
+                {/* Row 3: equipment assignment (left) + maintenance status (right) */}
+                <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2 lg:gap-6 xl:gap-8">
+                  <div className="flex min-w-0 flex-col gap-5">
+                    <JobOnSiteEquipmentSection>
+                      <JobEquipmentAssignment
+                        embedded
+                        hideMaintenance
+                        assignments={jobData.equipments ?? []}
+                        disabled={sectionDisabled}
+                        farmerJob={
+                          jobData.job_object_subclass ===
+                          "Drainge_TilingFarmerJob"
+                        }
+                        jobId={jobData.id}
+                        jobType={JobType.TILING}
+                        mode="track"
+                      />
+                    </JobOnSiteEquipmentSection>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-5">
+                    <JobMaintenanceStatusSection />
+                  </div>
+                </div>
+              </div>
             ) : null
           }
           progressBar={jobData?.progress_bar}
-          secondaryColumn={
-            jobData?.id != null ? (
-              <>
-                <JobOnSiteEquipmentSection>
-                  <JobEquipmentAssignment
-                    embedded
-                    hideMaintenance
-                    assignments={jobData.equipments ?? []}
-                    disabled={sectionDisabled}
-                    farmerJob={
-                      jobData.job_object_subclass === "Drainge_TilingFarmerJob"
-                    }
-                    jobId={jobData.id}
-                    jobType={JobType.TILING}
-                    mode="track"
-                  />
-                </JobOnSiteEquipmentSection>
-                <JobOnSiteNotesSection
-                  assignedToJob={jobData?.canAccessOnSiteTracking === true}
-                  jobId={jobId}
-                  jobType={JobType.TILING}
-                  notesTabAccess={notesTabAccess}
-                  readOnly={sectionDisabled}
-                />
-              </>
-            ) : null
-          }
           statusDisabled={sectionDisabled}
           statusTypes={statusTypes}
           onStatusChange={handleStatusChange}
         />
+        {jobData?.id != null ? (
+          <JobOnSiteNotesFloating
+            assignedToJob={jobData?.canAccessOnSiteTracking === true}
+            canEdit={!sectionDisabled}
+            entity={jobData as unknown as EntityDataState}
+            isTrashed={isArchived}
+            jobId={jobId}
+            jobType={JobType.TILING}
+            notesTabAccess={notesTabAccess}
+            readOnly={sectionDisabled}
+          />
+        ) : null}
       </PermissionCodeGate>
 
       {showFootageForm && (

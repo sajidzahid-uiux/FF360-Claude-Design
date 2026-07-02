@@ -731,6 +731,135 @@ export const mockAdapter: AxiosAdapter = async (config) => {
     );
   }
 
+  // Record equipment picker (job on-site tracking + production): the machines
+  // available to assign to a job. Ids align with the equipment module fixtures.
+  if (
+    method === "get" &&
+    /ms\/organizations\/\d+\/records\/equipment\/?$/.test(url)
+  ) {
+    return makeResponse(
+      listResponse([
+        {
+          id: 1,
+          name: "CAT 336 Excavator",
+          serial_number: "CAT336-0001-IA",
+          service_status: "A",
+          equipment_type: "machines",
+          filters: null,
+          current_hours: 3420,
+        },
+        {
+          id: 3,
+          name: "Soil-Max Gold Tile Plow",
+          serial_number: "SMGS-2020-7781",
+          service_status: "A",
+          equipment_type: "machines",
+          filters: null,
+          current_hours: 2675,
+        },
+        {
+          id: 5,
+          name: "Bobcat T770 Track Loader",
+          serial_number: "BCT770-2023-5519",
+          service_status: "A",
+          equipment_type: "machines",
+          filters: null,
+          current_hours: 640,
+        },
+      ]),
+      config
+    );
+  }
+
+  // Equipment maintenance check for a job's assigned machines. Shape is
+  // { need_maintenance, close_to_maintenance } with strings the UI parses as
+  // "<machine name> <filter_key> needs maintenance" / "... is close to
+  // maintenance, <n> hours left". Machine names align with records/equipment.
+  if (
+    method === "get" &&
+    /ms\/organizations\/\d+\/equipmentUntilUpdate\/?$/.test(url)
+  ) {
+    return makeResponse(
+      {
+        need_maintenance: [
+          "CAT 336 Excavator hydraulic_filter needs maintenance",
+          "Soil-Max Gold Tile Plow hydraulic_filter needs maintenance",
+        ],
+        close_to_maintenance: [
+          "Bobcat T770 Track Loader oil_filter is close to maintenance, 110 hours left",
+        ],
+      },
+      config
+    );
+  }
+
+  // Installed hours logs (job time entries) for the demo job #101 — a few crew
+  // entries so the On-Site Tracking "Installed hours logs" preview shows data.
+  if (
+    method === "get" &&
+    /ms\/organizations\/\d+\/job-time-entries\/?$/.test(url) &&
+    /job_id=101\b/.test(config.url || "")
+  ) {
+    const timeEntries = [
+      {
+        id: 7001,
+        hours: 9,
+        description: "Mainline trenching — east section to outlet",
+        entered_by: 4,
+        entered_by_name: "Tyler Brooks",
+        timestamp: "2026-06-28T15:30:00Z",
+        job_title: "Johnson North Field",
+      },
+      {
+        id: 7002,
+        hours: 6.5,
+        description: "Installed laterals, rows 4–9",
+        entered_by: 3,
+        entered_by_name: "Maria Gomez",
+        timestamp: "2026-06-27T14:10:00Z",
+        job_title: "Johnson North Field",
+      },
+      {
+        id: 7003,
+        hours: 7.5,
+        description: "Set risers and backfill",
+        entered_by: 5,
+        entered_by_name: "Dan Foster",
+        timestamp: "2026-06-26T16:00:00Z",
+        job_title: "Johnson North Field",
+      },
+      {
+        id: 7004,
+        hours: 5,
+        description: "Grade check and survey shots",
+        entered_by: 4,
+        entered_by_name: "Tyler Brooks",
+        timestamp: "2026-06-25T13:00:00Z",
+        job_title: "Johnson North Field",
+      },
+      {
+        id: 7005,
+        hours: 8,
+        description: "Mainline tie-in and cleanup",
+        entered_by: 3,
+        entered_by_name: "Maria Gomez",
+        timestamp: "2026-06-24T15:45:00Z",
+        job_title: "Johnson North Field",
+      },
+    ];
+    return makeResponse(
+      {
+        count: timeEntries.length,
+        total_count: timeEntries.length,
+        page_size: 5,
+        current_page: 1,
+        total_pages: 1,
+        results: timeEntries,
+      },
+      config
+    );
+  }
+
   // Org membership bootstrap + the fresh org's (owner-only) team roster.
   if (/members\/?$/.test(url) && method === "get") {
     return makeResponse([DEMO_MEMBER], config);

@@ -6,6 +6,8 @@ import type { RefObject } from "react";
 import { Button, ButtonVariantEnum, ComponentSizeEnum } from "@fieldflow360/org-ui";
 import { List, Maximize2, Minimize2, Navigation, Plus, Tag } from "lucide-react";
 
+import { PinCategoryEditorDialog } from "@/features/pin-categories/ui/PinCategoryEditorDialog";
+import { useMapPinCategoryMutations } from "@/hooks/mutations/useMapPinCategoryMutations";
 import type { BoundaryMapRef } from "@/shared/ui/common/map";
 
 import type { LatLng, MapPinCreateSubmitHandler } from "../model/types";
@@ -59,11 +61,26 @@ export function JobDetailMapControls({
   onToggleMapExpand,
 }: JobDetailMapControlsProps) {
   const [isPinPopoverOpen, setIsPinPopoverOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const addPinAnchorRef = useRef<HTMLDivElement>(null);
+
+  const { createCategory } = useMapPinCategoryMutations();
 
   const handleMyLocation = useCallback(() => {
     boundaryMapRef.current?.centerOnUserLocation();
   }, [boundaryMapRef]);
+
+  const handleCreateCategory = useCallback(
+    async (name: string, color: string) => {
+      try {
+        await createCategory.mutateAsync({ name, color });
+        setIsCategoryModalOpen(false);
+      } catch {
+        // Error toast is surfaced by the mutation; keep the modal open.
+      }
+    },
+    [createCategory]
+  );
 
   return (
     <div className="absolute top-3 right-3 z-20 flex flex-wrap items-start justify-end gap-2">
@@ -126,9 +143,9 @@ export function JobDetailMapControls({
           <Button
             className={OVERLAY_BUTTON_CLASS}
             leftIcon={<Tag aria-hidden className="h-4 w-4" />}
-            title="Categories"
+            title="Add Category"
             variant={ButtonVariantEnum.SURFACE}
-            onClick={onManageCategories}
+            onClick={() => setIsCategoryModalOpen(true)}
           />
           <MapPinAddPopover
             anchorRef={addPinAnchorRef}
@@ -139,6 +156,15 @@ export function JobDetailMapControls({
             onCreatePin={onCreatePin}
             onManageCategories={onManageCategories}
             onPlaceOnMap={onPlacePinOnMap}
+          />
+          <PinCategoryEditorDialog
+            isSaving={createCategory.isPending}
+            mode="create"
+            open={isCategoryModalOpen}
+            onOpenChange={(open) => {
+              if (!open) setIsCategoryModalOpen(false);
+            }}
+            onSave={handleCreateCategory}
           />
         </>
       ) : null}

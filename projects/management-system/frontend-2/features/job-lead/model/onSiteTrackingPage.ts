@@ -24,7 +24,13 @@ export interface JobOnSiteTrackingPageLayoutProps {
   detailHref: string;
   permissionCode: PermissionCode;
   /** Time tracking, installed hours, and tiling production sections. */
-  primaryColumn: ReactNode;
+  primaryColumn?: ReactNode;
   /** Equipment assignment and on-site notes. */
-  secondaryColumn: ReactNode;
+  secondaryColumn?: ReactNode;
+  /**
+   * Custom body. When provided it replaces the default two-column
+   * (primaryColumn / secondaryColumn) grid, letting a page compose its own
+   * responsive layout (e.g. map + time tracking side-by-side, footage below).
+   */
+  content?: ReactNode;
 }

@@ -29,6 +29,8 @@ import {
   DeckBoundaryMap,
   JobDetailMapControls,
   MapPinsPanel,
+  MapResizeHandle,
+  useResizableMapHeight,
 } from "@/features/map/ui";
 import { deriveStakeholderFarmMapProps } from "@/features/order-pipe/order-pipe-wizard/utils/jobFarmMapUtils";
 import { getSystemSettingsPinCategoriesPath } from "@/features/pin-categories/lib/systemSettingsNavigation";
@@ -36,11 +38,11 @@ import {
   buildJobPrimaryDesignerOptions,
   jobPrimaryDesignerPlaceholder,
 } from "@/features/team";
-import { orgUrl } from "@/shared/config/routes";
 import {
   collectKmlMaps,
   collectShpMaps,
   collectXmlMaps,
+  getMapFileDisplayName,
 } from "@/shared/lib/mapFilesV2";
 import { DetailFormSection, DetailViewEditActions } from "@/shared/ui/common";
 import type { BoundaryMapRef } from "@/shared/ui/common/map";
@@ -225,6 +227,14 @@ export function JobDetailsTab({
   // "Full view" enlarges the on-site map to fill the screen.
   const [isMapExpanded, setIsMapExpanded] = useState(false);
 
+  // Bottom drag handle to resize the read-only map height.
+  const {
+    height: draggedMapHeight,
+    isResized: isMapResized,
+    containerRef: mapContainerRef,
+    onResizeStart: onMapResizeStart,
+  } = useResizableMapHeight();
+
   // Escape exits full view.
   useEffect(() => {
     if (!isMapExpanded) return;
@@ -397,11 +407,7 @@ export function JobDetailsTab({
               size={ComponentSizeEnum.SM}
               title={`Edit ${ON_SITE_OPERATION_LABEL}`}
               variant={ButtonVariantEnum.SURFACE}
-              onClick={() => {
-                router.push(
-                  `${orgUrl(orgId, `/contact/${entityDataState.contact_info?.id}`, `farmId=${entityDataState.farm_info?.id}`)}`
-                );
-              }}
+              onClick={openFarmAssignmentDialog}
             />
           ) : null}
         </>
@@ -430,7 +436,10 @@ export function JobDetailsTab({
               key={`xml-center-${mapFile.id}`}
               leftIcon={<MapPin aria-hidden className="h-3.5 w-3.5" />}
               size={ComponentSizeEnum.SM}
-              title={xmlMaps.length > 1 ? `Go to XML ${index + 1}` : "Go to XML"}
+              title={`Go to ${getMapFileDisplayName(
+                mapFile.file,
+                xmlMaps.length > 1 ? `XML ${index + 1}` : "XML"
+              )}`}
               variant={ButtonVariantEnum.SURFACE}
               onClick={() => {
                 boundaryMapRef.current?.centerOnXmlMap(
@@ -446,11 +455,10 @@ export function JobDetailsTab({
               key={`shp-center-${mapFile.id}`}
               leftIcon={<MapPin aria-hidden className="h-3.5 w-3.5" />}
               size={ComponentSizeEnum.SM}
-              title={
-                shpMaps.length > 1
-                  ? `Go to shapefile ${index + 1}`
-                  : "Go to shapefile"
-              }
+              title={`Go to ${getMapFileDisplayName(
+                mapFile.file,
+                shpMaps.length > 1 ? `shapefile ${index + 1}` : "shapefile"
+              )}`}
               variant={ButtonVariantEnum.SURFACE}
               onClick={() => {
                 boundaryMapRef.current?.centerOnShpMap(
@@ -466,7 +474,10 @@ export function JobDetailsTab({
               key={`kml-center-${mapFile.id}`}
               leftIcon={<MapPin aria-hidden className="h-3.5 w-3.5" />}
               size={ComponentSizeEnum.SM}
-              title={kmlMaps.length > 1 ? `Go to KML ${index + 1}` : "Go to KML"}
+              title={`Go to ${getMapFileDisplayName(
+                mapFile.file,
+                kmlMaps.length > 1 ? `KML ${index + 1}` : "KML"
+              )}`}
               variant={ButtonVariantEnum.SURFACE}
               onClick={() => {
                 boundaryMapRef.current?.centerOnKmlMap(
@@ -848,6 +859,7 @@ export function JobDetailsTab({
         ) : null}
 
         <div
+          ref={mapContainerRef}
           className={
             isMapExpanded
               ? "bg-bg-app fixed inset-0 z-50 w-full overflow-hidden border-0"
@@ -860,7 +872,9 @@ export function JobDetailsTab({
               ? { minHeight: "100dvh" }
               : editingMap && !isTrashed
                 ? { minHeight: "min(520px, 65vh)" }
-                : { minHeight: jobMapHeight }
+                : isMapResized
+                  ? { height: draggedMapHeight ?? undefined }
+                  : { minHeight: jobMapHeight }
           }
         >
           {editingMap && !isTrashed ? (
@@ -910,7 +924,7 @@ export function JobDetailsTab({
                 isPinMode={isPinMode}
                 kmlmaps={kmlMaps}
                 location={mapLocation}
-                mapHeight={jobMapHeight}
+                mapHeight={isMapResized ? "100%" : jobMapHeight}
                 mapPins={mapPins}
                 organizationLocation={organizationLocation}
                 primaryRingIndex={farmMapProps.primaryRingIndex}
@@ -976,6 +990,9 @@ export function JobDetailsTab({
                     onPinFocus={handlePinFocus}
                   />
                 </div>
+              ) : null}
+              {!isMapExpanded ? (
+                <MapResizeHandle onPointerDown={onMapResizeStart} />
               ) : null}
             </>
           )}

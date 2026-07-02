@@ -45,6 +45,7 @@ export function JobOnSiteTrackingPageLayout({
   permissionCode,
   primaryColumn,
   secondaryColumn,
+  content,
 }: JobOnSiteTrackingPageLayoutProps) {
   const router = useRouter();
   const segment = getJobTypePathSegment(jobType);
@@ -123,10 +124,12 @@ export function JobOnSiteTrackingPageLayout({
         subtitle={subtitle}
         onBack={() => router.push(detailHref)}
       >
-        <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2 lg:gap-6 xl:gap-8">
-          <div className="flex min-w-0 flex-col gap-5">{primaryColumn}</div>
-          <div className="flex min-w-0 flex-col gap-5">{secondaryColumn}</div>
-        </div>
+        {content ?? (
+          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2 lg:gap-6 xl:gap-8">
+            <div className="flex min-w-0 flex-col gap-5">{primaryColumn}</div>
+            <div className="flex min-w-0 flex-col gap-5">{secondaryColumn}</div>
+          </div>
+        )}
       </DetailViewPage>
     </div>
   );

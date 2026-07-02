@@ -291,6 +291,28 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
       ? navigateToEntityLogs
       : undefined;
 
+  // Jump straight to the job's On-Site Tracking page from the detail view, so
+  // users aren't forced to open it only from the jobs list.
+  const navigateToOnSiteTracking = useCallback(() => {
+    if (!orgId || entityDataState?.id == null) return;
+    const seg = getJobTypePathSegment(config.jobType);
+    const archived = props.toggleArchive ? "true" : "false";
+    router.push(
+      `${orgPath(orgId, `/jobs/${seg}/${entityDataState.id}/on-site-tracking`)}?archived=${archived}`
+    );
+  }, [
+    orgId,
+    entityDataState?.id,
+    config.jobType,
+    props.toggleArchive,
+    router,
+  ]);
+
+  const onSiteTrackingAction =
+    entityType === ResourceType.JOB && orgId && entityDataState?.id != null
+      ? navigateToOnSiteTracking
+      : undefined;
+
   const invalidateJobList = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ["allJobs"] });
   }, [queryClient]);
@@ -518,6 +540,14 @@ export default function ShowMoreCard(props: ShowMoreCardProps) {
               onStatusChange={handleMaterialStatusChange}
             />
           )}
+        {onSiteTrackingAction ? (
+          <Button
+            aria-label="On-Site Tracking"
+            title="On-Site Tracking"
+            variant={ButtonVariantEnum.SURFACE}
+            onClick={onSiteTrackingAction}
+          />
+        ) : null}
         <PermissionCodeGate permissionCodes={detailsActionsPermissionCodes}>
           <DetailsActionsDropdown
             canOrderPipe={canOrderPipe}

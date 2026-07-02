@@ -1,5 +1,10 @@
 export { JobOnSiteEquipmentSection } from "./JobOnSiteEquipmentSection";
 export type { JobOnSiteEquipmentSectionProps } from "./JobOnSiteEquipmentSection";
+export { JobMaintenanceStatusSection } from "./JobMaintenanceStatusSection";
+export { JobOnSiteMapSection } from "./JobOnSiteMapSection";
+export type { JobOnSiteMapSectionProps } from "./JobOnSiteMapSection";
+export { JobOnSiteNotesFloating } from "./JobOnSiteNotesFloating";
+export type { JobOnSiteNotesFloatingProps } from "./JobOnSiteNotesFloating";
 export { JobOnSiteNotesSection } from "./JobOnSiteNotesSection";
 export type { JobOnSiteNotesSectionProps } from "./JobOnSiteNotesSection";
 export { JobOnSiteTimeTrackingSection } from "./JobOnSiteTimeTrackingSection";
