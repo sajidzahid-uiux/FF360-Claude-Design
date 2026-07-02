@@ -123,7 +123,7 @@ export function InstalledFootageLogsSection({
   return (
     <div className="border-border-subtle bg-bg-surface-elevated rounded-lg border p-4 shadow-sm">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-3xl leading-tight font-semibold">
+        <p className="text-text-primary text-base font-semibold">
           Installed Footage Logs
         </p>
         <div className="flex items-center gap-2">

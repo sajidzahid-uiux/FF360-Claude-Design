@@ -801,12 +801,14 @@ const detailById = new Map<number, Record<string, unknown>>(
         // Demo-only: surface the "Go to <file name>" quick buttons on job #101.
         ...(job.id === 101 ? EXAMPLE_JOB_MAP_FILES : {}),
         // Demo-only: assigned equipment (ids align with records/equipment mock)
-        // so the On-Site Tracking "Equipment assignment" card shows data.
-        ...(job.id === 101
+        // so the On-Site Tracking "Equipment assignment" card shows data. Seeded
+        // for one job of each type (tiling 101, excavation 201, repair 301) so
+        // every job type's tracking page looks consistent.
+        ...([101, 201, 301].includes(job.id)
           ? {
               equipments: [
-                { id: 9001, equipment: 1, total_hours: 128 },
-                { id: 9002, equipment: 3, total_hours: 86 },
+                { id: job.id * 10 + 1, equipment: 1, total_hours: 128 },
+                { id: job.id * 10 + 2, equipment: 3, total_hours: 86 },
               ],
             }
           : {}),

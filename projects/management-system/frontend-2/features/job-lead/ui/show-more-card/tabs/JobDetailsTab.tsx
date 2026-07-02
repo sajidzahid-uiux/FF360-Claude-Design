@@ -619,9 +619,11 @@ export function JobDetailsTab({
           <>
             {/* For jobs: Grid layout */}
             {config.features.designerAssignment && (
-              <div className="mb-4 grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-3">
-                {/* Assigned Designer shares the first row with Acres / Job acre. */}
-                <div className="w-full min-w-0">
+              <div className="mb-4 space-y-4">
+                {/* Row 1: Assigned Designer (given extra width so the selected
+                    name isn't clipped) + Acres. */}
+                <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-3">
+                <div className="w-full min-w-0 md:col-span-2">
                   <div className="mb-2 text-sm font-medium whitespace-nowrap">
                     Assigned Designer
                   </div>
@@ -731,7 +733,11 @@ export function JobDetailsTab({
                     />
                   </div>
                 )}
+                </div>
 
+                {/* Row 2: Job acre / Job footage / Raisers installed. */}
+                {config.jobType === JobType.TILING && (
+                  <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-3">
                 {config.features.acreage &&
                   config.jobType === JobType.TILING && (
                     <div className="w-full min-w-0">
@@ -805,6 +811,8 @@ export function JobDetailsTab({
                       />
                     </div>
                   )}
+                  </div>
+                )}
               </div>
             )}
 

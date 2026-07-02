@@ -793,12 +793,13 @@ export const mockAdapter: AxiosAdapter = async (config) => {
     );
   }
 
-  // Installed hours logs (job time entries) for the demo job #101 — a few crew
-  // entries so the On-Site Tracking "Installed hours logs" preview shows data.
+  // Installed hours logs (job time entries) — a few crew entries for one demo
+  // job of each type (tiling 101, excavation 201, repair 301) so the On-Site
+  // Tracking "Installed hours logs" preview shows data consistently.
   if (
     method === "get" &&
     /ms\/organizations\/\d+\/job-time-entries\/?$/.test(url) &&
-    /job_id=101\b/.test(config.url || "")
+    /job_id=(101|201|301)\b/.test(config.url || "")
   ) {
     const timeEntries = [
       {

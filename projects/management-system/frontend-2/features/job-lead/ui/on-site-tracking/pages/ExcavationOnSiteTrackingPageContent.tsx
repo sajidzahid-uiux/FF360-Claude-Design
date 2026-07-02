@@ -6,14 +6,19 @@ import { ComponentSizeEnum, Loader } from "@fieldflow360/org-ui";
 
 import { JobOrLeadType, JobType, PermissionCode } from "@/constants";
 import {
+  JobMaintenanceStatusSection,
   JobOnSiteEquipmentSection,
-  JobOnSiteNotesSection,
+  JobOnSiteMapSection,
+  JobOnSiteNotesFloating,
   JobOnSiteTimeTrackingSection,
   JobOnSiteTrackingPageLayout,
 } from "@/features/job-lead";
+import type { JobOnSiteMapJob } from "@/features/job-lead/ui/on-site-tracking/JobOnSiteMapSection";
+import type { EntityDataState } from "@/features/job-lead/ui/show-more-card/entityDataState";
 import { JobEquipmentAssignment } from "@/features/jobs";
 import {
   useJobStatusHandler,
+  useOrganizationById,
   useOrganizationStatuses,
   useRouteIds,
 } from "@/hooks";
@@ -38,6 +43,7 @@ export default function OnSiteTrackingPage() {
   const { data: statusTypes } = useOrganizationStatuses({
     jobType: JobOrLeadType.EXCAVATION,
   });
+  const { data: organizationData } = useOrganizationById(orgId);
 
   const { canEditStatus } = useJobPermissions(JobType.EXCAVATION);
   const { canRead: canReadContact } = useContactPermissions();
@@ -73,9 +79,7 @@ export default function OnSiteTrackingPage() {
   }
 
   return (
-    <PermissionCodeGate
-      permissionCode={PermissionCode.JOBS_EXCAVATION_PAGE_READ}
-    >
+    <PermissionCodeGate permissionCode={PermissionCode.JOBS_EXCAVATION_PAGE_READ}>
       <JobOnSiteTrackingPageLayout
         canEditStatus={canEditStatus}
         canReadContact={canReadContact}
@@ -87,45 +91,80 @@ export default function OnSiteTrackingPage() {
         orgId={orgId}
         permissionCode={PermissionCode.JOBS_EXCAVATION_PAGE_READ}
         poNumber={job?.po_number}
-        primaryColumn={
-          job?.id != null ? (
-            <JobOnSiteTimeTrackingSection
-              disabled={sectionDisabled}
-              jobId={job.id}
-              jobType={JobType.EXCAVATION}
-            />
-          ) : null
-        }
         progressBar={job?.progress_bar}
-        secondaryColumn={
-          job?.id != null ? (
-            <>
-              <JobOnSiteEquipmentSection>
-                <JobEquipmentAssignment
-                  embedded
-                  hideMaintenance
-                  assignments={job.equipments ?? []}
-                  disabled={sectionDisabled}
-                  farmerJob={job.job_object_subclass === "ExcavationFarmerJob"}
-                  jobId={job.id}
-                  jobType={JobType.EXCAVATION}
-                  mode="track"
-                />
-              </JobOnSiteEquipmentSection>
-              <JobOnSiteNotesSection
-                assignedToJob={job?.canAccessOnSiteTracking === true}
-                jobId={jobId}
-                jobType={JobType.EXCAVATION}
-                notesTabAccess={notesTabAccess}
-                readOnly={sectionDisabled}
-              />
-            </>
-          ) : null
-        }
         statusDisabled={sectionDisabled}
         statusTypes={statusTypes}
         onStatusChange={handleStatusChange}
+        content={
+          job?.id != null ? (
+            <div className="flex flex-col gap-5 lg:gap-6 xl:gap-8">
+              {/* Row 1 — field map (left) + time tracking & installed hours (right) */}
+              <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2 lg:gap-6 xl:gap-8">
+                <div className="flex min-w-0 flex-col gap-5">
+                  <JobOnSiteMapSection
+                    canEditCorePoints={!sectionDisabled}
+                    canMutatePins={!sectionDisabled}
+                    disabled={sectionDisabled}
+                    job={job as unknown as JobOnSiteMapJob}
+                    jobType={JobType.EXCAVATION}
+                    orgId={orgId}
+                    organizationLocation={
+                      organizationData?.latitude != null &&
+                      organizationData?.longitude != null
+                        ? {
+                            lat: Number(organizationData.latitude),
+                            lng: Number(organizationData.longitude),
+                          }
+                        : null
+                    }
+                  />
+                </div>
+                <div className="flex min-w-0 flex-col gap-5">
+                  <JobOnSiteTimeTrackingSection
+                    disabled={sectionDisabled}
+                    jobId={job.id}
+                    jobType={JobType.EXCAVATION}
+                  />
+                </div>
+              </div>
+              {/* Row 2 — equipment assignment (left) + maintenance status (right) */}
+              <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2 lg:gap-6 xl:gap-8">
+                <div className="flex min-w-0 flex-col gap-5">
+                  <JobOnSiteEquipmentSection>
+                    <JobEquipmentAssignment
+                      embedded
+                      hideMaintenance
+                      assignments={job.equipments ?? []}
+                      disabled={sectionDisabled}
+                      farmerJob={
+                        job.job_object_subclass === "ExcavationFarmerJob"
+                      }
+                      jobId={job.id}
+                      jobType={JobType.EXCAVATION}
+                      mode="track"
+                    />
+                  </JobOnSiteEquipmentSection>
+                </div>
+                <div className="flex min-w-0 flex-col gap-5">
+                  <JobMaintenanceStatusSection />
+                </div>
+              </div>
+            </div>
+          ) : null
+        }
       />
+      {job?.id != null ? (
+        <JobOnSiteNotesFloating
+          assignedToJob={job?.canAccessOnSiteTracking === true}
+          canEdit={!sectionDisabled}
+          entity={job as unknown as EntityDataState}
+          isTrashed={isArchived}
+          jobId={jobId}
+          jobType={JobType.EXCAVATION}
+          notesTabAccess={notesTabAccess}
+          readOnly={sectionDisabled}
+        />
+      ) : null}
     </PermissionCodeGate>
   );
 }
