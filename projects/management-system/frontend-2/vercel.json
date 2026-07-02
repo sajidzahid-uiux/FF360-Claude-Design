@@ -1,0 +1,20 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "npm install --legacy-peer-deps",
+  "buildCommand": "npm run build",
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_USE_MOCK_DATA": "true",
+      "CSP_ENABLED": "false",
+      "NEXT_PUBLIC_API_URL": "https://mock.api.local",
+      "NEXT_PUBLIC_WS_URL": "wss://mock.api.local",
+      "NEXT_PUBLIC_VENDOR_API_URL": "https://mock.api.local",
+      "NEXT_PUBLIC_AUTH0_DOMAIN": "mock.auth0.local",
+      "NEXT_PUBLIC_AUTH0_CLIENT_ID": "mock-client-id",
+      "NEXT_PUBLIC_AUTH0_AUDIENCE": "https://mock.api.local/",
+      "NEXT_PUBLIC_AUTH0_SCOPE": "openid profile email offline_access",
+      "STRIPE_SECRET_KEY": "sk_test_mock_placeholder_not_used_in_mock_mode"
+    }
+  }
+}
