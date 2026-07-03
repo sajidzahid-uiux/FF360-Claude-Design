@@ -1,18 +1,16 @@
 "use client";
 
-import { memo, useCallback, useMemo } from "react";
+import { memo, useMemo } from "react";
 
-import { Briefcase, FileText, Grid3X3, Shovel, Wrench } from "lucide-react";
+import { Briefcase, FileText } from "lucide-react";
 
-import { type Farm, JobType, LeadType } from "@/api/types";
-import { JobLeadTypeRouteSegment } from "@/constants";
-import { useRouteIds } from "@/hooks";
+import { type Farm, JobType } from "@/api/types";
 import {
   PERMISSION_RESOURCES,
   useJobPermissions,
   usePermissionsFromStorage,
 } from "@/hooks/permissions";
-import { orgPath, orgUrl } from "@/shared/config/routes";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 import { Dropdown, type DropdownItem } from "@/shared/ui/common";
 import { buildRowActions } from "@/utils/actions";
 
@@ -27,9 +25,8 @@ const FarmActions = memo(function FarmActions({
   farm,
   handleEditFarm,
   handleDeleteFarm,
-  contactId,
 }: FarmActionsProps) {
-  const { orgId } = useRouteIds();
+  const { openModal } = useModalStack();
   const { permissionCodes: permsForFarm } = usePermissionsFromStorage(
     PERMISSION_RESOURCES.CONTACT_FARM_TAB
   );
@@ -43,56 +40,6 @@ const FarmActions = memo(function FarmActions({
   const canAddExcavationJob = useJobPermissions(JobType.EXCAVATION).canAdd;
   const canAddTilingJob = useJobPermissions(JobType.TILING).canAdd;
   const canAddRepairJob = useJobPermissions(JobType.REPAIR).canAdd;
-
-  const handleCreateLead = useCallback(
-    (leadType: LeadType) => {
-      const params = new URLSearchParams({
-        action: "add",
-        contactId: contactId.toString(),
-        farmId: farm.id.toString(),
-      });
-      if (leadType === LeadType.TILING) {
-        window.open(
-          orgPath(
-            orgId,
-            `/leads/${JobLeadTypeRouteSegment.DRAINAGE_TILING}?${params.toString()}`
-          ),
-          "_blank"
-        );
-      } else {
-        window.open(
-          `${orgUrl(orgId, `/leads/${leadType}`, `${params.toString()}`)}`,
-          "_blank"
-        );
-      }
-    },
-    [contactId, farm.id, orgId]
-  );
-
-  const handleCreateJob = useCallback(
-    (jobType: JobType) => {
-      const params = new URLSearchParams({
-        action: "add",
-        contactId: contactId.toString(),
-        farmId: farm.id.toString(),
-      });
-      if (jobType === JobType.TILING) {
-        window.open(
-          orgPath(
-            orgId,
-            `/jobs/${JobLeadTypeRouteSegment.DRAINAGE_TILING}?${params.toString()}`
-          ),
-          "_blank"
-        );
-      } else {
-        window.open(
-          `${orgUrl(orgId, `/jobs/${jobType}`, `${params.toString()}`)}`,
-          "_blank"
-        );
-      }
-    },
-    [contactId, farm.id, orgId]
-  );
 
   const canViewFarmActionsMemu =
     hasReadPermission || hasEditPermission || hasDeletePermission;
@@ -123,71 +70,23 @@ const FarmActions = memo(function FarmActions({
   const customActions = useMemo(() => {
     const actions: DropdownItem[] = [];
 
+    // The Add Lead / Add Job modals have their own type picker, so open them
+    // directly instead of nesting a Tiling/Repair/Excavation submenu here.
     if (canWriteLeads) {
       actions.push({
         id: "create-lead",
         label: "Create Lead",
         icon: <FileText className="h-4 w-4" />,
-        submenu: [
-          {
-            id: "lead-tiling",
-            label: "Tiling",
-            icon: <Grid3X3 className="h-4 w-4" />,
-            onSelect: () => handleCreateLead(LeadType.TILING),
-          },
-          {
-            id: "lead-repair",
-            label: "Repair",
-            icon: <Wrench className="h-4 w-4" />,
-            onSelect: () => handleCreateLead(LeadType.REPAIR),
-          },
-          {
-            id: "lead-excavation",
-            label: "Excavation",
-            icon: <Shovel className="h-4 w-4" />,
-            onSelect: () => handleCreateLead(LeadType.EXCAVATION),
-          },
-        ],
-        submenuSide: "left",
+        onSelect: () => openModal("add-lead"),
       });
     }
 
     if (canAddExcavationJob || canAddRepairJob || canAddTilingJob) {
-      const jobSubmenu: DropdownItem[] = [];
-
-      if (canAddTilingJob) {
-        jobSubmenu.push({
-          id: "job-tiling",
-          label: "Tiling",
-          icon: <Grid3X3 className="h-4 w-4" />,
-          onSelect: () => handleCreateJob(JobType.TILING),
-        });
-      }
-
-      if (canAddRepairJob) {
-        jobSubmenu.push({
-          id: "job-repair",
-          label: "Repair",
-          icon: <Wrench className="h-4 w-4" />,
-          onSelect: () => handleCreateJob(JobType.REPAIR),
-        });
-      }
-
-      if (canAddExcavationJob) {
-        jobSubmenu.push({
-          id: "job-excavation",
-          label: "Excavation",
-          icon: <Shovel className="h-4 w-4" />,
-          onSelect: () => handleCreateJob(JobType.EXCAVATION),
-        });
-      }
-
       actions.push({
         id: "create-job",
         label: "Create Job",
         icon: <Briefcase className="h-4 w-4" />,
-        submenu: jobSubmenu,
-        submenuSide: "left",
+        onSelect: () => openModal("add-job"),
       });
     }
 
@@ -197,8 +96,7 @@ const FarmActions = memo(function FarmActions({
     canAddExcavationJob,
     canAddRepairJob,
     canAddTilingJob,
-    handleCreateLead,
-    handleCreateJob,
+    openModal,
   ]);
 
   const items = useMemo(

@@ -5,7 +5,7 @@ import { type ReactNode } from "react";
 import {
   Button,
   ButtonVariantEnum,
-  Checkbox,
+  ComponentSizeEnum,
   Input,
   LocationPicker,
 } from "@fieldflow360/org-ui";
@@ -18,7 +18,6 @@ import {
   PlusCircle,
 } from "lucide-react";
 
-import type { ContactCategory } from "@/api/types";
 import {
   CONTACT_FIELD_LIMITS,
   ContactDetailsEditor,
@@ -26,6 +25,8 @@ import {
   ContactFormErrorSummary,
   DEFAULT_CONTACT_FORM_DATA,
 } from "@/features/contacts";
+
+import { ContactCategoryDropdown } from "./ContactCategoryDropdown";
 import {
   type ContactDetailFormRow,
   fromLocationPoint,
@@ -103,7 +104,6 @@ export function AddContactFormFields({
   onFieldChange,
   onOpenCategoryDialog,
   readOnly = false,
-  categoriesMode = "checkbox",
   layout = "modal",
   hideCategoryField = false,
   mapHeight: mapHeightProp,
@@ -138,26 +138,6 @@ export function AddContactFormFields({
       : formData.category_ids.filter((id) => id !== categoryId);
 
     onChange({ ...formData, category_ids: nextIds });
-    onFieldChange?.("category_ids");
-  };
-
-  const addCategory = (categoryId: number) => {
-    if (readOnly || formData.category_ids.includes(categoryId)) return;
-
-    onChange({
-      ...formData,
-      category_ids: [...formData.category_ids, categoryId],
-    });
-    onFieldChange?.("category_ids");
-  };
-
-  const removeCategory = (categoryId: number) => {
-    if (readOnly) return;
-
-    onChange({
-      ...formData,
-      category_ids: formData.category_ids.filter((id) => id !== categoryId),
-    });
     onFieldChange?.("category_ids");
   };
 
@@ -412,142 +392,40 @@ export function AddContactFormFields({
       </FormSection>
   );
 
-  const categoriesSection = hideCategoryField ? null : categoriesMode ===
-    "checkbox" ? (
-        <FormSection
-          description="Client Contact is assigned automatically when none are selected."
-          layout={layout}
-          title="Categories"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-text-muted text-sm">
-              Select one or more categories for this contact.
-            </p>
-            {!readOnly ? (
-              <Button
-                leftIcon={
-                  <PlusCircle aria-hidden className="h-4 w-4" strokeWidth={2} />
-                }
-                title="Add category"
-                onClick={onOpenCategoryDialog}
-              />
-            ) : null}
-          </div>
-
-          {categoriesLoading ? (
-            <p className="text-text-muted text-sm">Loading categories…</p>
-          ) : null}
-          {categoriesError ? (
-            <p className="text-feedback-error text-sm">
-              Could not load categories.
-            </p>
-          ) : null}
-
-          {!categoriesLoading && !categoriesError ? (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {(categories ?? []).map((category: ContactCategory) => {
-                const checked = formData.category_ids.includes(category.id);
-                const inputId = `add-contact-category-${category.id}`;
-
-                return (
-                  <label
-                    key={category.id}
-                    className="border-border-subtle hover:border-border-subtle/60 hover:bg-bg-hover/40 bg-bg-surface/30 flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60"
-                    htmlFor={inputId}
-                  >
-                    <Checkbox
-                      checked={checked}
-                      disabled={readOnly}
-                      id={inputId}
-                      onChange={(event) =>
-                        toggleCategory(category.id, event.target.checked)
-                      }
-                    />
-                    <span className="flex min-w-0 flex-1 items-center gap-2">
-                      <span
-                        aria-hidden
-                        className="h-2.5 w-2.5 shrink-0 rounded-full"
-                        style={{
-                          backgroundColor: category.color || "#3b82f6",
-                        }}
-                      />
-                      <span className="text-text-primary truncate text-sm font-medium">
-                        {category.name}
-                      </span>
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          ) : null}
-        </FormSection>
-      ) : isDetailView ? null : (
-        <FormSection layout={layout} title="Contact categories">
-          <div>
-            <p className="text-text-muted mb-2 text-sm">Current categories:</p>
-            <div className="flex flex-wrap gap-2">
-              {(categories ?? [])
-                .filter((cat) => formData.category_ids.includes(cat.id))
-                .map((category) => (
-                  <div
-                    key={category.id}
-                    className="flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium text-white"
-                    style={{ backgroundColor: category.color }}
-                  >
-                    <span>{category.name}</span>
-                    {!readOnly && category.name !== "Client Contact" ? (
-                      <button
-                        className="ml-1 hover:opacity-80"
-                        title="Remove category"
-                        type="button"
-                        onClick={() => removeCategory(category.id)}
-                      >
-                        ×
-                      </button>
-                    ) : null}
-                  </div>
-                ))}
-              {formData.category_ids.length === 0 ? (
-                <span className="text-text-muted text-sm">
-                  No categories selected
-                </span>
-              ) : null}
-            </div>
-          </div>
-
-          {!readOnly && categories && categories.length > 0 ? (
-            <div>
-              <p className="text-text-muted mb-2 text-sm">
-                Available categories:
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {categories
-                  .filter((cat) => !formData.category_ids.includes(cat.id))
-                  .map((category) => (
-                    <button
-                      key={category.id}
-                      className="hover:bg-bg-surface flex items-center gap-1 rounded-full border-2 px-3 py-1 text-sm font-medium transition-colors"
-                      style={{ borderColor: category.color }}
-                      type="button"
-                      onClick={() => addCategory(category.id)}
-                    >
-                      <span>+</span>
-                      <span>{category.name}</span>
-                    </button>
-                  ))}
-              </div>
-              <div className="mt-3">
-                <Button
-                  aria-label="Add new category"
-                  title="Add new category"
-                  variant={ButtonVariantEnum.SURFACE}
-                  onClick={onOpenCategoryDialog}
-                />
-              </div>
-            </div>
-          ) : null}
-        </FormSection>
-      );
+  const categoriesSection = hideCategoryField ? null : (
+    <FormSection
+      description="Client Contact is assigned automatically when none are selected."
+      layout={layout}
+      title="Categories"
+    >
+      <ContactCategoryDropdown
+        categories={categories}
+        hasError={!!categoriesError}
+        isLoading={categoriesLoading}
+        readOnly={readOnly}
+        selectedIds={formData.category_ids.map(Number)}
+        onToggle={(id) =>
+          toggleCategory(
+            Number(id),
+            !formData.category_ids.includes(Number(id))
+          )
+        }
+      />
+      {!readOnly ? (
+        <Button
+          aria-label="Add new category"
+          className="mt-1.5 h-auto px-0 text-xs"
+          leftIcon={
+            <PlusCircle aria-hidden className="h-3.5 w-3.5" strokeWidth={2} />
+          }
+          size={ComponentSizeEnum.SM}
+          title="Add new category"
+          variant={ButtonVariantEnum.GHOST}
+          onClick={onOpenCategoryDialog}
+        />
+      ) : null}
+    </FormSection>
+  );
 
   if (layout === "modal") {
     return (

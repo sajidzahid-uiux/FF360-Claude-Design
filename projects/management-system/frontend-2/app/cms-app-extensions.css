@@ -203,3 +203,20 @@
 .cms-job-lead-list-table {
   margin-top: -0.5rem;
 }
+
+/* Sticky table headers for list tables, project-wide. The plain table variant
+   ships a transparent, non-sticky header; pin it with an opaque surface
+   background so rows scroll underneath. The list wrapper's overflow-x is
+   dropped (only for wrappers that hold a <table> — not kanban) so the outer
+   vertical scroller becomes the sticky context. Tables are w-full/table-fixed,
+   so no horizontal scroll is lost. */
+.table-view-body-enter:has(> table) {
+  overflow-x: visible;
+}
+
+.table-view-body-enter > table > thead > tr > th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: var(--color-bg-surface, var(--color-bg-app, #ffffff));
+}
