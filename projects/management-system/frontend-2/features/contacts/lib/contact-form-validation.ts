@@ -106,9 +106,10 @@ export const contactFormValidation = z
         })
       ),
     }),
+    // No minimum — when empty, "Client Contact" is assigned automatically
+    // (see buildContactCreatePayload).
     category_ids: z
       .array(z.number())
-      .min(1, "At least one category is required.")
       .transform((ids) =>
         ids.filter(
           (id): id is number => typeof id === "number" && !Number.isNaN(id)

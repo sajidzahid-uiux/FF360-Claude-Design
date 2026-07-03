@@ -21,6 +21,8 @@ interface ContactCategoryDropdownProps {
   readOnly?: boolean;
   isLoading?: boolean;
   hasError?: boolean;
+  /** Hint shown under the dropdown when nothing is selected. */
+  emptyStateText?: string;
 }
 
 export function ContactCategoryDropdown({
@@ -31,6 +33,7 @@ export function ContactCategoryDropdown({
   readOnly = false,
   isLoading = false,
   hasError = false,
+  emptyStateText = "No categories selected",
 }: ContactCategoryDropdownProps) {
   const normalizedSelected = selectedIds.map((id) => Number(id));
   const normalizedLocked = lockedCategoryIds.map((id) => Number(id));
@@ -110,7 +113,7 @@ export function ContactCategoryDropdown({
           <div className="flex min-h-[28px] flex-wrap gap-2">
             {selectedCategories.length === 0 ? (
               <span className="text-text-muted text-sm">
-                No categories selected
+                {emptyStateText}
               </span>
             ) : (
               selectedCategories.map((category) => {

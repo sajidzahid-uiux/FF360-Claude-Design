@@ -3,7 +3,7 @@ import type { ContactCategory } from "@/api/types";
 import { FARM_CONTACT_INFO_TAB, SUB_CONTACTS_TAB } from "../model/constants";
 
 export const CONTACT_DETAIL_TAB_CONTACT = "Contact Information";
-export const CONTACT_DETAIL_TAB_FARMS = "Farm Management";
+export const CONTACT_DETAIL_TAB_FARMS = "On-Site Operations";
 export const CONTACT_DETAIL_TAB_JOBS = "Job History";
 
 export { FARM_CONTACT_INFO_TAB, SUB_CONTACTS_TAB };

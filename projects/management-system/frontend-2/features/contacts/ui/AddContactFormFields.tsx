@@ -400,6 +400,7 @@ export function AddContactFormFields({
     >
       <ContactCategoryDropdown
         categories={categories}
+        emptyStateText="Client Contact will be assigned by default."
         hasError={!!categoriesError}
         isLoading={categoriesLoading}
         readOnly={readOnly}

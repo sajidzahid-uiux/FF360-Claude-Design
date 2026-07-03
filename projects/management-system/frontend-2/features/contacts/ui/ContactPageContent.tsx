@@ -3,14 +3,13 @@
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { TabsSwitcher, TabsSwitcherViewEnum } from "@fieldflow360/org-ui";
 import { toast } from "sonner";
 
 import type { Contact } from "@/api/types";
 import {
   CategoriesTab,
-  CONTACT_PAGE_TABS,
   type ContactPageTab,
+  ContactsBreadcrumbToolbar,
   ContactsTable,
 } from "@/features/contacts";
 import {
@@ -287,6 +286,12 @@ export default function OrgContactPage() {
 
   return (
     <>
+      {canViewContact ? (
+        <ContactsBreadcrumbToolbar
+          currentTab={tab}
+          onTabChange={handleTabChange}
+        />
+      ) : null}
       <PageRenderer
         data={isContactsTab ? tableRows : []}
         description="Manage your organization's contacts."
@@ -309,15 +314,6 @@ export default function OrgContactPage() {
 
           return (
             <>
-              <div className="mb-5">
-                <TabsSwitcher
-                  items={[...CONTACT_PAGE_TABS]}
-                  value={tab}
-                  view={TabsSwitcherViewEnum.UNDERLINED}
-                  onChange={handleTabChange}
-                />
-              </div>
-
               {isContactsTab ? (
                 <ContactsTable
                   canDelete={!!canDeleteContact}

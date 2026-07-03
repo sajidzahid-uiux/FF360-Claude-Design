@@ -22,6 +22,8 @@ export interface AppFormModalProps {
   showCancel?: boolean;
   width?: number;
   maxHeight?: number | string;
+  /** Optional secondary action rendered in the footer, left of the submit button. */
+  secondaryAction?: React.ReactNode;
 }
 
 const ArrowLeftIcon = (
@@ -65,6 +67,7 @@ export function AppFormModal({
   showCancel = false,
   width = 635,
   maxHeight = 'calc(100% - 70px)',
+  secondaryAction,
 }: AppFormModalProps) {
   const { accentColor } = useTheme();
   const accentTextColor = getAccentTextColor(accentColor || '#D7F27A');
@@ -148,15 +151,20 @@ export function AppFormModal({
                 variant={ButtonVariantEnum.GHOST}
                 title={cancelLabel}
               />
-            ) : null}
-            <Button
-              type="submit"
-              disabled={submitDisabled || isSubmitting}
-              fullWidth={!showCancel}
-              rightIcon={submitIcon}
-              loading={isSubmitting}
-              title={isSubmitting ? 'Submitting...' : submitLabel}
-            />
+            ) : (
+              <span aria-hidden />
+            )}
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              {secondaryAction}
+              <Button
+                type="submit"
+                disabled={submitDisabled || isSubmitting}
+                fullWidth={!showCancel && !secondaryAction}
+                rightIcon={submitIcon}
+                loading={isSubmitting}
+                title={isSubmitting ? 'Submitting...' : submitLabel}
+              />
+            </div>
           </div>
         </form>
       </div>

@@ -41,5 +41,6 @@ Unless a path says otherwise, file paths below are relative to `projects/managem
 ## Running it (Node is NOT on PATH — use full paths)
 Node 24 lives at `C:\Program Files\nodejs\node.exe`; npm at `C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js`.
 - The dev server is defined in `.claude/launch.json` (`cms-frontend` → 3000). Start with `preview_start`. It invokes Next's JS entry directly via the full `node.exe` path (the preview process has a stale PATH without Node).
+- **Preview viewport default: 1920×1080.** After starting/first using the preview each session, call `preview_resize` with `{ width: 1920, height: 1080 }` — the CMS layout is designed for a 1920-wide desktop.
 - org-ui build quirk: `npm run build` fails on Windows (`rm -rf` in the `clean` script). Run `npm run build:js` then `npm run build:css` instead.
 - The CMS consumes org-ui from a local tarball (`vendor/fieldflow360-org-ui-*.tgz`, a `file:` dependency) because the published package is on GitHub Packages (auth-gated). npm `overrides` pin the deck.gl family to a single 9.3.3 (avoids a multi-version runtime crash). After changing org-ui source: rebuild → `npm pack` → reinstall.

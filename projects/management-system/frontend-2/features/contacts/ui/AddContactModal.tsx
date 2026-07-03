@@ -1,10 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
-import { AppFormModal } from "@fieldflow360/org-ui";
+import { AppFormModal, Button, ButtonVariantEnum } from "@fieldflow360/org-ui";
 import { toast } from "sonner";
 
+import { resolveContactIdFromApiResponse } from "@/api/services/contactsService";
 import {
   AddContactFormFields,
   CategoryDialog,
@@ -26,7 +28,9 @@ import {
   useCategoryMutations,
   useContactCategories,
   useContactMutations,
+  useRouteIds,
 } from "@/hooks";
+import { orgPath } from "@/shared/config/routes";
 
 export interface AddContactModalProps {
   open: boolean;
@@ -34,6 +38,8 @@ export interface AddContactModalProps {
 }
 
 export function AddContactModal({ open, onOpenChange }: AddContactModalProps) {
+  const router = useRouter();
+  const { orgId } = useRouteIds();
   const { categories } = useContactCategories();
   const { create: createContact } = useContactMutations();
   const { create: createCategory } = useCategoryMutations();
@@ -90,21 +96,32 @@ export function AddContactModal({ open, onOpenChange }: AddContactModalProps) {
     [formData]
   );
 
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault();
+  // A brand-new contact defaults to "Client Contact" when no category is
+  // chosen; offer the "add an on-site operation" shortcut for those.
+  const showCreateOperation = useMemo(() => {
+    if (formData.category_ids.length === 0) return true;
+    const clientContactId = categories?.find(
+      (cat) => cat.name.toLowerCase() === "client contact"
+    )?.id;
+    return clientContactId != null && formData.category_ids.includes(clientContactId);
+  }, [categories, formData.category_ids]);
 
+  /** Validate + create. Returns the new contact id (or null if it failed). */
+  const createFromForm = async (): Promise<{
+    ok: boolean;
+    id: number | null;
+  }> => {
     const validation = contactFormValidation.safeParse(formData);
     if (!validation.success) {
       setFieldErrors(mapContactFormZodErrors(validation.error));
       toast.error("Please fix the highlighted fields.");
-      return;
+      return { ok: false, id: null };
     }
 
     try {
       const payload = buildContactCreatePayload(formData, categories);
-      await createContact.mutateAsync(payload);
-      toast.success("Contact created successfully");
-      onOpenChange(false);
+      const created = await createContact.mutateAsync(payload);
+      return { ok: true, id: resolveContactIdFromApiResponse(created) ?? null };
     } catch (error: unknown) {
       const errorData = extractApiErrorPayload(error);
       if (errorData?.details) {
@@ -112,6 +129,25 @@ export function AddContactModal({ open, onOpenChange }: AddContactModalProps) {
         setFieldErrors(mapContactDetailsToFieldErrors(details));
       }
       toast.error("Failed to create contact");
+      return { ok: false, id: null };
+    }
+  };
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    const result = await createFromForm();
+    if (!result.ok) return;
+    toast.success("Contact created successfully");
+    onOpenChange(false);
+  };
+
+  const handleCreateAndAddOperation = async () => {
+    const result = await createFromForm();
+    if (!result.ok) return;
+    toast.success("Contact created successfully");
+    onOpenChange(false);
+    if (result.id != null && orgId) {
+      router.push(orgPath(orgId, `/contact/${result.id}?action=add`));
     }
   };
 
@@ -126,6 +162,18 @@ export function AddContactModal({ open, onOpenChange }: AddContactModalProps) {
         isOpen={open}
         isSubmitting={createContact.isPending}
         maxHeight="calc(100vh - 2rem)"
+        secondaryAction={
+          showCreateOperation ? (
+            <Button
+              aria-label="Create contact and add an on-site operation"
+              disabled={submitDisabled || createContact.isPending}
+              title="Create & Add On-Site Operation"
+              type="button"
+              variant={ButtonVariantEnum.SURFACE}
+              onClick={() => void handleCreateAndAddOperation()}
+            />
+          ) : undefined
+        }
         submitDisabled={submitDisabled}
         submitLabel="Create Contact"
         title="Add New Contact"
