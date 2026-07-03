@@ -35,6 +35,9 @@ export interface ModalRegistryEntry {
 const AddContactModal = dynamic(() =>
   import("@/features/contacts").then((m) => ({ default: m.AddContactModal }))
 );
+const FarmContactModal = dynamic(() =>
+  import("@/features/contacts").then((m) => ({ default: m.FarmContactModal }))
+);
 
 // ---- Leads / Jobs ------------------------------------------------------------
 // Self-contained connected modals: they read the URL stack and own their create
@@ -62,6 +65,27 @@ export const MODAL_REGISTRY: Record<string, ModalRegistryEntry> = {
     render: ({ close }) => (
       <AddContactModal
         open
+        onOpenChange={(open) => {
+          if (!open) close();
+        }}
+      />
+    ),
+  },
+  "add-farm-contact": {
+    render: ({ close }) => (
+      <FarmContactModal
+        open
+        onOpenChange={(open) => {
+          if (!open) close();
+        }}
+      />
+    ),
+  },
+  "edit-farm-contact": {
+    render: ({ params, close }) => (
+      <FarmContactModal
+        open
+        contactId={params.id != null ? Number(params.id) : null}
         onOpenChange={(open) => {
           if (!open) close();
         }}

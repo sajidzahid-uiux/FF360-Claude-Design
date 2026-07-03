@@ -28,6 +28,7 @@ import { routes as bookkeepingRoutes } from "./data/bookkeeping";
 import { CHAT_GROUPS, UNSEEN_COUNTS } from "./data/chat";
 import {
   routes as contactRoutes,
+  getContactById,
   recordFarmsForContact,
 } from "./data/contacts";
 import { routes as crewRoutes } from "./data/crews";
@@ -69,6 +70,72 @@ const ORG1_DATA_ROUTES: MockRoute[] = [
   ...memberRoutes,
   ...bookkeepingRoutes,
 ];
+
+/** Sample "filled" activity history so the log subpages aren't empty. */
+function buildSampleActivityLogs(moduleName: string, entityId: number) {
+  const base = {
+    organization: 1,
+    module: moduleName,
+    entity_id: entityId,
+    entity_label: "",
+    field_name: null as string | null,
+    before_value: null as unknown,
+    after_value: null as unknown,
+  };
+  return [
+    {
+      ...base,
+      id: entityId * 100 + 1,
+      actor_member_id: 1,
+      actor_name: "Sajid Zahid",
+      event_key: "created",
+      event_name: "Record created",
+      log_message_rendered: "Created this record.",
+      created_at: "2026-01-15T13:00:00Z",
+    },
+    {
+      ...base,
+      id: entityId * 100 + 2,
+      actor_member_id: 4,
+      actor_name: "Marcus Reed",
+      event_key: "field_updated",
+      event_name: "Phone number updated",
+      log_message_rendered:
+        "Changed Phone number from “—” to “+1 515 555 0201”.",
+      created_at: "2026-01-22T09:30:00Z",
+    },
+    {
+      ...base,
+      id: entityId * 100 + 3,
+      actor_member_id: 1,
+      actor_name: "Sajid Zahid",
+      event_key: "category_added",
+      event_name: "Category added",
+      log_message_rendered: "Added category “Farm Owner”.",
+      created_at: "2026-02-04T15:10:00Z",
+    },
+    {
+      ...base,
+      id: entityId * 100 + 4,
+      actor_member_id: 2,
+      actor_name: "Angela Foster",
+      event_key: "field_updated",
+      event_name: "Company updated",
+      log_message_rendered: "Updated Company to “Johnson Family Farm”.",
+      created_at: "2026-03-12T11:45:00Z",
+    },
+    {
+      ...base,
+      id: entityId * 100 + 5,
+      actor_member_id: 1,
+      actor_name: "Sajid Zahid",
+      event_key: "note_added",
+      event_name: "Note added",
+      log_message_rendered: "Added a note to this record.",
+      created_at: "2026-05-28T16:20:00Z",
+    },
+  ];
+}
 
 /** Org id of the request, e.g. "1" for ms/organizations/1/leads/all/ (or null). */
 function orgIdOf(url: string): string | null {
@@ -625,6 +692,26 @@ export const mockAdapter: AxiosAdapter = async (config) => {
   // to the full roster for org 1 but still falls through to the owner-only
   // default for org 2 (Fresh Contractor). The whole block is skipped for org 2.
   if (method === "get" && orgIdOf(url) === "1") {
+    // Contact detail by id — return the ACTUAL contact so farm vs single tabs
+    // (and the Sub-Contacts tab) resolve correctly, instead of always CONTACTS[0].
+    const contactDetailMatch = url.match(/contacts-v2\/(\d+)\/?$/);
+    if (contactDetailMatch) {
+      const contact = getContactById(Number(contactDetailMatch[1]));
+      if (contact) return makeResponse(contact, config);
+    }
+
+    // Activity logs — sample history so the log subpages show filled data.
+    if (/\/activity-logs\/?$/.test(url)) {
+      const rawUrl = config.url || "";
+      const moduleName = rawUrl.match(/module=([^&]+)/)?.[1] ?? "contact";
+      const entityId = Number(rawUrl.match(/entity_id=(\d+)/)?.[1] ?? 0);
+      const results = buildSampleActivityLogs(moduleName, entityId);
+      return makeResponse(
+        { count: results.length, next: null, previous: null, results },
+        config
+      );
+    }
+
     for (const route of ORG1_DATA_ROUTES) {
       const methods = route.methods ?? ["get"];
       if (methods.includes(method) && route.match.test(url)) {

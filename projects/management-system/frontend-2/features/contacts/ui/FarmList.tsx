@@ -254,14 +254,6 @@ export default function FarmList({
     );
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-text-muted">{`Loading ${ON_SITE_OPERATIONS_LABEL.toLowerCase()}...`}</div>
-      </div>
-    );
-  }
-
   if (isError) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -281,6 +273,7 @@ export default function FarmList({
           title: "No farms found",
           description: "Try adjusting your search or add a new farm.",
         }}
+        isLoading={isLoading}
         sortRules={sortRules}
         toolbar={
           <TableToolbar

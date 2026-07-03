@@ -3,13 +3,14 @@
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { TabsSwitcher, TabsSwitcherViewEnum } from "@fieldflow360/org-ui";
 import { toast } from "sonner";
 
 import type { Contact } from "@/api/types";
 import {
   CategoriesTab,
+  CONTACT_PAGE_TABS,
   type ContactPageTab,
-  ContactsBreadcrumbToolbar,
   ContactsTable,
 } from "@/features/contacts";
 import {
@@ -39,8 +40,6 @@ import { useModalStack } from "@/shared/model/use-modal-stack";
 import { DialogManager, PageRenderer } from "@/shared/ui/common";
 import { AccessDeniedView } from "@/shared/ui/permissions";
 
-import AddNewFarmContact from "./AddNewFarmContact";
-
 function toNumericIds(ids: (string | number)[]): number[] {
   return ids
     .map((id) => (typeof id === "string" ? Number.parseInt(id, 10) : id))
@@ -59,11 +58,9 @@ export default function OrgContactPage() {
   const searchParams = useSearchParams();
   const {
     tab,
-    addMode,
     expandedParentIds,
     selectedContactIds,
     setTab,
-    setAddMode,
     toggleExpandedParentId,
     setSelectedContactIds,
     clearSelectedContactIds,
@@ -288,27 +285,8 @@ export default function OrgContactPage() {
     [navigateTo, organizationId]
   );
 
-  const handleAddFarmSuccess = useCallback(() => {
-    setAddMode(null);
-  }, [setAddMode]);
-
-  if (addMode === "farm_management") {
-    return (
-      <AddNewFarmContact
-        onBack={() => setAddMode(null)}
-        onSuccess={handleAddFarmSuccess}
-      />
-    );
-  }
-
   return (
     <>
-      {canViewContact ? (
-        <ContactsBreadcrumbToolbar
-          currentTab={tab}
-          onTabChange={handleTabChange}
-        />
-      ) : null}
       <PageRenderer
         data={isContactsTab ? tableRows : []}
         description="Manage your organization's contacts."
@@ -331,6 +309,15 @@ export default function OrgContactPage() {
 
           return (
             <>
+              <div className="mb-5">
+                <TabsSwitcher
+                  items={[...CONTACT_PAGE_TABS]}
+                  value={tab}
+                  view={TabsSwitcherViewEnum.UNDERLINED}
+                  onChange={handleTabChange}
+                />
+              </div>
+
               {isContactsTab ? (
                 <ContactsTable
                   canDelete={!!canDeleteContact}
@@ -346,7 +333,7 @@ export default function OrgContactPage() {
                   selectable={!!canDeleteContact}
                   selectedIds={selectedContactIds}
                   sortRules={sortRules}
-                  onAddFarmContact={() => setAddMode("farm_management")}
+                  onAddFarmContact={() => openModal("add-farm-contact")}
                   onAddStandardContact={() => openModal("add-contact")}
                   onBulkDelete={handleBulkDelete}
                   onContactLogs={handleContactLogs}

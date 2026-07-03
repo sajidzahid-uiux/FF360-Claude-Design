@@ -1,9 +1,10 @@
 "use client";
-import { useCallback, useMemo, useState } from "react";
+import { type FormEvent, useCallback, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
-import { Modal } from "@fieldflow360/org-ui";
+import { AppFormModal } from "@fieldflow360/org-ui";
 
-import type { Contact, SubContactCreateAndLinkPayload } from "@/api/types";
+import type { Contact } from "@/api/types";
 import {
   CLIENT_CONTACT_CATEGORY_NAME,
   FARM_MANAGEMENT_CONTACT_LABEL,
@@ -12,26 +13,14 @@ import {
 } from "@/features/contacts/model";
 import { useContactCategories, useContacts } from "@/hooks";
 
-import {
-  SUB_CONTACT_CREATE_FORM_BODY_CLASS,
-  SUB_CONTACT_CREATE_FORM_MODAL_CLASS,
-  SubContactCreateContactForm,
-} from "./SubContactCreateContactForm";
-import {
-  SUB_CONTACT_DIALOG_MODAL_CLASS,
-  SubContactSearchPicker,
-} from "./SubContactPickerFields";
+import { SubContactSearchPicker } from "./SubContactPickerFields";
 
 interface AddPendingSubContactDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   excludedContactIds: number[];
   pendingCount: number;
-  onLinkExisting: (contact: Contact) => void;
-  onCreateNew: (
-    payload: SubContactCreateAndLinkPayload,
-    displayName: string
-  ) => void;
+  onLinkExisting: (contacts: Contact[]) => void;
 }
 
 export default function AddPendingSubContactDialog({
@@ -40,11 +29,9 @@ export default function AddPendingSubContactDialog({
   excludedContactIds,
   pendingCount,
   onLinkExisting,
-  onCreateNew,
 }: AddPendingSubContactDialogProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [showNewForm, setShowNewForm] = useState(false);
-  const [createFormKey, setCreateFormKey] = useState(0);
+  const [selected, setSelected] = useState<Contact[]>([]);
 
   const { categories } = useContactCategories();
   const clientCategoryId = useMemo(
@@ -76,81 +63,75 @@ export default function AddPendingSubContactDialog({
   }, [contacts, excludedSet]);
 
   const atMaxSubContacts = pendingCount >= MAX_SUB_CONTACTS;
+  const remainingSlots = MAX_SUB_CONTACTS - pendingCount;
+  const selectedIds = useMemo(() => selected.map((c) => c.id), [selected]);
 
   const handleClose = useCallback(() => {
     setSearchTerm("");
-    setShowNewForm(false);
+    setSelected([]);
     onOpenChange(false);
   }, [onOpenChange]);
 
-  const handleLink = useCallback(
+  const handleToggle = useCallback(
     (contact: Contact) => {
-      if (atMaxSubContacts) return;
-      onLinkExisting(contact);
-      handleClose();
+      setSelected((prev) => {
+        if (prev.some((c) => c.id === contact.id)) {
+          return prev.filter((c) => c.id !== contact.id);
+        }
+        if (prev.length >= remainingSlots) return prev;
+        return [...prev, contact];
+      });
     },
-    [atMaxSubContacts, onLinkExisting, handleClose]
+    [remainingSlots]
   );
 
-  const handleCreateNew = useCallback(
-    (payload: SubContactCreateAndLinkPayload) => {
-      if (atMaxSubContacts) return;
-      onCreateNew(payload, payload.full_name);
+  const handleSubmit = useCallback(
+    (event: FormEvent) => {
+      event.preventDefault();
+      if (selected.length === 0) return;
+      onLinkExisting(selected);
       handleClose();
     },
-    [atMaxSubContacts, onCreateNew, handleClose]
+    [selected, onLinkExisting, handleClose]
   );
 
-  const modalClass = showNewForm
-    ? SUB_CONTACT_CREATE_FORM_MODAL_CLASS
-    : SUB_CONTACT_DIALOG_MODAL_CLASS;
-  const modalTitle = showNewForm ? "Create & Link Contact" : "Add Sub Contacts";
-
-  if (!open) {
+  if (!open || typeof document === "undefined") {
     return null;
   }
 
-  return (
-    <Modal
-      className={modalClass}
+  // Portal to <body>: this dialog is rendered inside the Farm Contact modal's
+  // <form>, and AppFormModal is itself a <form>. Nested forms would make this
+  // dialog's submit bubble up and submit the parent farm form, so we lift it
+  // out of that DOM subtree.
+  return createPortal(
+    <AppFormModal
+      showCancel
       isOpen={open}
-      title={modalTitle}
+      maxHeight="85vh"
+      submitDisabled={selected.length === 0}
+      submitLabel={selected.length > 0 ? `Add ${selected.length}` : "Add"}
+      title="Add Sub Contacts"
+      width={560}
       onClose={handleClose}
+      onSubmit={handleSubmit}
     >
-      <div
-        className={
-          showNewForm
-            ? SUB_CONTACT_CREATE_FORM_BODY_CLASS
-            : "flex min-h-[24rem] flex-col sm:min-h-[26rem]"
-        }
-      >
-        {atMaxSubContacts ? (
-          <p className="text-text-muted text-sm">
-            You can link up to {MAX_SUB_CONTACTS} sub-contacts per{" "}
-            {FARM_MANAGEMENT_CONTACT_LABEL}.
-          </p>
-        ) : showNewForm ? (
-          <SubContactCreateContactForm
-            key={createFormKey}
-            clientCategoryId={clientCategoryId}
-            submitLabel="Add to list"
-            onBack={() => setShowNewForm(false)}
-            onSubmit={handleCreateNew}
-          />
-        ) : (
-          <SubContactSearchPicker
-            availableContacts={availableContacts}
-            isLoading={isLoading}
-            searchTerm={searchTerm}
-            onNewContact={() => {
-              setCreateFormKey((k) => k + 1);
-              setShowNewForm(true);
-            }}
-            onSearchTermChange={setSearchTerm}
-            onSelectContact={handleLink}
-          />
-        )}
-      </div>
-    </Modal>
+      {atMaxSubContacts ? (
+        <p className="text-text-muted text-sm">
+          You can link up to {MAX_SUB_CONTACTS} sub-contacts per{" "}
+          {FARM_MANAGEMENT_CONTACT_LABEL}.
+        </p>
+      ) : (
+        <SubContactSearchPicker
+          availableContacts={availableContacts}
+          disableUnselected={selected.length >= remainingSlots}
+          isLoading={isLoading}
+          searchTerm={searchTerm}
+          selectedIds={selectedIds}
+          onSearchTermChange={setSearchTerm}
+          onToggleContact={handleToggle}
+        />
+      )}
+    </AppFormModal>,
+    document.body
   );
 }

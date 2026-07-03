@@ -47,7 +47,10 @@ export default function JobHistory({ contactId }: { contactId: number }) {
           );
 
           return (
-            <Link className="text-blue-300 underline" href={url}>
+            <Link
+              className="text-accent font-medium hover:underline"
+              href={url}
+            >
               {displayName}
             </Link>
           );
@@ -122,41 +125,12 @@ export default function JobHistory({ contactId }: { contactId: number }) {
     [searchTerm]
   );
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="mt-6">
-        <div className="flex items-center justify-center p-8">
-          <div className="text-gray-500">Loading job history...</div>
-        </div>
-      </div>
-    );
-  }
-
   // Show error state
   if (error) {
     return (
       <div className="mt-6">
         <div className="flex items-center justify-center p-8">
-          <div className="text-red-500">Error loading job history</div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show no jobs message if no jobs available
-  if (!jobHistory || jobHistory.length === 0) {
-    return (
-      <div className="mt-6">
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <AssignedToFilterSelect compact />
-        </div>
-        <div className="flex items-center justify-center p-8">
-          <div className="text-gray-500">
-            {filterActive
-              ? "No jobs found for the selected filter."
-              : "No jobs available for this client."}
-          </div>
+          <div className="text-feedback-error">Error loading job history</div>
         </div>
       </div>
     );
@@ -164,10 +138,8 @@ export default function JobHistory({ contactId }: { contactId: number }) {
 
   return (
     <div className="mt-6">
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <AssignedToFilterSelect compact />
-      </div>
       <CmsOrgUiTable
+        showHeaderWhenEmpty
         columns={tableColumns}
         data={filteredJobHistory}
         dataMode={TableDataModeEnum.CLIENT}
@@ -177,8 +149,10 @@ export default function JobHistory({ contactId }: { contactId: number }) {
             ? "No jobs found for the selected filter."
             : "No jobs available for this client.",
         }}
+        isLoading={isLoading}
         toolbar={
           <TableToolbar
+            actions={<AssignedToFilterSelect compact />}
             search={search}
             showViewSwitcher={false}
             sortableColumns={[{ key: "job_name", label: "Name" }]}

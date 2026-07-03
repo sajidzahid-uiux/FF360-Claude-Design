@@ -76,7 +76,7 @@ export function ContactCategoryDropdown({
 
   return (
     <div className="space-y-2">
-      <Label variant="formMedium">Contact Category</Label>
+      <Label variant="field">Contact Category</Label>
 
       {isLoading || hasError ? (
         <p className="text-text-muted text-sm">

@@ -660,6 +660,11 @@ export function recordFarmsForContact(contactId?: number) {
   return CONTACTS.flatMap((contact) => contact.farms ?? []);
 }
 
+/** Full contact record by id — powers the detail page (farm vs single tabs). */
+export function getContactById(contactId: number) {
+  return CONTACTS.find((contact) => contact.id === contactId);
+}
+
 // ---- Contact categories (own list endpoint, not in the excluded set) ----
 const CONTACT_CATEGORIES = [
   { ...CAT_CLIENT, is_default: true, created_at: "2026-01-01T00:00:00Z", contact_count: 7 },

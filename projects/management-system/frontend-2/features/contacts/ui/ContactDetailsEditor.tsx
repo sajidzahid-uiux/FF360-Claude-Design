@@ -97,7 +97,13 @@ export function ContactDetailsEditor({
                 index > 0 && "mt-1"
               )}
             >
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div
+                className="grid items-end gap-3"
+                style={{
+                  gridTemplateColumns:
+                    "minmax(0, 3fr) minmax(0, 3fr) minmax(0, 2fr) auto",
+                }}
+              >
                 <Input
                   disabled={readOnly}
                   label={row.is_primary ? "Name *" : "Name"}
@@ -127,26 +133,23 @@ export function ContactDetailsEditor({
                     handleFieldChange(index, "phone_number", event.target.value)
                   }
                 />
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                <div className="min-w-0 flex-1">
-                  <Input
-                    disabled={readOnly}
-                    label="Label"
-                    leftIcon={
-                      <Tag aria-hidden className="h-4 w-4" strokeWidth={2} />
-                    }
-                    placeholder="e.g. Mobile, Office"
-                    value={row.label}
-                    onChange={(event) =>
-                      handleFieldChange(index, "label", event.target.value)
-                    }
-                  />
-                </div>
+                <Input
+                  disabled={readOnly}
+                  label="Label"
+                  leftIcon={
+                    <Tag aria-hidden className="h-4 w-4" strokeWidth={2} />
+                  }
+                  placeholder="e.g. Mobile"
+                  value={row.label}
+                  onChange={(event) =>
+                    handleFieldChange(index, "label", event.target.value)
+                  }
+                />
                 {!readOnly ? (
-                  <div className="flex shrink-0 items-center gap-2 self-end">
+                  <div className="flex shrink-0 items-center gap-1.5 pb-0.5">
                     <Button
+                      iconOnly
+                      aria-label={row.is_primary ? "Primary" : "Set as primary"}
                       disabled={row.is_primary}
                       leftIcon={
                         <Star
@@ -159,7 +162,6 @@ export function ContactDetailsEditor({
                         />
                       }
                       size={ComponentSizeEnum.SM}
-                      title="Primary"
                       variant={
                         row.is_primary
                           ? ButtonVariantEnum.ACCENT
@@ -185,7 +187,7 @@ export function ContactDetailsEditor({
                     ) : null}
                   </div>
                 ) : row.is_primary ? (
-                  <span className="text-text-muted shrink-0 pb-2 text-xs font-medium">
+                  <span className="text-text-muted shrink-0 pb-2.5 text-xs font-medium">
                     Primary
                   </span>
                 ) : null}
@@ -233,7 +235,7 @@ export function ContactDetailsEditor({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="min-w-0">
-                <Label htmlFor={`detail-name-${index}`} variant="formMedium">
+                <Label htmlFor={`detail-name-${index}`} variant="field">
                   Name {row.is_primary ? "*" : ""}
                 </Label>
                 <SanitizedInput
@@ -251,7 +253,7 @@ export function ContactDetailsEditor({
               </div>
 
               <div className="min-w-0">
-                <Label htmlFor={`detail-phone-${index}`} variant="formMedium">
+                <Label htmlFor={`detail-phone-${index}`} variant="field">
                   Phone Number
                 </Label>
                 <SanitizedInput
@@ -272,7 +274,7 @@ export function ContactDetailsEditor({
               </div>
 
               <div className="min-w-0">
-                <Label htmlFor={`detail-label-${index}`} variant="formMedium">
+                <Label htmlFor={`detail-label-${index}`} variant="field">
                   Label
                 </Label>
                 <SanitizedInput

@@ -1,8 +1,8 @@
 "use client";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
-import { Button, ButtonVariantEnum } from "@fieldflow360/org-ui";
-import { AlertCircle, Info } from "lucide-react";
+import { Button, ButtonVariantEnum, ComponentSizeEnum } from "@fieldflow360/org-ui";
+import { AlertCircle, Info, Plus } from "lucide-react";
 import { z } from "zod";
 
 import {
@@ -40,7 +40,7 @@ import {
   contactFormMapDataSchema,
 } from "./contactFormZodSchemas";
 
-const farmContactFormValidation = z
+export const farmContactFormValidation = z
   .object({
     full_name: z.string().optional(),
     email: z
@@ -159,12 +159,12 @@ const columnsGridClass =
   "grid min-h-0 w-full grid-cols-1 gap-4 lg:grid-cols-2 lg:items-stretch";
 
 const fieldLabel = (text: string, htmlFor?: string) => (
-  <Label htmlFor={htmlFor} variant="formMedium">
+  <Label htmlFor={htmlFor} variant="field">
     {text}
   </Label>
 );
 
-interface FarmContactFormContentProps {
+export interface FarmContactFormContentProps {
   value: FarmContactFormData;
   onChange: (value: FarmContactFormData) => void;
   formMethods?: {
@@ -179,7 +179,7 @@ interface FarmContactFormContentProps {
   onCancel?: () => void;
 }
 
-function FarmContactFormContent({
+export function FarmContactFormContent({
   value,
   onChange,
   formMethods,
@@ -294,6 +294,7 @@ function FarmContactFormContent({
               errors={contactDetailsError}
               readOnly={readOnly}
               value={formData.contact_details}
+              variant="modal"
               onChange={(contact_details) =>
                 onChange({ ...formData, contact_details })
               }
@@ -388,6 +389,19 @@ function FarmContactFormContent({
                     selectedIds={normalizedCategoryIds}
                     onToggle={handleCategoryToggle}
                   />
+                  {!readOnly ? (
+                    <Button
+                      aria-label="Add new category"
+                      className="mt-1.5 h-auto px-0 text-xs"
+                      leftIcon={
+                        <Plus aria-hidden className="h-3.5 w-3.5" strokeWidth={2} />
+                      }
+                      size={ComponentSizeEnum.SM}
+                      title="Add new category"
+                      variant={ButtonVariantEnum.GHOST}
+                      onClick={() => openModal("add-category")}
+                    />
+                  ) : null}
                 </div>
 
                 <div>
@@ -505,16 +519,8 @@ function FarmContactFormContent({
               </div>
             </div>
 
-            <div className="mt-auto flex flex-col items-end gap-4 pt-6">
-              {!readOnly ? (
-                <Button
-                  aria-label="Add New Category"
-                  title="Add New Category"
-                  onClick={() => openModal("add-category")}
-                />
-              ) : null}
-
-              {inlineActions ? (
+            {inlineActions ? (
+              <div className="mt-auto flex justify-end pt-6">
                 <Button
                   aria-label={isSubmitting ? "Creating..." : "Submit"}
                   disabled={isSubmitting || readOnly}
@@ -522,8 +528,8 @@ function FarmContactFormContent({
                   title={isSubmitting ? "Creating..." : "Submit"}
                   type="submit"
                 />
-              ) : null}
-            </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

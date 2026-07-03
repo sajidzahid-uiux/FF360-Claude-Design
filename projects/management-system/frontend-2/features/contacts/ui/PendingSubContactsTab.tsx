@@ -8,13 +8,8 @@ import {
 } from "@fieldflow360/org-ui";
 import { User } from "lucide-react";
 
-import type {
-  Contact,
-  ContactCategory,
-  SubContactCreateAndLinkPayload,
-} from "@/api/types";
+import type { Contact, ContactCategory } from "@/api/types";
 import {
-  CLIENT_CONTACT_CATEGORY_NAME,
   CONTACT_TYPE_LABELS,
   MAX_SUB_CONTACTS,
   type PendingSubContactEntry,
@@ -25,7 +20,6 @@ import {
   pendingSubContactKey,
   toPendingSubContactTableRow,
 } from "@/features/contacts/model";
-import { useContactCategories } from "@/hooks";
 import { useModalStack } from "@/shared/model/use-modal-stack";
 import { OrgUiDataTable, type OrgUiDataTableColumn } from "@/shared/ui";
 
@@ -72,7 +66,6 @@ export default function PendingSubContactsTab({
   pending,
   onChange,
 }: PendingSubContactsTabProps) {
-  const { categories } = useContactCategories();
   const { stack, openModal, closeModalKey } = useModalStack();
   const [searchTerm, setSearchTerm] = useState("");
   const isAddOpen = stack.some((f) => f.key === "add-pending-subcontact");
@@ -112,32 +105,13 @@ export default function PendingSubContactsTab({
   );
 
   const handleLinkExisting = useCallback(
-    (contact: Contact) => {
-      if (pending.length >= MAX_SUB_CONTACTS) return;
-      onChange([...pending, { kind: "existing", contact }]);
+    (contacts: Contact[]) => {
+      const additions = contacts.map(
+        (contact): PendingSubContactEntry => ({ kind: "existing", contact })
+      );
+      onChange([...pending, ...additions].slice(0, MAX_SUB_CONTACTS));
     },
     [onChange, pending]
-  );
-
-  const handleCreateNew = useCallback(
-    (payload: SubContactCreateAndLinkPayload, displayName: string) => {
-      if (pending.length >= MAX_SUB_CONTACTS) return;
-      const clientCategory = categories?.find(
-        (c) =>
-          c.name.toLowerCase() === CLIENT_CONTACT_CATEGORY_NAME.toLowerCase()
-      );
-      onChange([
-        ...pending,
-        {
-          kind: "new",
-          tempId: `new-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-          displayName,
-          payload,
-          categories: clientCategory ? [clientCategory] : [],
-        },
-      ]);
-    },
-    [categories, onChange, pending]
   );
 
   const columns = useMemo(
@@ -230,7 +204,6 @@ export default function PendingSubContactsTab({
         excludedContactIds={excludedContactIds}
         open={isAddOpen}
         pendingCount={pending.length}
-        onCreateNew={handleCreateNew}
         onLinkExisting={handleLinkExisting}
         onOpenChange={(o) => {
           if (!o) closeModalKey("add-pending-subcontact");

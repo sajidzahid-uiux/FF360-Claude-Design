@@ -228,7 +228,7 @@ export function CategoriesTab({
 
   return (
     <>
-      <div className="mx-auto w-full max-w-4xl">
+      <div className="w-full">
         <CmsOrgUiTable
           showHeaderWhenEmpty
           columns={columns}

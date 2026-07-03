@@ -58,6 +58,7 @@ export function ActivityLogSubpageLayout({
         backLabel={backLabel}
         bodyClassName="pb-10"
         className="flex-1"
+        constrainBodyWidth={false}
         meta={headerMeta}
         subtitle={subtitle}
         onBack={() => router.push(detailHref)}

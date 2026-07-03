@@ -182,27 +182,23 @@ export function AddContactFormFields({
     onFieldChange?.("contact_details");
   };
 
-  return (
-    <div
-      className={
-        layout === "detail" ? "mx-auto max-w-5xl space-y-5" : "space-y-8"
-      }
+  const contactDetailsSection = (
+    <FormSection
+      description="Add one or more names and phone numbers; mark one as primary for lists and search."
+      layout={layout}
+      title="Contact details"
     >
-      <ContactFormErrorSummary fieldErrors={fieldErrors} />
-      <FormSection
-        description="Add one or more names and phone numbers; mark one as primary for lists and search."
-        layout={layout}
-        title="Contact details"
-      >
-        <ContactDetailsEditor
-          errors={contactDetailsError}
-          readOnly={readOnly}
-          value={formData.contact_details}
-          variant="modal"
-          onChange={handleContactDetailsChange}
-        />
-      </FormSection>
+      <ContactDetailsEditor
+        errors={contactDetailsError}
+        readOnly={readOnly}
+        value={formData.contact_details}
+        variant="modal"
+        onChange={handleContactDetailsChange}
+      />
+    </FormSection>
+  );
 
+  const basicInfoSection = (
       <FormSection
         description="Additional contact and company information."
         layout={layout}
@@ -267,7 +263,9 @@ export function AddContactFormFields({
           </div>
         )}
       </FormSection>
+  );
 
+  const additionalSection = (
       <FormSection layout={layout} title="Additional details">
         {isDetailView ? (
           <div className="grid gap-4 sm:grid-cols-2">
@@ -323,7 +321,9 @@ export function AddContactFormFields({
           </div>
         )}
       </FormSection>
+  );
 
+  const addressSection = (
       <FormSection
         description="Used for mailing labels and location context."
         layout={layout}
@@ -385,7 +385,9 @@ export function AddContactFormFields({
           </div>
         )}
       </FormSection>
+  );
 
+  const locationSection = (
       <FormSection layout={layout} title="Location">
         <div className={isDetailView ? "contact-location-readonly" : undefined}>
           <LocationPicker
@@ -408,8 +410,10 @@ export function AddContactFormFields({
           />
         </div>
       </FormSection>
+  );
 
-      {hideCategoryField ? null : categoriesMode === "checkbox" ? (
+  const categoriesSection = hideCategoryField ? null : categoriesMode ===
+    "checkbox" ? (
         <FormSection
           description="Client Contact is assigned automatically when none are selected."
           layout={layout}
@@ -543,7 +547,37 @@ export function AddContactFormFields({
             </div>
           ) : null}
         </FormSection>
-      )}
+      );
+
+  if (layout === "modal") {
+    return (
+      <div className="space-y-6">
+        <ContactFormErrorSummary fieldErrors={fieldErrors} />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
+          <div className="space-y-6">
+            {contactDetailsSection}
+            {locationSection}
+          </div>
+          <div className="space-y-6">
+            {basicInfoSection}
+            {additionalSection}
+            {addressSection}
+            {categoriesSection}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full space-y-5">
+      <ContactFormErrorSummary fieldErrors={fieldErrors} />
+      {contactDetailsSection}
+      {basicInfoSection}
+      {additionalSection}
+      {addressSection}
+      {locationSection}
+      {categoriesSection}
     </div>
   );
 }

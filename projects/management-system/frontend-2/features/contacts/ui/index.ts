@@ -27,6 +27,8 @@ export {
 } from "@/entities/contact";
 export { ContactsTable } from "./ContactsTable";
 export type { ContactsTableProps } from "./ContactsTable";
+export { FarmContactModal } from "./FarmContactModal";
+export type { FarmContactModalProps } from "./FarmContactModal";
 export { FarmManagementContactCell } from "./FarmManagementContactCell";
 export { default as PendingSubContactsTab } from "./PendingSubContactsTab";
 export {

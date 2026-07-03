@@ -129,7 +129,7 @@ export function AddContactModal({ open, onOpenChange }: AddContactModalProps) {
         submitDisabled={submitDisabled}
         submitLabel="Create Contact"
         title="Add New Contact"
-        width={920}
+        width={1280}
         onClose={handleClose}
         onSubmit={handleSubmit}
       >

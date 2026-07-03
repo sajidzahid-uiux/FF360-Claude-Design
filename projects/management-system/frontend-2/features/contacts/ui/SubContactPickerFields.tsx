@@ -1,7 +1,7 @@
 "use client";
 
-import { Button, ButtonVariantEnum } from "@fieldflow360/org-ui";
-import { Plus, User } from "lucide-react";
+import { Button, ButtonVariantEnum, cn } from "@fieldflow360/org-ui";
+import { Check, User } from "lucide-react";
 
 import type { Contact } from "@/api/types";
 import { formatSecondaryContactNames } from "@/features/contacts/lib";
@@ -12,8 +12,12 @@ interface SubContactSearchPickerProps {
   onSearchTermChange: (value: string) => void;
   availableContacts: Contact[];
   isLoading: boolean;
-  onSelectContact: (contact: Contact) => void;
-  onNewContact: () => void;
+  /** Ids currently ticked. */
+  selectedIds: number[];
+  /** Toggle a contact's selection. */
+  onToggleContact: (contact: Contact) => void;
+  /** When the max is reached, unticked rows are disabled. */
+  disableUnselected?: boolean;
 }
 
 export function SubContactSearchPicker({
@@ -21,29 +25,24 @@ export function SubContactSearchPicker({
   onSearchTermChange,
   availableContacts,
   isLoading,
-  onSelectContact,
-  onNewContact,
+  selectedIds,
+  onToggleContact,
+  disableUnselected = false,
 }: SubContactSearchPickerProps) {
+  const selectedSet = new Set(selectedIds);
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <div className="flex min-h-0 flex-col gap-3">
       <div className="shrink-0">
         <p className="mb-2 text-sm font-medium">Customer Name</p>
         <SanitizedInput
-          placeholder="Enter Customer Name"
+          placeholder="Search contacts..."
           value={searchTerm}
           onChange={(e) => onSearchTermChange(e.target.value)}
         />
       </div>
 
-      <div className="border-border-subtle bg-bg-app flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border shadow-sm">
-        <button
-          className="hover:bg-bg-surface flex w-full shrink-0 items-center gap-2 border-b px-3 py-2.5 text-left text-sm"
-          type="button"
-          onClick={onNewContact}
-        >
-          <Plus className="h-4 w-4" />
-          New Contact
-        </button>
+      <div className="border-border-subtle bg-bg-app flex max-h-[22rem] min-h-0 flex-col overflow-hidden rounded-md border shadow-sm">
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
           {isLoading ? (
             <p className="text-text-muted px-3 py-4 text-sm">Loading...</p>
@@ -57,13 +56,32 @@ export function SubContactSearchPicker({
                 c.contact_details,
                 c.full_name
               );
+              const selected = selectedSet.has(c.id);
+              const disabled = !selected && disableUnselected;
               return (
                 <button
                   key={c.id}
-                  className="hover:bg-bg-surface flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm"
+                  aria-pressed={selected}
+                  className={cn(
+                    "flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm transition-colors",
+                    selected ? "bg-accent/10" : "hover:bg-bg-surface",
+                    disabled && "cursor-not-allowed opacity-40 hover:bg-transparent"
+                  )}
+                  disabled={disabled}
                   type="button"
-                  onClick={() => onSelectContact(c)}
+                  onClick={() => onToggleContact(c)}
                 >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                      selected
+                        ? "bg-accent border-accent text-white"
+                        : "border-border bg-white"
+                    )}
+                  >
+                    {selected ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
+                  </span>
                   <User className="text-text-muted h-4 w-4 shrink-0" />
                   <span className="font-medium">{c.full_name}</span>
                   {secondary ? (
@@ -144,5 +162,5 @@ export function SubContactNewContactFields({
   );
 }
 
-export const SUB_CONTACT_DIALOG_MODAL_CLASS = "max-w-lg";
+export const SUB_CONTACT_DIALOG_MODAL_CLASS = "max-w-lg h-auto max-h-[85vh]";
 export const SUB_CONTACT_DIALOG_CONTENT_CLASS = SUB_CONTACT_DIALOG_MODAL_CLASS;

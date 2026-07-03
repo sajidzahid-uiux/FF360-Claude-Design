@@ -381,7 +381,13 @@ export function ContactDetailView({
               closeModalKey("add-category");
               setIsEditingForm(false);
             }}
-            onEdit={() => setIsEditingForm(true)}
+            onEdit={() => {
+              if (isFarmManagement) {
+                openModal("edit-farm-contact", { id: String(contact.id) });
+              } else {
+                setIsEditingForm(true);
+              }
+            }}
             onSave={() => {
               void formMethodsRef?.handleSubmit(handleSubmit, () => {
                 // Invalid form state is reflected via formState errors.

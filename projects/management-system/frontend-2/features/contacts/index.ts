@@ -99,6 +99,7 @@ export {
   ContactNumberRow,
   ContactsBreadcrumbToolbar,
   ContactsTable,
+  FarmContactModal,
   FarmManagementContactCell,
   PendingSubContactsTab,
   SUB_CONTACT_CREATE_FORM_BODY_CLASS,
@@ -121,6 +122,7 @@ export type {
   ContactTypeBadgeContactInfo,
   ContactsBreadcrumbToolbarProps,
   ContactsTableProps,
+  FarmContactModalProps,
   StakeholderHeaderBadgeContactInfo,
 } from "./ui";
 
