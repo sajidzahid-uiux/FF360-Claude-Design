@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import { AppFormModal, Button, ButtonVariantEnum } from "@fieldflow360/org-ui";
@@ -28,9 +27,8 @@ import {
   useCategoryMutations,
   useContactCategories,
   useContactMutations,
-  useRouteIds,
 } from "@/hooks";
-import { orgPath } from "@/shared/config/routes";
+import { useModalStack } from "@/shared/model/use-modal-stack";
 
 export interface AddContactModalProps {
   open: boolean;
@@ -38,8 +36,7 @@ export interface AddContactModalProps {
 }
 
 export function AddContactModal({ open, onOpenChange }: AddContactModalProps) {
-  const router = useRouter();
-  const { orgId } = useRouteIds();
+  const { replaceModal } = useModalStack();
   const { categories } = useContactCategories();
   const { create: createContact } = useContactMutations();
   const { create: createCategory } = useCategoryMutations();
@@ -145,9 +142,15 @@ export function AddContactModal({ open, onOpenChange }: AddContactModalProps) {
     const result = await createFromForm();
     if (!result.ok) return;
     toast.success("Contact created successfully");
-    onOpenChange(false);
-    if (result.id != null && orgId) {
-      router.push(orgPath(orgId, `/contact/${result.id}?action=add`));
+    // Swap this modal for the "New On-Site Operation" form, pre-scoped to the
+    // contact we just created.
+    if (result.id != null) {
+      replaceModal("add-onsite-operation", {
+        id: String(result.id),
+        name: formData.full_name?.trim() || "",
+      });
+    } else {
+      onOpenChange(false);
     }
   };
 

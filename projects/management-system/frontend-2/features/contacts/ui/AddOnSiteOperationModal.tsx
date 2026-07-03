@@ -16,6 +16,7 @@ import type { GeoLatLng, VertexRing } from "@/api/types/geo";
 import { ON_SITE_OPERATION_LABEL } from "@/features/contacts/model/constants";
 import { DeckBoundaryMap } from "@/features/map/ui";
 import {
+  useContact,
   useContacts,
   useFarmMutations,
   useOrganizationData,
@@ -29,19 +30,29 @@ const NAME_MAX = 100;
 export interface AddOnSiteOperationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** When provided, the operation is scoped to this contact (picker locked). */
+  initialContactId?: number | null;
+  /** Display name for the locked contact (used when it can't be fetched yet). */
+  initialContactName?: string;
 }
 
 /**
- * Global "New On-Site Operation" flow. Unlike the contact-detail version
- * (which knows its parent contact), this opens from the top-bar "+ New" menu,
- * so it requires the user to pick the owning contact first.
+ * "New On-Site Operation" flow. Opens from the top-bar "+ New" menu (pick a
+ * contact) or from "Create & Add On-Site Operation" in Add Contact (contact
+ * pre-selected and locked to the one just created).
  */
 export function AddOnSiteOperationModal({
   open,
   onOpenChange,
+  initialContactId = null,
+  initialContactName,
 }: AddOnSiteOperationModalProps) {
   const { orgId } = useRouteIds();
-  const [contactId, setContactId] = useState<number | null>(null);
+  const [contactId, setContactId] = useState<number | null>(initialContactId);
+  const isContactLocked = initialContactId != null;
+  const { data: presetContact } = useContact(
+    open && isContactLocked ? initialContactId : null
+  );
   const [name, setName] = useState("");
   const [acreage, setAcreage] = useState("");
   const [location, setLocation] = useState<GeoLatLng | undefined>(undefined);
@@ -66,8 +77,10 @@ export function AddOnSiteOperationModal({
       setAcreage("");
       setLocation(undefined);
       setVertices([]);
+      return;
     }
-  }, [open]);
+    setContactId(initialContactId);
+  }, [open, initialContactId]);
 
   const contactOptions = useMemo(
     () =>
@@ -138,25 +151,38 @@ export function AddOnSiteOperationModal({
       <div className="flex min-h-0 flex-col gap-5 sm:gap-6">
         <div className="space-y-1.5">
           <Label variant="field">Contact *</Label>
-          <SearchableDropdown
-            options={contactOptions}
-            placeholder="Select a contact"
-            searchPlaceholder="Search contacts..."
-            trigger={() => (
-              <Button
-                aria-label={selectedContactLabel}
-                className="mt-1 w-full justify-between"
-                leftIcon={<User aria-hidden className="h-4 w-4" strokeWidth={2} />}
-                rightIcon={
-                  <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
-                }
-                title={selectedContactLabel}
-                variant={ButtonVariantEnum.SURFACE}
-              />
-            )}
-            value={contactId != null ? String(contactId) : undefined}
-            onChange={(value) => setContactId(Number(value))}
-          />
+          {isContactLocked ? (
+            <div className="border-border bg-bg-surface text-text-primary mt-1 flex h-11 w-full items-center gap-2 rounded-lg border px-3 text-sm">
+              <User aria-hidden className="text-text-muted h-4 w-4 shrink-0" />
+              <span className="truncate font-medium">
+                {initialContactName ||
+                  presetContact?.full_name ||
+                  "Selected contact"}
+              </span>
+            </div>
+          ) : (
+            <SearchableDropdown
+              options={contactOptions}
+              placeholder="Select a contact"
+              searchPlaceholder="Search contacts..."
+              trigger={() => (
+                <Button
+                  aria-label={selectedContactLabel}
+                  className="mt-1 w-full justify-between"
+                  leftIcon={
+                    <User aria-hidden className="h-4 w-4" strokeWidth={2} />
+                  }
+                  rightIcon={
+                    <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                  }
+                  title={selectedContactLabel}
+                  variant={ButtonVariantEnum.SURFACE}
+                />
+              )}
+              value={contactId != null ? String(contactId) : undefined}
+              onChange={(value) => setContactId(Number(value))}
+            />
+          )}
           <p className="text-text-muted text-xs">
             An {ON_SITE_OPERATION_LABEL.toLowerCase()} must belong to a contact.
           </p>

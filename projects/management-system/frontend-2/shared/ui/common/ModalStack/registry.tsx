@@ -98,9 +98,11 @@ export const MODAL_REGISTRY: Record<string, ModalRegistryEntry> = {
     ),
   },
   "add-onsite-operation": {
-    render: ({ close }) => (
+    render: ({ params, close }) => (
       <AddOnSiteOperationModal
         open
+        initialContactId={params.id != null ? Number(params.id) : null}
+        initialContactName={params.name}
         onOpenChange={(open) => {
           if (!open) close();
         }}
