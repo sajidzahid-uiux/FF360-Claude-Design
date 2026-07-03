@@ -86,6 +86,7 @@ export {
   AddContactFormFields,
   AddContactModal,
   AddContactToolbar,
+  AddOnSiteOperationModal,
   AddPendingSubContactDialog,
   CONTACT_PAGE_TABS,
   CategoriesTab,

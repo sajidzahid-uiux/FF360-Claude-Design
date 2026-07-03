@@ -2,6 +2,7 @@ import {
   Briefcase,
   ClipboardList,
   Package,
+  Sprout,
   UserPlus,
   Wrench,
 } from "lucide-react";
@@ -53,6 +54,13 @@ export const QUICK_CREATE_ACTIONS: QuickCreateAction[] = [
     description: "Add a client or vendor",
     icon: UserPlus,
     modal: { key: "add-contact" },
+  },
+  {
+    id: "add-onsite-operation",
+    label: "New On-Site Operation",
+    description: "Add a field or operation to a contact",
+    icon: Sprout,
+    modal: { key: "add-onsite-operation" },
   },
   {
     id: "add-equipment",

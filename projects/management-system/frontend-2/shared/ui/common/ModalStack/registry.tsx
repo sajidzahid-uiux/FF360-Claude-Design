@@ -38,6 +38,11 @@ const AddContactModal = dynamic(() =>
 const FarmContactModal = dynamic(() =>
   import("@/features/contacts").then((m) => ({ default: m.FarmContactModal }))
 );
+const AddOnSiteOperationModal = dynamic(() =>
+  import("@/features/contacts").then((m) => ({
+    default: m.AddOnSiteOperationModal,
+  }))
+);
 
 // ---- Leads / Jobs ------------------------------------------------------------
 // Self-contained connected modals: they read the URL stack and own their create
@@ -86,6 +91,16 @@ export const MODAL_REGISTRY: Record<string, ModalRegistryEntry> = {
       <FarmContactModal
         open
         contactId={params.id != null ? Number(params.id) : null}
+        onOpenChange={(open) => {
+          if (!open) close();
+        }}
+      />
+    ),
+  },
+  "add-onsite-operation": {
+    render: ({ close }) => (
+      <AddOnSiteOperationModal
+        open
         onOpenChange={(open) => {
           if (!open) close();
         }}

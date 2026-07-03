@@ -27,6 +27,8 @@ export {
 } from "@/entities/contact";
 export { ContactsTable } from "./ContactsTable";
 export type { ContactsTableProps } from "./ContactsTable";
+export { AddOnSiteOperationModal } from "./AddOnSiteOperationModal";
+export type { AddOnSiteOperationModalProps } from "./AddOnSiteOperationModal";
 export { FarmContactModal } from "./FarmContactModal";
 export type { FarmContactModalProps } from "./FarmContactModal";
 export { FarmManagementContactCell } from "./FarmManagementContactCell";
